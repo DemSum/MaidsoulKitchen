@@ -1,6 +1,9 @@
 # [农耕与烹饪：车万女仆拓展](./readme.zh.md) | Farm And Cook: Touhou Little Maid Addon
  A [touhoulittlemaid](https://github.com/TartaricAcid/TouhouLittleMaid) addon mod, is designed to teach maids how to use other mods for cooking and farming.
 
+## Credits
+  - The native dual-coordinate cooking state in the 1.21.1 fork is adapted from MaidsoulKitchen's own `1.20.1-1.0-dev` design. Reachable side-position search is an independent implementation using Minecraft pathfinding APIs; no SimplePathfinder source is included.
+
 ## Notice
   - Due to the author's personal reasons, the development progress will be extremely slow (maybe the pit will be abandoned...)
   - If you want to play as soon as possible, you can click `Star` and find the latest version of the auto-build on the [Releases](https://github.com/Wall-ev/TouhouLittleMaidAddon/releases) page

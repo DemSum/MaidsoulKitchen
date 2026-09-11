@@ -3,6 +3,9 @@ package com.github.wallev.maidsoulkitchen.mixin.touhoulittlemaid;
 import com.github.tartaricacid.touhoulittlemaid.entity.ai.brain.task.MaidRunOne;
 import com.github.tartaricacid.touhoulittlemaid.entity.passive.EntityMaid;
 import com.github.wallev.maidsoulkitchen.init.MkMemories;
+import com.github.wallev.maidsoulkitchen.api.task.v1.cook.ICookTask;
+import com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookTargetMemory;
+import com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookTargetState;
 import com.mojang.datafixers.util.Pair;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.ai.behavior.BehaviorControl;
@@ -23,6 +26,13 @@ public abstract class MaidRunOneMixin extends RunOne<EntityMaid> {
 
     @Inject(at = @At("HEAD"), cancellable = true, method = "tryStart(Lnet/minecraft/server/level/ServerLevel;Lcom/github/tartaricacid/touhoulittlemaid/entity/passive/EntityMaid;J)Z")
     private void tlmk$tryStart(ServerLevel pLevel, EntityMaid maid, long pGameTime, CallbackInfoReturnable<Boolean> cir) {
+        boolean hasCookTarget = maid.getBrain().hasMemoryValue(MkMemories.DESTROY_POS.get())
+                || maid.getBrain().hasMemoryValue(MkMemories.WORK_POS.get())
+                || maid.getBrain().hasMemoryValue(MkMemories.COOK_WALK_POS.get());
+        if (CookTargetState.shouldClearForTask(hasCookTarget, maid.getTask() instanceof ICookTask<?, ?>)) {
+            CookTargetMemory.clear(maid);
+            return;
+        }
         if (maid.getBrain().hasMemoryValue(MkMemories.DESTROY_POS.get())) {
             cir.setReturnValue(false);
         }

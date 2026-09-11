@@ -1,6 +1,9 @@
 # 农耕与烹饪：车万女仆拓展 | [Farm And Cook: Touhou Little Maid Addon](./readme.md)
  这里是一个[车万女仆](https://github.com/TartaricAcid/TouhouLittleMaid)附属模组，旨在让女仆学会使用其他模组的烹饪和作物的耕种
 
+## 鸣谢
+  - 1.21.1 fork 的原生烹饪双坐标状态设计改编自 MaidsoulKitchen 自身的 `1.20.1-1.0-dev` 分支；可达侧面落脚点搜索基于 Minecraft 寻路 API 独立实现，未包含 SimplePathfinder 源码。
+
 ## 注意
   - 由于作者个人原因，开发进度会及其缓慢（保不准会弃坑...）
   - 如果您想尽快游玩，可以点个`Star`，在[Releases](https://github.com/Wall-ev/TouhouLittleMaidAddon/releases)页面找到自动构建好的最新版，

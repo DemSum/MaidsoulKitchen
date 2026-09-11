@@ -1,8 +1,9 @@
 package com.github.wallev.maidsoulkitchen.task.cook.barbequesdelight;
 
 import com.github.tartaricacid.touhoulittlemaid.entity.passive.EntityMaid;
-import com.github.tartaricacid.touhoulittlemaid.init.InitEntities;
 import com.github.wallev.maidsoulkitchen.init.MkMemories;
+import com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookTargetMemory;
+import com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookTargetState;
 import com.github.wallev.maidsoulkitchen.task.cook.common.inventory.MaidRecipesManager;
 import com.google.common.collect.ImmutableMap;
 import com.mao.barbequesdelight.content.block.BasinBlockEntity;
@@ -12,13 +13,10 @@ import com.mao.barbequesdelight.init.registrate.BBQDRecipes;
 import com.mojang.datafixers.util.Pair;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.entity.ai.Brain;
 import net.minecraft.world.entity.ai.behavior.Behavior;
-import net.minecraft.world.entity.ai.memory.MemoryModuleType;
 import net.minecraft.world.entity.ai.memory.MemoryStatus;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.items.IItemHandlerModifiable;
 import net.neoforged.neoforge.items.ItemHandlerHelper;
 
@@ -35,29 +33,30 @@ public class MaidBasinMakeTask extends Behavior<EntityMaid> {
     private ItemStack side = ItemStack.EMPTY;
 
     public MaidBasinMakeTask(TaskBdBasin task, MaidRecipesManager<SkeweringRecipe<?>> maidRecipesManager) {
-        super(ImmutableMap.of(InitEntities.TARGET_POS.get(), MemoryStatus.VALUE_PRESENT), 1200);
+        super(ImmutableMap.of(MkMemories.WORK_POS.get(), MemoryStatus.VALUE_PRESENT), 1200);
         this.task = task;
         this.maidRecipesManager = maidRecipesManager;
     }
 
     @Override
     protected boolean checkExtraStartConditions(ServerLevel worldIn, EntityMaid maid) {
-        Brain<EntityMaid> brain = maid.getBrain();
-        return brain.getMemory(InitEntities.TARGET_POS.get()).map(targetPos -> {
-            Vec3 targetV3d = targetPos.currentPosition();
-            return !(maid.distanceToSqr(targetV3d) > Math.pow(task.getCloseEnoughDist(), 2));
-        }).orElse(false);
+        CookTargetState.StartState state = CookTargetMemory.evaluateStart(
+                worldIn, maid, task::isCookBE, task.getCloseEnoughDist());
+        if (state == CookTargetState.StartState.CLEAR_INVALID) {
+            CookTargetMemory.clear(maid);
+        }
+        return state == CookTargetState.StartState.READY;
     }
 
     @Override
     protected boolean canStillUse(ServerLevel worldIn, EntityMaid maid, long pGameTime) {
-        return maid.getBrain().hasMemoryValue(InitEntities.TARGET_POS.get());
+        return CookTargetMemory.hasValidWorkTarget(worldIn, maid, task::isCookBE);
     }
 
     @Override
     protected void start(ServerLevel worldIn, EntityMaid maid, long pGameTime) {
         super.start(worldIn, maid, pGameTime);
-        maid.getBrain().getMemory(InitEntities.TARGET_POS.get()).ifPresent(posWrapper -> {
+        CookTargetMemory.getWorkPos(maid).ifPresent(posWrapper -> {
             BlockEntity blockEntity = worldIn.getBlockEntity(posWrapper.currentBlockPosition());
             if (blockEntity instanceof BasinBlockEntity basinBlockEntity) {
                 IItemHandlerModifiable inputInv = maidRecipesManager.getInputInv();
@@ -99,7 +98,7 @@ public class MaidBasinMakeTask extends Behavior<EntityMaid> {
     @Override
     protected void tick(ServerLevel worldIn, EntityMaid maid, long pGameTime) {
         if (tick++ % 5 != 0) return;
-        maid.getBrain().getMemory(InitEntities.TARGET_POS.get()).ifPresent(posWrapper -> {
+        CookTargetMemory.getWorkPos(maid).ifPresent(posWrapper -> {
             BlockEntity blockEntity = worldIn.getBlockEntity(posWrapper.currentBlockPosition());
             if (blockEntity instanceof BasinBlockEntity basinBlockEntity) {
                 IItemHandlerModifiable outputInv = maidRecipesManager.getOutputInv();
@@ -130,8 +129,6 @@ public class MaidBasinMakeTask extends Behavior<EntityMaid> {
     @Override
     protected void stop(ServerLevel worldIn, EntityMaid maid, long pGameTime) {
         super.stop(worldIn, maid, pGameTime);
-        maid.getBrain().eraseMemory(MemoryModuleType.WALK_TARGET);
-        maid.getBrain().eraseMemory(InitEntities.TARGET_POS.get());
-        maid.getBrain().eraseMemory(MkMemories.DESTROY_POS.get());
+        CookTargetMemory.clear(maid);
     }
 }

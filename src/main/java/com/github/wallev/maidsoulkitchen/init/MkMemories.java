@@ -13,6 +13,8 @@ import java.util.Optional;
 
 public final class MkMemories {
     public static final DeferredRegister<MemoryModuleType<?>> MEMORY_MODULE_TYPES = DeferredRegister.create(BuiltInRegistries.MEMORY_MODULE_TYPE, MaidsoulKitchen.MOD_ID);
-    public static DeferredHolder<MemoryModuleType<?>, MemoryModuleType<PositionTracker>> DESTROY_POS = MEMORY_MODULE_TYPES.register("destroy_pos", () -> new MemoryModuleType<>(Optional.empty()));;
+    public static final DeferredHolder<MemoryModuleType<?>, MemoryModuleType<PositionTracker>> DESTROY_POS = MEMORY_MODULE_TYPES.register("destroy_pos", () -> new MemoryModuleType<>(Optional.empty()));
+    public static final DeferredHolder<MemoryModuleType<?>, MemoryModuleType<PositionTracker>> WORK_POS = MEMORY_MODULE_TYPES.register("work_pos", () -> new MemoryModuleType<>(Optional.empty()));
+    public static final DeferredHolder<MemoryModuleType<?>, MemoryModuleType<PositionTracker>> COOK_WALK_POS = MEMORY_MODULE_TYPES.register("cook_walk_pos", () -> new MemoryModuleType<>(Optional.empty()));
 
 }

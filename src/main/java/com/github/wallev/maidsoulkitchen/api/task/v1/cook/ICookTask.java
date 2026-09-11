@@ -12,6 +12,7 @@ import com.github.wallev.maidsoulkitchen.inventory.container.maid.CookConfigCont
 import com.github.wallev.maidsoulkitchen.inventory.tooltip.AmountTooltip;
 import com.github.wallev.maidsoulkitchen.task.cook.common.ai.MaidCookMakeTask;
 import com.github.wallev.maidsoulkitchen.task.cook.common.ai.MaidCookMoveTask;
+import com.github.wallev.maidsoulkitchen.task.cook.common.ai.MaidCookPathingTask;
 import com.github.wallev.maidsoulkitchen.task.cook.common.cbaccessor.IRecipeExperinceAward;
 import com.github.wallev.maidsoulkitchen.task.cook.common.inventory.MaidRecipesManager;
 import com.google.common.collect.Lists;
@@ -53,7 +54,12 @@ public interface ICookTask<B extends BlockEntity, R extends Recipe<? extends Rec
         MaidRecipesManager<R> cookingPotRecipeMaidRecipesManager = getRecipesManager(maid);
         MaidCookMoveTask<B, R> maidCookMoveTask = new MaidCookMoveTask<>(this, cookingPotRecipeMaidRecipesManager);
         MaidCookMakeTask<B, R> maidCookMakeTask = new MaidCookMakeTask<>(this, cookingPotRecipeMaidRecipesManager);
-        return Lists.newArrayList(Pair.of(5, maidCookMoveTask), Pair.of(6, maidCookMakeTask));
+        MaidCookPathingTask<B, R> maidCookPathingTask = new MaidCookPathingTask<>(this);
+        return Lists.newArrayList(
+                Pair.of(5, maidCookMoveTask),
+                Pair.of(6, maidCookMakeTask),
+                Pair.of(7, maidCookPathingTask)
+        );
     }
 
     default MaidRecipesManager<R> getRecipesManager(EntityMaid maid) {

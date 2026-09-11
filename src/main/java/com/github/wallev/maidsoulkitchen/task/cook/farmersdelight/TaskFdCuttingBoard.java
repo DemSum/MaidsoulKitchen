@@ -7,6 +7,7 @@ import com.github.wallev.maidsoulkitchen.entity.data.inner.task.CookData;
 import com.github.wallev.maidsoulkitchen.init.touhoulittlemaid.DataRegister;
 import com.github.wallev.maidsoulkitchen.task.TaskInfo;
 import com.github.wallev.maidsoulkitchen.task.cook.common.ai.MaidCookMoveTask;
+import com.github.wallev.maidsoulkitchen.task.cook.common.ai.MaidCookPathingTask;
 import com.github.wallev.maidsoulkitchen.task.cook.common.inventory.MaidRecipesManager;
 import com.google.common.collect.Lists;
 import com.mojang.datafixers.util.Pair;
@@ -53,7 +54,8 @@ public class TaskFdCuttingBoard implements ICookTask<CuttingBoardBlockEntity, Cu
         MaidRecipesManager<CuttingBoardRecipe> cookingPotRecipeMaidRecipesManager = getRecipesManager(maid);
         MaidCookMoveTask<CuttingBoardBlockEntity, CuttingBoardRecipe> maidCookMoveTask = new MaidCookMoveTask<>(this, cookingPotRecipeMaidRecipesManager);
         MaidCuttingMakeTask maidCookMakeTask = new MaidCuttingMakeTask(this, cookingPotRecipeMaidRecipesManager);
-        return Lists.newArrayList(Pair.of(5, maidCookMoveTask), Pair.of(6, maidCookMakeTask));
+        MaidCookPathingTask<CuttingBoardBlockEntity, CuttingBoardRecipe> maidCookPathingTask = new MaidCookPathingTask<>(this);
+        return Lists.newArrayList(Pair.of(5, maidCookMoveTask), Pair.of(6, maidCookMakeTask), Pair.of(7, maidCookPathingTask));
     }
 
     @Override

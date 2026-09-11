@@ -1,9 +1,10 @@
 package com.github.wallev.maidsoulkitchen.task.cook.farmersdelight;
 
 import com.github.tartaricacid.touhoulittlemaid.entity.passive.EntityMaid;
-import com.github.tartaricacid.touhoulittlemaid.init.InitEntities;
 import com.github.wallev.maidsoulkitchen.entity.passive.IAddonMaid;
 import com.github.wallev.maidsoulkitchen.init.MkMemories;
+import com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookTargetMemory;
+import com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookTargetState;
 import com.github.wallev.maidsoulkitchen.task.cook.common.cbaccessor.IRecipeExperinceAward;
 import com.github.wallev.maidsoulkitchen.task.cook.common.inventory.MaidRecipesManager;
 import com.google.common.collect.ImmutableMap;
@@ -12,9 +13,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.entity.ai.Brain;
 import net.minecraft.world.entity.ai.behavior.Behavior;
-import net.minecraft.world.entity.ai.memory.MemoryModuleType;
 import net.minecraft.world.entity.ai.memory.MemoryStatus;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.CampfireCookingRecipe;
@@ -40,7 +39,7 @@ public class MaidSkilletMakeTask extends Behavior<EntityMaid> {
     private int tickCounter = 0;
 
     public MaidSkilletMakeTask(TaskFdSkillet task, MaidRecipesManager<CampfireCookingRecipe> maidRecipesManager) {
-        super(ImmutableMap.of(InitEntities.TARGET_POS.get(), MemoryStatus.VALUE_PRESENT), 1200);
+        super(ImmutableMap.of(MkMemories.WORK_POS.get(), MemoryStatus.VALUE_PRESENT), 1200);
         this.task = task;
         this.maidRecipesManager = maidRecipesManager;
     }
@@ -59,16 +58,17 @@ public class MaidSkilletMakeTask extends Behavior<EntityMaid> {
             return false;
         }
         
-        Brain<EntityMaid> brain = maid.getBrain();
-        return brain.getMemory(InitEntities.TARGET_POS.get()).map(targetPos -> {
-            Vec3 targetV3d = targetPos.currentPosition();
-            return maid.distanceToSqr(targetV3d) <= Math.pow(task.getCloseEnoughDist(), 2);
-        }).orElse(false);
+        CookTargetState.StartState state = CookTargetMemory.evaluateStart(
+                worldIn, maid, task::isCookBE, task.getCloseEnoughDist());
+        if (state == CookTargetState.StartState.CLEAR_INVALID) {
+            CookTargetMemory.clear(maid);
+        }
+        return state == CookTargetState.StartState.READY;
     }
 
     @Override
     protected boolean canStillUse(ServerLevel worldIn, EntityMaid maid, long pGameTime) {
-        return maid.getBrain().hasMemoryValue(InitEntities.TARGET_POS.get());
+        return CookTargetMemory.hasValidWorkTarget(worldIn, maid, task::isCookBE);
     }
 
     @Override
@@ -82,7 +82,7 @@ public class MaidSkilletMakeTask extends Behavior<EntityMaid> {
         
         this.maidRecipesManager.getCookInv().syncInv();
         
-        maid.getBrain().getMemory(InitEntities.TARGET_POS.get()).ifPresent(posWrapper -> {
+        CookTargetMemory.getWorkPos(maid).ifPresent(posWrapper -> {
             BlockEntity blockEntity = worldIn.getBlockEntity(posWrapper.currentBlockPosition());
             if (blockEntity instanceof SkilletBlockEntity skilletBlockEntity) {
 
@@ -176,7 +176,7 @@ public class MaidSkilletMakeTask extends Behavior<EntityMaid> {
         // 每秒检查一次
         if (tickCounter % 20 != 0) return;
         
-        maid.getBrain().getMemory(InitEntities.TARGET_POS.get()).ifPresent(posWrapper -> {
+        CookTargetMemory.getWorkPos(maid).ifPresent(posWrapper -> {
             BlockPos blockPos = posWrapper.currentBlockPosition();
             BlockEntity blockEntity = worldIn.getBlockEntity(blockPos);
             
@@ -218,9 +218,7 @@ public class MaidSkilletMakeTask extends Behavior<EntityMaid> {
     @Override
     protected void stop(ServerLevel worldIn, EntityMaid maid, long pGameTime) {
         super.stop(worldIn, maid, pGameTime);
-        maid.getBrain().eraseMemory(MkMemories.DESTROY_POS.get());
-        maid.getBrain().eraseMemory(InitEntities.TARGET_POS.get());
-        maid.getBrain().eraseMemory(MemoryModuleType.WALK_TARGET);
+        CookTargetMemory.clear(maid);
         cookCount = 0;
         this.tickCounter = 0;
         
