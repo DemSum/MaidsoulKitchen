@@ -27,12 +27,13 @@ import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.neoforged.neoforge.items.IItemHandlerModifiable;
 import net.neoforged.neoforge.items.ItemHandlerHelper;
-import net.neoforged.neoforge.items.wrapper.CombinedInvWrapper;
 
 import java.util.*;
 
 
 public class TaskDbBeerBarrel extends TaskBaseContainerCook<BeerBarrelBlockEntity, BrewingRecipe> {
+    private static final int STATUS_IDLE = 0;
+
     @Override
     public boolean isCookBE(BlockEntity blockEntity) {
         return blockEntity instanceof BeerBarrelBlockEntity;
@@ -197,8 +198,16 @@ public class TaskDbBeerBarrel extends TaskBaseContainerCook<BeerBarrelBlockEntit
             return true;
         }
 
+        IItemHandlerModifiable inputInventory = maidRecipesManager.getInputInv();
+        if (getStatus(blockEntity) == STATUS_IDLE
+                && DrinkBeerBarrelInventory.needsCups(inventory)
+                && inputInventory != null
+                && DrinkBeerBarrelInventory.hasEmptyBeerMug(inputInventory)) {
+            return true;
+        }
+
         // 啤酒桶现在在酿酒吗
-        boolean b = ((BeerBarrelBlockAccessor)blockEntity).tlmk$statusCode() == 1;
+        boolean b = getStatus(blockEntity) == 1;
         List<Pair<List<Integer>, List<List<ItemStack>>>> recipesIngredients = maidRecipesManager.getRecipesIngredients();
         // 可放入原料进行酿酒(啤酒桶可酿酒:statusCode$tlma==2||statusCode$tlma==0和有原料)
         if (!b && !recipesIngredients.isEmpty()) {
@@ -206,12 +215,11 @@ public class TaskDbBeerBarrel extends TaskBaseContainerCook<BeerBarrelBlockEntit
         }
 
         // 有输入
-        return hasInput(inventory);
+        return DrinkBeerBarrelInventory.hasReturnedBucket(inventory);
     }
 
     @Override
     public void maidCookMake(ServerLevel serverLevel, EntityMaid entityMaid, BeerBarrelBlockEntity blockEntity, MaidRecipesManager<BrewingRecipe> maidRecipesManager) {
-        CombinedInvWrapper availableInv = entityMaid.getAvailableInv(true);
         extractOutputStack(getContainer(blockEntity), maidRecipesManager.getOutputInv(), blockEntity);
         extractInputStack(getContainer(blockEntity), maidRecipesManager.getInputInv(), blockEntity);
         tryInsertItem(serverLevel, entityMaid, blockEntity, maidRecipesManager);
@@ -240,26 +248,42 @@ public class TaskDbBeerBarrel extends TaskBaseContainerCook<BeerBarrelBlockEntit
 
     @Override
     public void tryInsertItem(ServerLevel serverLevel, EntityMaid entityMaid, BeerBarrelBlockEntity blockEntity, MaidRecipesManager<BrewingRecipe> maidRecipesManager) {
-        if (((BeerBarrelBlockAccessor)blockEntity).tlmk$statusCode() != 0) return;
+        if (getStatus(blockEntity) != STATUS_IDLE) return;
+
+        Container inventory = getContainer(blockEntity);
+        IItemHandlerModifiable inputInventory = maidRecipesManager.getInputInv();
+        if (inputInventory != null && DrinkBeerBarrelInventory.fillCups(inventory, inputInventory)) {
+            inventory.setChanged();
+            blockEntity.markDirty();
+            return;
+        }
         super.tryInsertItem(serverLevel, entityMaid, blockEntity, maidRecipesManager);
     }
 
     @Override
     public boolean inputCanTake(boolean beInnerCanCook, Container inventory) {
-        return hasInput(inventory);
+        return DrinkBeerBarrelInventory.hasReturnedBucket(inventory);
+    }
+
+    @Override
+    public boolean hasInput(Container inventory) {
+        return DrinkBeerBarrelInventory.hasReturnedBucket(inventory);
     }
 
     @Override
     public void extractInputStack(Container inventory, IItemHandlerModifiable availableInv, BlockEntity blockEntity) {
-        for (int i = this.getInputStartSlot(); i < this.getInputSize() + this.getInputStartSlot(); ++i) {
-            ItemStack stackInSlot = inventory.getItem(i);
-            ItemStack copy = stackInSlot.copy();
-            if (!stackInSlot.isEmpty()) {
-                ItemStack leftStack = ItemHandlerHelper.insertItemStacked(availableInv, copy, false);
-                inventory.removeItem(i, stackInSlot.getCount() - leftStack.getCount());
-                blockEntity.setChanged();
-            }
-        }
+        DrinkBeerBarrelInventory.extractReturnedBuckets(inventory, availableInv, blockEntity);
+    }
+
+    @Override
+    public void insertInputStack(
+            Container inventory,
+            IItemHandlerModifiable availableInv,
+            BlockEntity blockEntity,
+            Pair<List<Integer>, List<List<ItemStack>>> ingredientPair
+    ) {
+        DrinkBeerBarrelInventory.insertRecipeInputs(
+                inventory, availableInv, blockEntity, ingredientPair);
     }
 
     @Override
@@ -276,5 +300,9 @@ public class TaskDbBeerBarrel extends TaskBaseContainerCook<BeerBarrelBlockEntit
         list.addAll(ingres);
         list.add(Ingredient.of(beerCup));
         return ingres.isEmpty() ? Optional.empty() : Optional.of(new AmountTooltip(getRecipeId(recipe), list, modeRandom, overSize, cookData));
+    }
+
+    private static int getStatus(BeerBarrelBlockEntity blockEntity) {
+        return ((BeerBarrelBlockAccessor) blockEntity).tlmk$statusCode();
     }
 }
