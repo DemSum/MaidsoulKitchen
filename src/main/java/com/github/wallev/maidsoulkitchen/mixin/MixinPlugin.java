@@ -1,22 +1,17 @@
 package com.github.wallev.maidsoulkitchen.mixin;
 
-import com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskModClazzMixinManager;
+import com.github.wallev.maidsoulkitchen.modclazzchecker.manager.CompatibilityRegistry;
 import org.objectweb.asm.tree.ClassNode;
 import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
 public class MixinPlugin implements IMixinConfigPlugin {
     @Override
     public void onLoad(String mixinPackage) {
-        try {
-            TaskModClazzMixinManager.init();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        CompatibilityRegistry.prepareMixinGate();
     }
 
     @Override
@@ -26,7 +21,7 @@ public class MixinPlugin implements IMixinConfigPlugin {
 
     @Override
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
-        return TaskModClazzMixinManager.canMixin(targetClassName);
+        return CompatibilityRegistry.canApplyMixin(targetClassName);
     }
 
     @Override

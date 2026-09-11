@@ -159,6 +159,7 @@ dependencies {
 
 dependencies {
     testImplementation 'com.google.code.gson:gson:2.10.1'
+    testRuntimeOnly 'org.ow2.asm:asm:9.7.1'
     testImplementation 'org.junit.jupiter:junit-jupiter:5.11.4'
 }
 

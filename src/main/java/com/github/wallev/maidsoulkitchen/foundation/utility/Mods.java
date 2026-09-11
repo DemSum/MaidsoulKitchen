@@ -1,9 +1,13 @@
 package com.github.wallev.maidsoulkitchen.foundation.utility;
 
-import net.minecraft.resources.ResourceLocation;
-import net.neoforged.fml.ModList;
+import com.github.wallev.maidsoulkitchen.util.ModUtil;
 
 public enum Mods {
+    TLM("touhou_little_maid"),
+    TLM_SLOT_MODERN("touhou_little_maid", "[1.4.2,)"),
+    TLM_SLOT_LEGACY("touhou_little_maid", "[,1.4.2)"),
+    MSK("maidsoulkitchen"),
+
     PATCHOULI("patchouli"),
     CLOTH_CONFIG("cloth_config"),
 
@@ -20,8 +24,9 @@ public enum Mods {
     MND("mynethersdelight"),
     CD("cuisinedelight"),
     BD("barbequesdelight"),
-    YHCD("youkaishomecoming"),
-    BNCD("brewinandchewin"),
+    YHCD("youkaishomecoming", "[2.2.3,)"),
+    YHCD_NEW("youkaishomecoming", "[2.3.13,)"),
+    BNCD("brewinandchewin", "[3.0.0,)"),
     FRD("farmersrespite"),
 
     /*
@@ -46,7 +51,7 @@ public enum Mods {
     CP("crockpot"),
     DB("drinkbeer"),
     KK("kitchenkarrot"),
-    KC("kaleidoscope_cookery"),
+    KC("kaleidoscope_cookery", "[1.4.1,2)"),
 
     TWT("thirst"),
 
@@ -58,41 +63,74 @@ public enum Mods {
         public boolean isLoaded() {
             return true;
         }
+
+        @Override
+        public boolean versionLoad() {
+            return true;
+        }
     };
 
     public final String modId;
-    public final boolean isLoaded;
+    private final String versionRange;
+
     Mods(String modId) {
+        this(modId, "");
+    }
+
+    Mods(String modId, String versionRange) {
         this.modId = modId;
-        this.isLoaded = this.isLoaded();
+        this.versionRange = versionRange;
     }
 
     public boolean isLoaded() {
-        return ModList.get().isLoaded(modId);
+        return ModUtil.isInstalled(modId);
     }
 
-    public ResourceLocation create(String path) {
-        return ResourceLocation.fromNamespaceAndPath(modId, path);
+    public boolean isInstalled() {
+        return isLoaded();
+    }
+
+    public boolean versionLoad() {
+        return versionRange.isEmpty()
+                ? isLoaded()
+                : ModUtil.isInstalled(modId, versionRange);
+    }
+
+    public static Mods by(String key) {
+        return valueOf(key);
+    }
+
+    public String getModId() {
+        return modId;
+    }
+
+    public String getModName() {
+        return ModUtil.getModName(modId);
+    }
+
+    public String getModActualVersion() {
+        return ModUtil.getModVersion(modId);
+    }
+
+    public String versionRange() {
+        return versionRange;
     }
 
     public static boolean allLoaded(String... modIds) {
-        ModList modList = ModList.get();
         for (String modId : modIds)
-            if (!modList.isLoaded(modId))
+            if (!ModUtil.isInstalled(modId))
                 return false;
         return true;
     }
 
     public static boolean hasLoaded(String... modIds) {
-        ModList modList = ModList.get();
         for (String modId : modIds)
-            if (modList.isLoaded(modId))
+            if (ModUtil.isInstalled(modId))
                 return true;
         return false;
     }
 
     public static boolean hasLoaded(Mods... mods) {
-        ModList modList = ModList.get();
         for (Mods mod : mods)
             if (mod.isLoaded())
                 return true;

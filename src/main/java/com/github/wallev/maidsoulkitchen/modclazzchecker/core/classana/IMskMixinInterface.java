@@ -1,20 +1,10 @@
 package com.github.wallev.maidsoulkitchen.modclazzchecker.core.classana;
 
-import com.github.wallev.maidsoulkitchen.modclazzchecker.core.classana.clazz.ClassAnalysisResult;
-
+/**
+ * Marker injected by compatibility mixins.
+ *
+ * <p>The runtime compatibility check uses this interface to verify that a
+ * required accessor mixin was actually applied to its target class.</p>
+ */
 public interface IMskMixinInterface {
-
-    static boolean applyInterfaceMixin(Class<?> targetClass) {
-        return IMskMixinInterface.class.isAssignableFrom(targetClass);
-    }
-
-    static boolean applyInterfaceMixin(String targetClass, ClassAnalysisResult result) {
-        try {
-            Class<?> target = Class.forName(targetClass, false, IMskMixinInterface.class.getClassLoader());
-            return applyInterfaceMixin(target);
-        } catch (ClassNotFoundException | ClassCastException e) {
-            return false;
-        }
-    }
-
 }

@@ -1,6 +1,5 @@
 package com.github.wallev.maidsoulkitchen.vhelper.client.resources;
 
-import com.github.wallev.maidsoulkitchen.modclazzchecker.core.classana.IMods;
 import com.github.wallev.maidsoulkitchen.vhelper.IModInfo;
 import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
@@ -30,10 +29,6 @@ public class VResourceLocation{
 
     public static ResourceLocation createTypeMod(String modId, String type) {
         return createTypeMod(ResourceLocation.fromNamespaceAndPath(modId, type));
-    }
-
-    public static ResourceLocation createTypeMod(IMods modId, String type) {
-        return createTypeMod(ResourceLocation.fromNamespaceAndPath(modId.modId(), type));
     }
 
     public static ResourceLocation createTypeMod(String recipeType) {

@@ -5,7 +5,7 @@ import com.github.tartaricacid.touhoulittlemaid.entity.passive.EntityMaid;
 import com.github.tartaricacid.touhoulittlemaid.inventory.container.AbstractMaidContainer;
 import com.github.wallev.maidsoulkitchen.client.event.RenderSlotHighEventModern;
 import com.github.wallev.maidsoulkitchen.client.event.SlotRenderAndTipsHandler;
-import com.github.wallev.maidsoulkitchen.modclazzchecker.manager.Mods;
+import com.github.wallev.maidsoulkitchen.foundation.utility.Mods;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;

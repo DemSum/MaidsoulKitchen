@@ -4,7 +4,7 @@ import com.github.tartaricacid.touhoulittlemaid.client.gui.entity.maid.AbstractM
 import com.github.tartaricacid.touhoulittlemaid.inventory.container.AbstractMaidContainer;
 import com.github.wallev.maidsoulkitchen.init.MkItems;
 import com.github.wallev.maidsoulkitchen.item.ItemCulinaryHub;
-import com.github.wallev.maidsoulkitchen.modclazzchecker.manager.Mods;
+import com.github.wallev.maidsoulkitchen.foundation.utility.Mods;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.world.inventory.Slot;

@@ -1,6 +1,6 @@
 package com.github.wallev.maidsoulkitchen.util;
 
-import com.github.wallev.maidsoulkitchen.modclazzchecker.manager.Mods;
+import com.github.wallev.maidsoulkitchen.foundation.utility.Mods;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.ModList;
 import net.neoforged.fml.loading.LoadingModList;
@@ -118,7 +118,7 @@ public class ModUtil {
         // 正则表达式匹配括号中的内容
         Pattern pattern = Pattern.compile("\\((.*?)\\)");
 
-        IModInfo modInfo = getModInfo(Mods.MSK.getModId());
+        IModInfo modInfo = getModInfo("maidsoulkitchen");
         if (modInfo == null) {
             return "";
         }

@@ -1,10 +1,6 @@
 package com.github.wallev.maidsoulkitchen.init.registry;
 
-import com.github.wallev.maidsoulkitchen.modclazzchecker.manager.Mods;
-import com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskInfo;
-import com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskModClazzManager;
-
-import java.io.IOException;
+import com.github.wallev.maidsoulkitchen.modclazzchecker.manager.CompatibilityRegistry;
 
 public final class CommonRegistry {
     private static boolean initialized;
@@ -16,13 +12,7 @@ public final class CommonRegistry {
         if (initialized) {
             return;
         }
-        Mods.init();
-        TaskInfo.init();
-        try {
-            TaskModClazzManager.init();
-            initialized = true;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        CompatibilityRegistry.initialize();
+        initialized = true;
     }
 }
