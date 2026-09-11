@@ -1,7 +1,5 @@
 package com.github.wallev.maidsoulkitchen.init.touhoulittlemaid;
 
-import com.github.wallev.maidsoulkitchen.config.subconfig.RegisterConfig;
-import com.github.wallev.maidsoulkitchen.foundation.utility.Mods;
 import com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskInfo;
 import com.github.wallev.maidsoulkitchen.task.cook.barbequesdelight.TaskBdBasin;
 import com.github.wallev.maidsoulkitchen.task.cook.barbequesdelight.TaskBdGrill;
@@ -89,7 +87,7 @@ public final class TaskRegister {
         if (TaskInfo.DB_BEER.canLoad()) {
             manager.add(new TaskDbBeerBarrel());
         }
-        if (Mods.KC.isLoaded() && RegisterConfig.KC_STEAMER_TASK_ENABLED.get()) {
+        if (TaskInfo.KC_STEAMER.canLoad()) {
             manager.add(new TaskKcSteamer());
         }
 

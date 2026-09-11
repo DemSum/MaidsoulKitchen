@@ -134,8 +134,10 @@ public class ClassAnalyzerTool {
                         boolean isMcMethod = false;
                         try {
                             isMcMethod = McMethodOrFieldVerify.isMcMethod(className, name + descriptor, checkManager);
-                        } catch (ClassNotFoundException e) {
-                            throw new RuntimeException(e);
+                        } catch (ClassNotFoundException ignored) {
+                            // Optional compatibility APIs can legitimately be absent from the
+                            // data-generation runtime. Treat them as external methods so they
+                            // are still recorded and validated when their owning mod is loaded.
                         }
                         if (isMcMethod) {
                             return;
@@ -156,8 +158,8 @@ public class ClassAnalyzerTool {
                             boolean isMcFiled = false;
                             try {
                                 isMcFiled = McMethodOrFieldVerify.isMcField(className, fieldName, checkManager);
-                            } catch (ClassNotFoundException e) {
-                                throw new RuntimeException(e);
+                            } catch (ClassNotFoundException ignored) {
+                                // See the method-instruction handling above.
                             }
                             if (isMcFiled) {
                                 return;
@@ -278,8 +280,10 @@ public class ClassAnalyzerTool {
                         boolean isMcMethod = false;
                         try {
                             isMcMethod = McMethodOrFieldVerify.isMcMethod(className, name + descriptor, checkManager);
-                        } catch (ClassNotFoundException e) {
-                            throw new RuntimeException(e);
+                        } catch (ClassNotFoundException ignored) {
+                            // Optional compatibility APIs can legitimately be absent from the
+                            // data-generation runtime. Treat them as external methods so they
+                            // are still recorded and validated when their owning mod is loaded.
                         }
                         if (isMcMethod) {
                             return;
@@ -299,8 +303,8 @@ public class ClassAnalyzerTool {
                             boolean isMcFiled = false;
                             try {
                                 isMcFiled = McMethodOrFieldVerify.isMcField(className, fieldName, checkManager);
-                            } catch (ClassNotFoundException e) {
-                                throw new RuntimeException(e);
+                            } catch (ClassNotFoundException ignored) {
+                                // See the method-instruction handling above.
                             }
                             if (isMcFiled) {
                                 return;

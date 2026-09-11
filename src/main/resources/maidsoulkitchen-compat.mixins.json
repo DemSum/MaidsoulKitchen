@@ -6,7 +6,8 @@
   "refmap": "maidsoulkitchen.refmap.json",
   "compatibilityLevel": "JAVA_21",
   "client": [
-    "minecraft.AbstractContainerScreenMixin"
+    "minecraft.AbstractContainerScreenMixin",
+    "touhoulittlemaid.AbstractMaidContainerGuiMixin"
   ],
   "server": [
   ],

@@ -5,6 +5,7 @@ import com.github.wallev.maidsoulkitchen.api.task.v1.cook.ICookTargetTask;
 import com.github.wallev.maidsoulkitchen.entity.data.inner.task.RecipeFilterData;
 import com.github.wallev.maidsoulkitchen.init.touhoulittlemaid.DataRegister;
 import com.github.wallev.maidsoulkitchen.inventory.container.maid.SteamerRecipeFilterContainer;
+import com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskClassAnalyzer;
 import com.github.wallev.maidsoulkitchen.task.TaskInfo;
 import com.github.ysbbbbbb.kaleidoscopecookery.init.ModItems;
 import com.mojang.datafixers.util.Pair;
@@ -25,6 +26,7 @@ import java.util.List;
 import java.util.function.Predicate;
 
 /** Native Kaleidoscope Cookery steamer task, based on Public patch commit de47e15. */
+@TaskClassAnalyzer(com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskInfo.KC_STEAMER)
 public final class TaskKcSteamer implements ICookTargetTask {
     public TaskKcSteamer() {
         SteamerAdapter.verifyApi();

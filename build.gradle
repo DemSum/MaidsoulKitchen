@@ -98,6 +98,8 @@ tasks.compileJava {
 
 // 用于 neoforge.mods 里替换那一堆 ${xxxx}
 tasks.withType(ProcessResources).configureEach {
+    def isBuildTask = gradle.startParameter.taskNames.any { it.toLowerCase(Locale.ROOT).contains('build') }
+    def actualModVersion = isBuildTask ? mod_version : '0.0'
     var replaceProperties = [
             minecraft_version      : minecraft_version,
             minecraft_version_range: minecraft_version_range,
@@ -108,7 +110,7 @@ tasks.withType(ProcessResources).configureEach {
             mod_id                 : mod_id,
             mod_name               : mod_name,
             mod_license            : mod_license,
-            mod_version            : mod_version,
+            mod_version            : actualModVersion,
             mod_credits            : mod_credits,
             mod_authors            : mod_authors,
             mod_description        : mod_description,

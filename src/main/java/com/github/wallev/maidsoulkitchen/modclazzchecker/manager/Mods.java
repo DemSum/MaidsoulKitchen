@@ -77,7 +77,7 @@ public enum Mods implements IMods {
             return true;
         }
     },
-    KC("kaleidoscope_cookery"),
+    KC("kaleidoscope_cookery", "[1.4.1,2)"),
     TA("tea_aroma"),
     VTD("vintagedelight"), BAKERIES("bakeries"), IMD("immortalers_delight");
 

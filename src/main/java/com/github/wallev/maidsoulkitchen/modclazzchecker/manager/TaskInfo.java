@@ -101,6 +101,15 @@ public enum TaskInfo implements ITaskInfo<Mods> {
             true,
             () -> DevUtil.isDevEnv()),
 
+    @KitchenModule
+    @TaskErrorLang(en_us = "Kaleidoscope Cookery Steamer", zh_cn = "万花筒之宴 蒸笼(烹饪)")
+    KC_STEAMER("kc_steamer",
+            "steamer",
+            "steaming",
+            Mods.KC,
+            true,
+            () -> RegisterConfig.KC_STEAMER_TASK_ENABLED),
+
     @IgnoreSolver
     @KitchenModule
     @TaskErrorLang(en_us = "Fd Cooking Pot", zh_cn = "农夫乐事 厨锅(烹饪)")

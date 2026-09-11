@@ -1,5 +1,6 @@
 package com.github.wallev.maidsoulkitchen.task.cook.kaleidoscopecookery;
 
+import com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskClassAnalyzer;
 import com.github.ysbbbbbb.kaleidoscopecookery.api.blockentity.ISteamer;
 import com.github.ysbbbbbb.kaleidoscopecookery.block.kitchen.SteamerBlock;
 import com.github.ysbbbbbb.kaleidoscopecookery.blockentity.kitchen.SteamerBlockEntity;
@@ -33,6 +34,7 @@ import java.util.function.Predicate;
  *
  * <p>Native port of Maidsoul-Brewery-Public commit de47e15.</p>
  */
+@TaskClassAnalyzer(com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskInfo.KC_STEAMER)
 public final class SteamerAdapter {
     private static final int HALF_STEAMER_SLOTS = 4;
     private static final int FULL_STEAMER_SLOTS = 8;

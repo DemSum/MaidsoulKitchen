@@ -41,6 +41,35 @@
         ]
       }
     },
+    "maidsoulkitchen:kaleidoscope_cookery_steamer_steaming": {
+      "bindMod": "KC",
+      "clazzInfo": {
+        "classes": [
+          "com.github.ysbbbbbb.kaleidoscopecookery.api.blockentity.ISteamer",
+          "com.github.ysbbbbbb.kaleidoscopecookery.block.kitchen.SteamerBlock",
+          "com.github.ysbbbbbb.kaleidoscopecookery.blockentity.kitchen.SteamerBlockEntity",
+          "com.github.ysbbbbbb.kaleidoscopecookery.crafting.recipe.SteamerRecipe",
+          "com.github.ysbbbbbb.kaleidoscopecookery.init.ModItems",
+          "com.github.ysbbbbbb.kaleidoscopecookery.init.ModRecipes"
+        ],
+        "methods": [
+          "com.github.ysbbbbbb.kaleidoscopecookery.api.blockentity.ISteamer#placeFood(Lnet/minecraft/world/level/Level;Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/item/ItemStack;)Z",
+          "com.github.ysbbbbbb.kaleidoscopecookery.api.blockentity.ISteamer#takeFood(Lnet/minecraft/world/level/Level;Lnet/minecraft/world/entity/LivingEntity;)Z",
+          "com.github.ysbbbbbb.kaleidoscopecookery.blockentity.kitchen.SteamerBlockEntity#getCookingProgress()[I",
+          "com.github.ysbbbbbb.kaleidoscopecookery.blockentity.kitchen.SteamerBlockEntity#getCookingTime()[I",
+          "com.github.ysbbbbbb.kaleidoscopecookery.blockentity.kitchen.SteamerBlockEntity#getItems()Lnet/minecraft/core/NonNullList;",
+          "com.github.ysbbbbbb.kaleidoscopecookery.blockentity.kitchen.SteamerBlockEntity#getSteamerRecipe(Lnet/minecraft/world/level/Level;Lnet/minecraft/world/item/ItemStack;)Ljava/util/Optional;",
+          "com.github.ysbbbbbb.kaleidoscopecookery.blockentity.kitchen.SteamerBlockEntity#hasHeatSource(Lnet/minecraft/world/level/Level;)Z",
+          "com.github.ysbbbbbb.kaleidoscopecookery.crafting.recipe.SteamerRecipe#getResult()Lnet/minecraft/world/item/ItemStack;"
+        ],
+        "fields": [
+          "com.github.ysbbbbbb.kaleidoscopecookery.block.kitchen.SteamerBlock#HALF",
+          "com.github.ysbbbbbb.kaleidoscopecookery.block.kitchen.SteamerBlock#HAS_LID",
+          "com.github.ysbbbbbb.kaleidoscopecookery.init.ModItems#STEAMER",
+          "com.github.ysbbbbbb.kaleidoscopecookery.init.ModRecipes#STEAMER_RECIPE"
+        ]
+      }
+    },
     "maidsoulkitchen:drinkbeer_beer_barrel_brewing": {
       "bindMod": "DB",
       "clazzInfo": {
@@ -169,14 +198,6 @@
         "fields": []
       }
     },
-    "maidsoulkitchen:feed_animal_t": {
-      "bindMod": "MC",
-      "clazzInfo": {
-        "classes": [],
-        "methods": [],
-        "fields": []
-      }
-    },
     "maidsoulkitchen:sereneseasons_farm": {
       "bindMod": "SS",
       "clazzInfo": {
@@ -190,6 +211,14 @@
           "sereneseasons.api.season.Season#name()Ljava/lang/String;",
           "sereneseasons.api.season.SeasonHelper#getSeasonState(Lnet/minecraft/world/level/Level;)Lsereneseasons/api/season/ISeasonState;"
         ],
+        "fields": []
+      }
+    },
+    "maidsoulkitchen:feed_animal_t": {
+      "bindMod": "MC",
+      "clazzInfo": {
+        "classes": [],
+        "methods": [],
         "fields": []
       }
     },
@@ -450,6 +479,12 @@
     }
   },
   "allClazzs": [
+    "com.github.ysbbbbbb.kaleidoscopecookery.api.blockentity.ISteamer",
+    "com.github.ysbbbbbb.kaleidoscopecookery.block.kitchen.SteamerBlock",
+    "com.github.ysbbbbbb.kaleidoscopecookery.blockentity.kitchen.SteamerBlockEntity",
+    "com.github.ysbbbbbb.kaleidoscopecookery.crafting.recipe.SteamerRecipe",
+    "com.github.ysbbbbbb.kaleidoscopecookery.init.ModItems",
+    "com.github.ysbbbbbb.kaleidoscopecookery.init.ModRecipes",
     "com.mao.barbequesdelight.content.block.BasinBlockEntity",
     "com.mao.barbequesdelight.content.block.GrillBlockEntity",
     "com.mao.barbequesdelight.content.block.GrillBlockEntity$ItemEntry",

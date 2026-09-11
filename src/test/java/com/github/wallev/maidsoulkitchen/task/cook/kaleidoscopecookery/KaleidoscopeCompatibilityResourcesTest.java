@@ -34,6 +34,30 @@ class KaleidoscopeCompatibilityResourcesTest {
     }
 
     @Test
+    void registersTheSteamerWithTheUpstreamCompatibilityChecker() throws IOException {
+        JsonObject root = new JsonParser().parse(Files.readString(
+                PROJECT.resolve("src/main/resources/mod_task_clazz.json"))).getAsJsonObject();
+        JsonObject entry = root.getAsJsonObject("clazzInfoMap")
+                .getAsJsonObject("maidsoulkitchen:kaleidoscope_cookery_steamer_steaming");
+        JsonObject api = entry.getAsJsonObject("clazzInfo");
+
+        assertEquals("KC", entry.get("bindMod").getAsString());
+        assertTrue(api.getAsJsonArray("classes").toString().contains("SteamerBlockEntity"));
+        assertTrue(api.getAsJsonArray("methods").toString().contains("#placeFood"));
+        assertTrue(api.getAsJsonArray("methods").toString().contains("#takeFood"));
+        assertTrue(api.getAsJsonArray("fields").toString().contains("#STEAMER_RECIPE"));
+    }
+
+    @Test
+    void keepsTheTlmRecipeSlotHighlightMixinRegistered() throws IOException {
+        JsonObject mixins = new JsonParser().parse(Files.readString(
+                PROJECT.resolve("src/main/resources/maidsoulkitchen-compat.mixins.json"))).getAsJsonObject();
+
+        assertTrue(mixins.getAsJsonArray("client").toString()
+                .contains("touhoulittlemaid.AbstractMaidContainerGuiMixin"));
+    }
+
+    @Test
     void pinsTheReviewedKaleidoscopeArtifactWithoutChangingMskVersion() throws IOException {
         String versionProperties = Files.readString(PROJECT.resolve("setting/version/1.21.1/gradle.properties"));
         String modProperties = Files.readString(PROJECT.resolve("gradle.properties"));
