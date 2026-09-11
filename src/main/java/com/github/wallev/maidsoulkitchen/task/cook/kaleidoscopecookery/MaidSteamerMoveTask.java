@@ -9,7 +9,6 @@ import com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookTargetMemory;
 import com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookWorkLocks;
 import com.google.common.collect.ImmutableMap;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
@@ -26,9 +25,6 @@ final class MaidSteamerMoveTask extends MaidCheckRateTask {
     private static final float MOVEMENT_SPEED = 0.6F;
     private static final int MAX_DELAY_TICKS = 120;
     private static final int[] INTERACTION_HEIGHT_OFFSETS = {0, 1, -1, 2, -2};
-    private static final Direction[] HORIZONTAL_DIRECTIONS = {
-            Direction.NORTH, Direction.SOUTH, Direction.WEST, Direction.EAST
-    };
 
     MaidSteamerMoveTask() {
         super(ImmutableMap.of(
@@ -82,32 +78,32 @@ final class MaidSteamerMoveTask extends MaidCheckRateTask {
         }
         BlockPos.MutableBlockPos steamerPos = new BlockPos.MutableBlockPos();
         for (int yOffset : INTERACTION_HEIGHT_OFFSETS) {
-            for (Direction direction : HORIZONTAL_DIRECTIONS) {
-                steamerPos.setWithOffset(
-                        approachPos,
-                        direction.getStepX(),
-                        yOffset,
-                        direction.getStepZ()
-                );
-                if (!maid.isWithinRestriction(steamerPos)
-                        || !withinOwnerRange(maid, steamerPos)
-                        || !level.isLoaded(steamerPos)
-                        || !SteamerAdapter.supports(level.getBlockState(steamerPos))) {
-                    continue;
-                }
+            for (int xOffset = -1; xOffset <= 1; xOffset++) {
+                for (int zOffset = -1; zOffset <= 1; zOffset++) {
+                    if (!SteamerSearchGeometry.isSideOffset(xOffset, zOffset)) {
+                        continue;
+                    }
+                    steamerPos.setWithOffset(approachPos, xOffset, yOffset, zOffset);
+                    if (!maid.isWithinRestriction(steamerPos)
+                            || !withinOwnerRange(maid, steamerPos)
+                            || !level.isLoaded(steamerPos)
+                            || !SteamerAdapter.supports(level.getBlockState(steamerPos))) {
+                        continue;
+                    }
 
-                BlockPos immutableSteamerPos = steamerPos.immutable();
-                if (!checkedSteamers.add(immutableSteamerPos)) {
-                    continue;
+                    BlockPos immutableSteamerPos = steamerPos.immutable();
+                    if (!checkedSteamers.add(immutableSteamerPos)) {
+                        continue;
+                    }
+                    BlockEntity blockEntity = level.getBlockEntity(steamerPos);
+                    if (!SteamerAdapter.supports(blockEntity)
+                            || !shouldUseSteamer(level, blockEntity, filter, storage)
+                            || !CookWorkLocks.tryClaim(level, immutableSteamerPos, maid)) {
+                        continue;
+                    }
+                    selectedSteamer[0] = immutableSteamerPos;
+                    return true;
                 }
-                BlockEntity blockEntity = level.getBlockEntity(steamerPos);
-                if (!SteamerAdapter.supports(blockEntity)
-                        || !shouldUseSteamer(level, blockEntity, filter, storage)
-                        || !CookWorkLocks.tryClaim(level, immutableSteamerPos, maid)) {
-                    continue;
-                }
-                selectedSteamer[0] = immutableSteamerPos;
-                return true;
             }
         }
         return false;

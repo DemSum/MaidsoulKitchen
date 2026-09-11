@@ -15,4 +15,10 @@ final class SteamerSearchGeometry {
                 && Math.abs(zOffset) <= horizontalRange
                 && Math.abs(yOffset) <= verticalRange;
     }
+
+    static boolean isSideOffset(int xOffset, int zOffset) {
+        return Math.abs(xOffset) <= 1
+                && Math.abs(zOffset) <= 1
+                && (xOffset != 0 || zOffset != 0);
+    }
 }

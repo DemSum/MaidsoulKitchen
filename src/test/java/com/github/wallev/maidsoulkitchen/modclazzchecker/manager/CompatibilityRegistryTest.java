@@ -56,6 +56,16 @@ class CompatibilityRegistryTest {
         assertTrue(manifest.mixinsByTask().keySet().stream().allMatch(manifest.tasks()::containsKey));
     }
 
+    @Test
+    void externalCompatibilityRequirementsNeverListOurInjectedMethods() throws IOException {
+        CompatibilityRegistry.Manifest manifest = readManifest();
+        assertTrue(manifest.tasks().entrySet().stream()
+                        .flatMap(entry -> entry.getValue().methods().stream()
+                                .map(method -> Map.entry(entry.getKey(), method)))
+                        .noneMatch(entry -> entry.getValue().contains("#tlmk$")),
+                "Mixin-injected tlmk$ methods must be validated through mixin markers, not as upstream API");
+    }
+
     private static CompatibilityRegistry.Manifest readManifest() throws IOException {
         try (InputStream stream = CompatibilityRegistryTest.class.getClassLoader()
                 .getResourceAsStream(CompatibilityRegistry.MANIFEST_FILE)) {

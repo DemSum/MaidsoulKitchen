@@ -274,7 +274,6 @@
           "dev.xkmc.youkaishomecoming.content.pot.base.BasePotBlockEntity#canCook(Ldev/xkmc/youkaishomecoming/content/pot/base/BasePotRecipe;)Z",
           "dev.xkmc.youkaishomecoming.content.pot.base.BasePotBlockEntity#getMatchingRecipe(Lnet/neoforged/neoforge/items/wrapper/RecipeWrapper;)Ljava/util/Optional;",
           "dev.xkmc.youkaishomecoming.content.pot.base.BasePotBlockEntity#getUsedRecipesAndPopExperience(Lnet/minecraft/world/level/Level;Lnet/minecraft/world/phys/Vec3;)Ljava/util/List;",
-          "dev.xkmc.youkaishomecoming.content.pot.base.BasePotBlockEntity#tlmk$canCook(Ldev/xkmc/youkaishomecoming/content/pot/base/BasePotRecipe;)Z",
           "dev.xkmc.youkaishomecoming.content.pot.moka.MokaMakerBlockEntity#getContainer()Lnet/minecraft/world/item/ItemStack;",
           "dev.xkmc.youkaishomecoming.content.pot.moka.MokaMakerBlockEntity#getInventory()Lnet/neoforged/neoforge/items/ItemStackHandler;",
           "dev.xkmc.youkaishomecoming.content.pot.moka.MokaMakerBlockEntity#isHeated()Z"
@@ -438,7 +437,6 @@
           "dev.xkmc.youkaishomecoming.content.pot.base.BasePotBlockEntity#canCook(Ldev/xkmc/youkaishomecoming/content/pot/base/BasePotRecipe;)Z",
           "dev.xkmc.youkaishomecoming.content.pot.base.BasePotBlockEntity#getMatchingRecipe(Lnet/neoforged/neoforge/items/wrapper/RecipeWrapper;)Ljava/util/Optional;",
           "dev.xkmc.youkaishomecoming.content.pot.base.BasePotBlockEntity#getUsedRecipesAndPopExperience(Lnet/minecraft/world/level/Level;Lnet/minecraft/world/phys/Vec3;)Ljava/util/List;",
-          "dev.xkmc.youkaishomecoming.content.pot.base.BasePotBlockEntity#tlmk$canCook(Ldev/xkmc/youkaishomecoming/content/pot/base/BasePotRecipe;)Z",
           "dev.xkmc.youkaishomecoming.content.pot.kettle.KettleBlockEntity#getContainer()Lnet/minecraft/world/item/ItemStack;",
           "dev.xkmc.youkaishomecoming.content.pot.kettle.KettleBlockEntity#getInventory()Lnet/neoforged/neoforge/items/ItemStackHandler;",
           "dev.xkmc.youkaishomecoming.content.pot.kettle.KettleBlockEntity#getWater()I",
@@ -467,8 +465,7 @@
           "vectorwing.farmersdelight.common.block.entity.CookingPotBlockEntity#getInventory()Lnet/neoforged/neoforge/items/ItemStackHandler;",
           "vectorwing.farmersdelight.common.block.entity.CookingPotBlockEntity#getMatchingRecipe(Lnet/neoforged/neoforge/items/wrapper/RecipeWrapper;)Ljava/util/Optional;",
           "vectorwing.farmersdelight.common.block.entity.CookingPotBlockEntity#getUsedRecipesAndPopExperience(Lnet/minecraft/world/level/Level;Lnet/minecraft/world/phys/Vec3;)Ljava/util/List;",
-          "vectorwing.farmersdelight.common.block.entity.CookingPotBlockEntity#isHeated()Z",
-          "vectorwing.farmersdelight.common.block.entity.CookingPotBlockEntity#tlmk$canCook(Lvectorwing/farmersdelight/common/crafting/CookingPotRecipe;)Z"
+          "vectorwing.farmersdelight.common.block.entity.CookingPotBlockEntity#isHeated()Z"
         ],
         "fields": [
           "vectorwing.farmersdelight.common.block.entity.CookingPotBlockEntity#usedRecipeTracker",
