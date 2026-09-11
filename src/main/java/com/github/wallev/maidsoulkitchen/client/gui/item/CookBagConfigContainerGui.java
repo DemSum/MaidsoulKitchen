@@ -51,12 +51,8 @@ public class CookBagConfigContainerGui extends CookBagAbstractContainerGui<CookB
     private void addBindModeButtons() {
         int x = leftPos + 6;
         int y = topPos + 6;
-        for (BagType value : BagType.values()) {
+        for (BagType value : BagType.DISPLAY_VALS) {
             MutableComponent title = Component.translatable("gui.maidsoulkitchen.culinary_hub.config.bind_mode." + value.translateKey);
-
-            if (value == BagType.INGREDIENT_ADDITION || value == BagType.START_ADDITION) {
-                title.append(Component.translatable("gui.maidsoulkitchen.development")).withStyle(ChatFormatting.YELLOW);
-            }
 
             Map<BagType, java.util.List<BlockPos>> bindPoses = ItemCulinaryHub.getBindPoses(this.menu.cookBag);
             int bindSize = bindPoses.getOrDefault(value, Collections.emptyList()).size();
@@ -80,10 +76,6 @@ public class CookBagConfigContainerGui extends CookBagAbstractContainerGui<CookB
                     super.renderString(pGuiGraphics, pFont, pColor);
                 }
             };
-
-            if (value == BagType.INGREDIENT_ADDITION || value == BagType.START_ADDITION) {
-                cookBagModeButton.active = false;
-            }
 
             this.addRenderableWidget(cookBagModeButton);
         }
@@ -115,12 +107,12 @@ public class CookBagConfigContainerGui extends CookBagAbstractContainerGui<CookB
 
         Map<BagType, java.util.List<BlockPos>> bindPoses = ItemCulinaryHub.getBindPoses(this.menu.cookBag);
         List<BagType> leftBindBagTypes = new ArrayList<>();
-        bindPoses.forEach((type, poses) -> {
-            if (poses.isEmpty() && !(type == BagType.INGREDIENT_ADDITION || type == BagType.START_ADDITION)) {
-                leftBindBagTypes.add(type);
+        for (BagType displayVal : BagType.DISPLAY_VALS) {
+            if (bindPoses.getOrDefault(displayVal, Collections.emptyList()).isEmpty()) {
+                leftBindBagTypes.add(displayVal);
             }
-        });
-        if (bindPoses.isEmpty() || leftBindBagTypes.size() == BagType.values().length - 2) {
+        }
+        if (bindPoses.isEmpty() || leftBindBagTypes.size() == BagType.DISPLAY_VALS.length) {
             MutableComponent mutableComponent1 = Component.translatable("tooltips.maidsoulkitchen.culinary_hub.desc.warn").withStyle(ChatFormatting.YELLOW);
             mutableComponent1.append(CommonComponents.NEW_LINE);
             mutableComponent1.append(Component.translatable("tooltips.maidsoulkitchen.culinary_hub.desc.warn.empty").withStyle(ChatFormatting.GRAY));
@@ -162,11 +154,7 @@ public class CookBagConfigContainerGui extends CookBagAbstractContainerGui<CookB
         int width = 100;
         guiGraphics.renderItem(Items.RED_MUSHROOM.getDefaultInstance(), x + width + 2, y + 22);
         guiGraphics.renderItem(Items.BROWN_MUSHROOM.getDefaultInstance(), x + width + 16 + 2, y + 22);
-        guiGraphics.renderItem(Items.COAL.getDefaultInstance(), x + width + 2, y + 44 + 2);
-        guiGraphics.renderItem(Items.WATER_BUCKET.getDefaultInstance(), x + width + 16 + 2, y + 44 + 2);
-        guiGraphics.renderItem(Items.BOWL.getDefaultInstance(), x + width + 2, y + 88 + 2);
-        guiGraphics.renderItem(Items.GLASS_BOTTLE.getDefaultInstance(), x + width + 16 + 2, y + 88 + 2);
-        guiGraphics.renderItem(Items.MUSHROOM_STEW.getDefaultInstance(), x + width + 2, y + 110 + 2);
+        guiGraphics.renderItem(Items.MUSHROOM_STEW.getDefaultInstance(), x + width + 2, y + 44 + 2);
     }
 
     protected void renderLabels(GuiGraphics pGuiGraphics, int pMouseX, int pMouseY) {

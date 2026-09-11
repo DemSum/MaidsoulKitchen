@@ -11,7 +11,7 @@
   "tooltips.maidsoulkitchen.culinary_hub.desc.usage.3": "- Place it in the fifth slot of the first column of the maid's backpack to take effect",
   "tooltips.maidsoulkitchen.culinary_hub.desc.function": "[Function]",
   "tooltips.maidsoulkitchen.culinary_hub.desc.function.1": "Allows maids to interact directly with other chests while cooking",
-  "tooltips.maidsoulkitchen.culinary_hub.desc.function.2": "There are three types of chests that can be bound, with a maximum of 3 of each",
+  "tooltips.maidsoulkitchen.culinary_hub.desc.function.2": "Input and output containers can be bound, with a maximum of 3 of each",
   "tooltips.maidsoulkitchen.culinary_hub.desc.warn": "[Warning]",
   "tooltips.maidsoulkitchen.culinary_hub.desc.warn.empty": "There are currently no chests bound to it, which will render the [Culinary Hub] useless",
   "tooltips.maidsoulkitchen.culinary_hub.desc.warn.left": "There are currently %s chests left unbound, please continue to bind them, otherwise [Culinary Hub] will not be fully effective",
@@ -325,6 +325,7 @@
   "patchouli.touhou_little_maid.book.categories.maidsoulkitchen.description": "A addon that make maid lear more skill about farm and cook.",
   "gui.maidsoulkitchen.culinary_hub.bag.ingredient": "Ingredient",
   "gui.maidsoulkitchen.culinary_hub.bag.other": "SA | IA | OA | Output",
+  "gui.maidsoulkitchen.culinary_hub.bag.output": "Output",
   "gui.maidsoulkitchen.culinary_hub.bag.title": "Cook Bag",
   "gui.maidsoulkitchen.culinary_hub.config.title": "Culinary hub config",
   "gui.maidsoulkitchen.culinary_hub.config.bind_mode": "Bind Mode",
@@ -340,6 +341,10 @@
   "gui.maidsoulkitchen.culinary_hub.config.bind_mode.output_addition.tooltip": "Here is the button to bind the box that stores the containers needed to take out the food that has already been cooked\n\nFor example, the bowl needed to take out the mushroom pot in the Farmer's Delight's cooking pot, and the glass bottle for apple cider",
   "gui.maidsoulkitchen.culinary_hub.config.bind_mode.output.tooltip": "Here is the button to bind the box for storing cooked food\n\nsuch as the cooked mushroom pot, rice, and cider",
   "gui.maidsoulkitchen.culinary_hub.config.clear_bind_poses.tooltip": "Clear the coordinates of bound boxes with one click",
+  "gui.maidsoulkitchen.culinary_hub.overlay.bound": "This block is bound as: %s",
+  "gui.maidsoulkitchen.culinary_hub.overlay.can_bind": "This block can be bound",
+  "gui.maidsoulkitchen.culinary_hub.overlay.select_mode": "Right-click the air first to select a binding type",
+  "gui.maidsoulkitchen.culinary_hub.overlay.current": "Current binding type: %s [%s/%s]",
 
   "gui.maidsoulkitchen.development": "(Development)"
 }

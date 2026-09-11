@@ -6,6 +6,15 @@ public enum BagType {
     INGREDIENT_ADDITION("IngredientAddition", "ingredient_addition", 1, 36,45, ColorA.CYAN),
     OUTPUT_ADDITION("OutputAddition", "output_addition", 1, 45, 54, ColorA.ORANGE),
     OUTPUT("Output", "output", 1, 54, 63, ColorA.GREEN);
+
+    /** Persisted legacy sections retained for 0.1.x item-data compatibility. */
+    public static final BagType[] VALS = values();
+    /** The two categories exposed by the simplified official 0.1.4+ UI. */
+    public static final BagType[] DISPLAY_VALS = {INGREDIENT, OUTPUT};
+    /** Legacy internal sections that now form one logical input inventory. */
+    public static final BagType[] INPUT_VALS = {INGREDIENT, START_ADDITION, INGREDIENT_ADDITION, OUTPUT_ADDITION};
+    public static final BagType OUTPUT_VAL = OUTPUT;
+
     public final String name;
     public final String translateKey;
     public final int size;

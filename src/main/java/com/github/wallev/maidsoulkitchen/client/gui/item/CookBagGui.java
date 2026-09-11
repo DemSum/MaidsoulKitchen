@@ -27,7 +27,7 @@ public class CookBagGui extends CookBagAbstractContainerGui<CookBagContainer> {
         pGuiGraphics.drawString(this.font, this.titleComponent, this.titleLabelX, this.titleLabelY, 4210752, false);
         pGuiGraphics.drawString(this.font, this.playerInventoryTitle, this.inventoryLabelX, this.inventoryLabelY, 4210752, false);
         pGuiGraphics.drawString(font, Component.translatable("gui.maidsoulkitchen.culinary_hub.bag.ingredient"), inventoryLabelX, 12, 4210752, false);
-        pGuiGraphics.drawString(font, Component.translatable("gui.maidsoulkitchen.culinary_hub.bag.other"), inventoryLabelX, 78, 4210752, false);
+        pGuiGraphics.drawString(font, Component.translatable("gui.maidsoulkitchen.culinary_hub.bag.output"), inventoryLabelX, 132, 4210752, false);
     }
 
     @Override

@@ -6,6 +6,7 @@ import com.github.tartaricacid.touhoulittlemaid.util.ItemsUtil;
 import com.github.wallev.maidsoulkitchen.entity.passive.IAddonMaid;
 import com.github.wallev.maidsoulkitchen.init.MkMemories;
 import com.github.wallev.maidsoulkitchen.task.cook.common.inventory.MaidRecipesManager;
+import com.github.wallev.maidsoulkitchen.util.MemoryUtil;
 import com.google.common.collect.ImmutableMap;
 import com.mojang.datafixers.util.Pair;
 import dev.xkmc.cuisinedelight.content.block.CuisineSkilletBlockEntity;
@@ -156,7 +157,7 @@ public class MaidCuisineMakeTask extends Behavior<EntityMaid> {
                     }
                 }
 
-                this.maidRecipesManager.getCookInv().syncInv();
+                this.maidRecipesManager.syncInv();
             }
         });
     }
@@ -194,14 +195,12 @@ public class MaidCuisineMakeTask extends Behavior<EntityMaid> {
 
 
                 if (tickAll - 10 >= tickMax) {
-                    CombinedInvWrapper maidAvailableInv = maid.getAvailableInv(true);
-
                     CookingData data = cuisineSkilletBlockEntity.cookingData;
                     data.stir(worldIn.getGameTime(), 0);
                     CookedFoodData food = CookedFoodData.of(data);
                     ItemStack foodStack = BaseCuisineRecipe.findBestMatch(worldIn, food);
                     plateItem.shrink(1);
-                    ItemHandlerHelper.insertItemStacked(maidAvailableInv, foodStack, false);
+                    ItemHandlerHelper.insertItemStacked(maidRecipesManager.getOutputInv(), foodStack, false);
 
                     cuisineSkilletBlockEntity.cookingData = new CookingData();
                     cuisineSkilletBlockEntity.sync();
@@ -218,9 +217,7 @@ public class MaidCuisineMakeTask extends Behavior<EntityMaid> {
     @Override
     protected void stop(ServerLevel worldIn, EntityMaid maid, long pGameTime) {
         super.stop(worldIn, maid, pGameTime);
-        maid.getBrain().eraseMemory(MkMemories.DESTROY_POS.get());
-        maid.getBrain().eraseMemory(InitEntities.TARGET_POS.get());
-        maid.getBrain().eraseMemory(MemoryModuleType.WALK_TARGET);
+        MemoryUtil.eraseWorkPos(maid);
         this.tickAll = 0;
         this.tickMax = 0;
         this.tickSpace = Integer.MAX_VALUE;
