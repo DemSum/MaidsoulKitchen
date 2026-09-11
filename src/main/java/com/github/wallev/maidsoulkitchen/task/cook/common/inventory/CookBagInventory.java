@@ -8,6 +8,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.items.IItemHandlerModifiable;
 import net.neoforged.neoforge.items.ItemStackHandler;
+import net.neoforged.neoforge.items.wrapper.CombinedInvWrapper;
 
 
 import java.util.ArrayList;
@@ -38,7 +39,7 @@ public class CookBagInventory implements ICookInventory {
         clearCacheStackInfo();
 //        containers = ItemCulinaryHub.getContainers(provider, stack);
         this.initHubContainerData();
-        ItemStackHandler availableInv = containers.getOrDefault(BagType.INGREDIENT, new ItemStackHandler(BagType.INGREDIENT.size * 9));
+        IItemHandlerModifiable availableInv = getInputInventory();
         List<Integer> blackSlots = getBlackSlots();
         for (int i = 0; i < availableInv.getSlots(); i++) {
             ItemStack stack = availableInv.getStackInSlot(i);
@@ -110,7 +111,19 @@ public class CookBagInventory implements ICookInventory {
 
     @Override
     public IItemHandlerModifiable getAvailableInv(EntityMaid maid, BagType bagType) {
-        return containers.get(bagType);
+        if (bagType == BagType.OUTPUT_VAL) {
+            return containers.getOrDefault(BagType.OUTPUT_VAL, new ItemStackHandler(BagType.OUTPUT_VAL.size * 9));
+        }
+        return getInputInventory();
+    }
+
+    private IItemHandlerModifiable getInputInventory() {
+        ItemStackHandler[] handlers = new ItemStackHandler[BagType.INPUT_VALS.length];
+        for (int i = 0; i < BagType.INPUT_VALS.length; i++) {
+            BagType type = BagType.INPUT_VALS[i];
+            handlers[i] = containers.getOrDefault(type, new ItemStackHandler(type.size * 9));
+        }
+        return new CombinedInvWrapper(handlers);
     }
 
     @Override

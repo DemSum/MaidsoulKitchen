@@ -10,7 +10,7 @@
   "tooltips.maidsoulkitchen.culinary_hub.desc.usage.3": "- 放在女仆背包第一栏第五个格子生效",
   "tooltips.maidsoulkitchen.culinary_hub.desc.function": "[功能]",
   "tooltips.maidsoulkitchen.culinary_hub.desc.function.1": "允许女仆在烹饪时直接与其他箱子互动",
-  "tooltips.maidsoulkitchen.culinary_hub.desc.function.2": "可绑定三种类型的箱子，每种最多可绑定3个",
+  "tooltips.maidsoulkitchen.culinary_hub.desc.function.2": "可绑定输入与输出两类容器，每类最多可绑定3个",
   "tooltips.maidsoulkitchen.culinary_hub.desc.warn": "[使用警告]",
   "tooltips.maidsoulkitchen.culinary_hub.desc.warn.empty": "当前还未绑定任何箱子，这将使[烹饪中枢]发挥不了作用",
   "tooltips.maidsoulkitchen.culinary_hub.desc.warn.left": "当前还剩%s类型的箱子未绑定，请继续绑定它们，否则[烹饪中枢]发挥不了全部作用",
@@ -326,6 +326,7 @@
   "patchouli.touhou_little_maid.book.categories.maidsoulkitchen.description": "一个附属模组,让女仆学会农耕与烹饪技巧.",
   "gui.maidsoulkitchen.culinary_hub.bag.ingredient": "输入原料",
   "gui.maidsoulkitchen.culinary_hub.bag.other": "启动条件 | 输入原料条件 | 输出条件 | 输出",
+  "gui.maidsoulkitchen.culinary_hub.bag.output": "输出",
   "gui.maidsoulkitchen.culinary_hub.bag.title": "烹饪袋",
   "gui.maidsoulkitchen.culinary_hub.config.title": "烹饪中枢配置",
   "gui.maidsoulkitchen.culinary_hub.config.bind_mode": "模式绑定",
@@ -341,6 +342,10 @@
   "gui.maidsoulkitchen.culinary_hub.config.bind_mode.output_addition.tooltip": "这里是用来绑定存放取出厨具已经烹饪好的食物所需要的容器的箱子的按钮\n\n比如农夫乐事的厨锅取出蘑菇煲所需要的碗，苹果酒所需要的玻璃瓶",
   "gui.maidsoulkitchen.culinary_hub.config.bind_mode.output.tooltip": "这里是用来绑定存放烹饪好的食物的箱子的按钮\n\n比如烹饪好的蘑菇煲、米饭、苹果酒",
   "gui.maidsoulkitchen.culinary_hub.config.clear_bind_poses.tooltip": "一键清除已绑定过的箱子的坐标",
+  "gui.maidsoulkitchen.culinary_hub.overlay.bound": "当前方块已绑定：%s",
+  "gui.maidsoulkitchen.culinary_hub.overlay.can_bind": "当前方块可绑定",
+  "gui.maidsoulkitchen.culinary_hub.overlay.select_mode": "请先面对空气右键选择绑定类型",
+  "gui.maidsoulkitchen.culinary_hub.overlay.current": "当前绑定类型：%s [%s/%s]",
 
   "gui.maidsoulkitchen.development": "(开发中)",
 

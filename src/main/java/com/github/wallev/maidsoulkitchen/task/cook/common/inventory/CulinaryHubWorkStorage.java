@@ -9,7 +9,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.IItemHandlerModifiable;
 import net.neoforged.neoforge.items.ItemHandlerHelper;
@@ -196,10 +195,10 @@ public final class CulinaryHubWorkStorage {
                 continue;
             }
             BlockEntity blockEntity = level.getBlockEntity(pos);
-            if (blockEntity == null || !isClosedChest(pos, blockEntity)) {
+            if (blockEntity == null || !isStorageAccessible(pos, blockEntity)) {
                 continue;
             }
-            IItemHandler handler = level.getCapability(Capabilities.ItemHandler.BLOCK, pos, null);
+            IItemHandler handler = ItemCulinaryHub.getBeInv(level, blockEntity);
             if (handler != null) {
                 result.add(new BoundInventory(blockEntity, handler));
             }
@@ -207,17 +206,17 @@ public final class CulinaryHubWorkStorage {
         return result;
     }
 
-    private boolean isClosedChest(BlockPos pos, BlockEntity blockEntity) {
+    private boolean isStorageAccessible(BlockPos pos, BlockEntity blockEntity) {
         for (IChestType type : ChestManager.getAllChestTypes()) {
             if (type.isChest(blockEntity)) {
                 return type.getOpenCount(level, pos, blockEntity) <= 0;
             }
         }
-        return false;
+        return true;
     }
 
     private boolean withinWorkRange(BlockPos pos) {
-        float radius = maid.getRestrictRadius();
+        float radius = maid.getRestrictRadius() * ItemCulinaryHub.WORK_RANGE;
         return maid.distanceToSqr(pos.getX(), pos.getY(), pos.getZ()) <= radius * radius;
     }
 

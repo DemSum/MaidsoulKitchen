@@ -156,7 +156,7 @@ public class MaidCuisineMakeTask extends Behavior<EntityMaid> {
                     }
                 }
 
-                this.maidRecipesManager.getCookInv().syncInv();
+                this.maidRecipesManager.syncInv();
             }
         });
     }
@@ -194,14 +194,12 @@ public class MaidCuisineMakeTask extends Behavior<EntityMaid> {
 
 
                 if (tickAll - 10 >= tickMax) {
-                    CombinedInvWrapper maidAvailableInv = maid.getAvailableInv(true);
-
                     CookingData data = cuisineSkilletBlockEntity.cookingData;
                     data.stir(worldIn.getGameTime(), 0);
                     CookedFoodData food = CookedFoodData.of(data);
                     ItemStack foodStack = BaseCuisineRecipe.findBestMatch(worldIn, food);
                     plateItem.shrink(1);
-                    ItemHandlerHelper.insertItemStacked(maidAvailableInv, foodStack, false);
+                    ItemHandlerHelper.insertItemStacked(maidRecipesManager.getOutputInv(), foodStack, false);
 
                     cuisineSkilletBlockEntity.cookingData = new CookingData();
                     cuisineSkilletBlockEntity.sync();

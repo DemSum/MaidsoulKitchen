@@ -33,7 +33,7 @@ public final class CookBagPosRenderEvent {
             if (!mainStack.is(MkItems.CULINARY_HUB.get())) {
                 return;
             }
-            for (BagType value : BagType.values()) {
+            for (BagType value : BagType.DISPLAY_VALS) {
                 BagType.ColorA color = value.color;
                 for (BlockPos pos : ItemCulinaryHub.getBindModePoses(mainStack, value.name)) {
                     Vec3 position = event.getCamera().getPosition().reverse();

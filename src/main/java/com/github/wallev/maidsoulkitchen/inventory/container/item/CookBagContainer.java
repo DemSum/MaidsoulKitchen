@@ -13,8 +13,6 @@ import net.neoforged.neoforge.items.ItemStackHandler;
 import net.neoforged.neoforge.items.SlotItemHandler;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 
 public class CookBagContainer extends CookBagAbstractContainer {
@@ -41,7 +39,7 @@ public class CookBagContainer extends CookBagAbstractContainer {
     }
 
     protected void setContainer(Player player, int slotId, Map<BagType, ItemStackHandler> handlers) {
-        for (BagType value : BagType.values()) {
+        for (BagType value : BagType.VALS) {
             if (slotId >= value.startIndex && slotId < value.endIndex) {
                 ItemCulinaryHub.setContainer(player.registryAccess(), cookBag, handlers);
                 break;
@@ -51,39 +49,33 @@ public class CookBagContainer extends CookBagAbstractContainer {
 
     protected void addBagTypeSlots(Map<BagType, ItemStackHandler> handlers) {
 
-        int yOffset = 22 + 1, i = 0;
-        ItemStackHandler container = handlers.getOrDefault(BagType.INGREDIENT, new ItemStackHandler(BagType.INGREDIENT.size * 9));
-        for (int i1 = 0; i1 < BagType.INGREDIENT.size; i1++, yOffset += 18) {
-            for (int col = 0; col < 9; ++col, i++) {
-                this.addSlot(new SlotItemHandler(container, i, 8 + col * 18, yOffset) {
-                    @Override
-                    public boolean mayPlace(@NotNull ItemStack stack) {
-                        return super.mayPlace(stack) && stack.getItem().canFitInsideContainerItems() && !stack.is(MkItems.CULINARY_HUB.get());
-                    }
-                });
-            }
-        }
-        yOffset += 11;
-
-        List<BagType> list = Arrays.stream(BagType.values()).skip(1).toList();
-
-        for (BagType value : list) {
-            int j = 0;
-            ItemStackHandler container1 = handlers.getOrDefault(value, new ItemStackHandler(value.size * 9));
-            for (int row = 0; row < value.size; ++row, yOffset += 18) {
-
-                if (value == BagType.INGREDIENT_ADDITION || value == BagType.START_ADDITION) {
-                    continue;
-                }
-
-                for (int col = 0; col < 9; ++col, j++) {
-                    this.addSlot(new SlotItemHandler(container1, j, 8 + col * 18, yOffset) {
+        int yOffset = 23;
+        for (BagType value : BagType.INPUT_VALS) {
+            int slot = 0;
+            ItemStackHandler input = handlers.getOrDefault(value, new ItemStackHandler(value.size * 9));
+            for (int row = 0; row < value.size; row++, yOffset += 18) {
+                for (int col = 0; col < 9; col++, slot++) {
+                    this.addSlot(new SlotItemHandler(input, slot, 8 + col * 18, yOffset) {
                         @Override
                         public boolean mayPlace(@NotNull ItemStack stack) {
                             return super.mayPlace(stack) && stack.getItem().canFitInsideContainerItems() && !stack.is(MkItems.CULINARY_HUB.get());
                         }
                     });
                 }
+            }
+        }
+
+        yOffset += 11;
+        int slot = 0;
+        ItemStackHandler output = handlers.getOrDefault(BagType.OUTPUT_VAL, new ItemStackHandler(BagType.OUTPUT_VAL.size * 9));
+        for (int row = 0; row < BagType.OUTPUT_VAL.size; row++, yOffset += 18) {
+            for (int col = 0; col < 9; col++, slot++) {
+                this.addSlot(new SlotItemHandler(output, slot, 8 + col * 18, yOffset) {
+                    @Override
+                    public boolean mayPlace(@NotNull ItemStack stack) {
+                        return super.mayPlace(stack) && stack.getItem().canFitInsideContainerItems() && !stack.is(MkItems.CULINARY_HUB.get());
+                    }
+                });
             }
         }
     }
@@ -107,7 +99,10 @@ public class CookBagContainer extends CookBagAbstractContainer {
             } else {
                 slot.setChanged();
             }
-            setContainer(playerIn, index, this.handlers);
+            // The hub slots start after the 36 player slots, so the old raw
+            // index check skipped persistence for most Shift-clicked hub rows.
+            // Persist the detached handlers after every successful transfer.
+            ItemCulinaryHub.setContainer(playerIn.registryAccess(), cookBag, this.handlers);
         }
         return stack1;
     }
