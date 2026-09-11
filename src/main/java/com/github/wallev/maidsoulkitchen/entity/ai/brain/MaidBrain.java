@@ -11,6 +11,6 @@ public class MaidBrain implements IExtraMaidBrain {
 
     @Override
     public List<MemoryModuleType<?>> getExtraMemoryTypes() {
-        return Lists.newArrayList(MkMemories.DESTROY_POS.get());
+        return Lists.newArrayList(MkMemories.DESTROY_POS.get(), MkMemories.WORK_POS.get());
     }
 }

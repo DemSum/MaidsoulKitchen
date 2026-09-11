@@ -8,15 +8,18 @@ import com.github.wallev.maidsoulkitchen.api.TaskBookEntryType;
 import com.github.wallev.maidsoulkitchen.api.event.MaidMkTaskEnableEvent;
 import com.github.wallev.maidsoulkitchen.api.task.IDataTask;
 import com.github.wallev.maidsoulkitchen.entity.data.inner.task.CookData;
+import com.github.wallev.maidsoulkitchen.init.MkMemories;
 import com.github.wallev.maidsoulkitchen.inventory.container.maid.CookConfigContainer;
 import com.github.wallev.maidsoulkitchen.inventory.tooltip.AmountTooltip;
 import com.github.wallev.maidsoulkitchen.task.cook.common.ai.MaidCookMakeTask;
+import com.github.wallev.maidsoulkitchen.task.cook.common.ai.MaidCookMakePathingTask;
 import com.github.wallev.maidsoulkitchen.task.cook.common.ai.MaidCookMoveTask;
 import com.github.wallev.maidsoulkitchen.task.cook.common.cbaccessor.IRecipeExperinceAward;
 import com.github.wallev.maidsoulkitchen.task.cook.common.inventory.MaidRecipesManager;
 import com.google.common.collect.Lists;
 import com.mojang.datafixers.util.Pair;
 import net.minecraft.client.Minecraft;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.NonNullList;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.network.chat.Component;
@@ -31,6 +34,7 @@ import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.*;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
@@ -53,7 +57,8 @@ public interface ICookTask<B extends BlockEntity, R extends Recipe<? extends Rec
         MaidRecipesManager<R> cookingPotRecipeMaidRecipesManager = getRecipesManager(maid);
         MaidCookMoveTask<B, R> maidCookMoveTask = new MaidCookMoveTask<>(this, cookingPotRecipeMaidRecipesManager);
         MaidCookMakeTask<B, R> maidCookMakeTask = new MaidCookMakeTask<>(this, cookingPotRecipeMaidRecipesManager);
-        return Lists.newArrayList(Pair.of(5, maidCookMoveTask), Pair.of(6, maidCookMakeTask));
+        MaidCookMakePathingTask<B> maidCookMakePathingTask = new MaidCookMakePathingTask<>(this);
+        return Lists.newArrayList(Pair.of(5, maidCookMoveTask), Pair.of(6, maidCookMakeTask), Pair.of(7, maidCookMakePathingTask));
     }
 
     default MaidRecipesManager<R> getRecipesManager(EntityMaid maid) {
@@ -77,6 +82,23 @@ public interface ICookTask<B extends BlockEntity, R extends Recipe<? extends Rec
 
     default double getCloseEnoughDist() {
         return 3.2;
+    }
+
+    /**
+     * Official 1.20.1 behavior: approach a horizontally-facing cooker from
+     * the block in front of it. Cookers without that property retain the
+     * legacy fallback to their own position.
+     */
+    default BlockPos getWalkPos(B blockEntity) {
+        BlockPos workPos = blockEntity.getBlockPos();
+        return blockEntity.getBlockState().getOptionalValue(HorizontalDirectionalBlock.FACING)
+                .map(direction -> workPos.relative(direction).below())
+                .orElse(workPos);
+    }
+
+    @Override
+    default boolean enableLookAndRandomWalk(EntityMaid maid) {
+        return !maid.getBrain().hasMemoryValue(MkMemories.WORK_POS.get());
     }
 
     @Override

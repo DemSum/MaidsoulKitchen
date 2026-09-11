@@ -4,6 +4,7 @@ import com.github.tartaricacid.touhoulittlemaid.entity.passive.EntityMaid;
 import com.github.tartaricacid.touhoulittlemaid.init.InitEntities;
 import com.github.wallev.maidsoulkitchen.init.MkMemories;
 import com.github.wallev.maidsoulkitchen.task.cook.common.inventory.MaidRecipesManager;
+import com.github.wallev.maidsoulkitchen.util.MemoryUtil;
 import com.google.common.collect.ImmutableMap;
 import com.mao.barbequesdelight.content.block.BasinBlockEntity;
 import com.mao.barbequesdelight.content.recipe.SkeweringInput;
@@ -91,7 +92,7 @@ public class MaidBasinMakeTask extends Behavior<EntityMaid> {
 
                 }
 
-                this.maidRecipesManager.getCookInv().syncInv();
+                this.maidRecipesManager.syncInv();
             }
         });
     }
@@ -130,8 +131,6 @@ public class MaidBasinMakeTask extends Behavior<EntityMaid> {
     @Override
     protected void stop(ServerLevel worldIn, EntityMaid maid, long pGameTime) {
         super.stop(worldIn, maid, pGameTime);
-        maid.getBrain().eraseMemory(MemoryModuleType.WALK_TARGET);
-        maid.getBrain().eraseMemory(InitEntities.TARGET_POS.get());
-        maid.getBrain().eraseMemory(MkMemories.DESTROY_POS.get());
+        MemoryUtil.eraseWorkPos(maid);
     }
 }

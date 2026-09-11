@@ -6,6 +6,7 @@ import com.github.wallev.maidsoulkitchen.api.task.v1.cook.ICookTask;
 import com.github.wallev.maidsoulkitchen.entity.data.inner.task.CookData;
 import com.github.wallev.maidsoulkitchen.init.touhoulittlemaid.DataRegister;
 import com.github.wallev.maidsoulkitchen.task.TaskInfo;
+import com.github.wallev.maidsoulkitchen.task.cook.common.ai.MaidCookMakePathingTask;
 import com.github.wallev.maidsoulkitchen.task.cook.common.ai.MaidCookMoveTask;
 import com.github.wallev.maidsoulkitchen.task.cook.common.inventory.MaidRecipesManager;
 import com.google.common.collect.Lists;
@@ -67,7 +68,8 @@ public class TaskBdBasin implements ICookTask<BasinBlockEntity, SkeweringRecipe<
         MaidRecipesManager<SkeweringRecipe<?>> cookingPotRecipeMaidRecipesManager = getRecipesManager(maid);
         MaidCookMoveTask<BasinBlockEntity, SkeweringRecipe<?>> maidCookMoveTask = new MaidCookMoveTask<>(this, cookingPotRecipeMaidRecipesManager);
         MaidBasinMakeTask maidBasinMakeTask = new MaidBasinMakeTask(this, cookingPotRecipeMaidRecipesManager);
-        return Lists.newArrayList(Pair.of(5, maidCookMoveTask), Pair.of(6, maidBasinMakeTask));
+        MaidCookMakePathingTask<BasinBlockEntity> pathingTask = new MaidCookMakePathingTask<>(this);
+        return Lists.newArrayList(Pair.of(5, maidCookMoveTask), Pair.of(6, maidBasinMakeTask), Pair.of(7, pathingTask));
     }
 
     @Override

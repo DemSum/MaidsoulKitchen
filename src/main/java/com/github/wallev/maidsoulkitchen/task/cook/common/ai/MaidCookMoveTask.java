@@ -9,14 +9,13 @@ import com.github.wallev.maidsoulkitchen.task.cook.common.inventory.MaidRecipesM
 import com.google.common.collect.ImmutableMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.ai.behavior.BlockPosTracker;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
 import net.minecraft.world.entity.ai.memory.MemoryStatus;
-import net.minecraft.world.entity.ai.memory.WalkTarget;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeInput;
 import net.minecraft.world.level.block.entity.BlockEntity;
+
+import com.github.wallev.maidsoulkitchen.util.MemoryUtil;
 
 public class MaidCookMoveTask<B extends BlockEntity, R extends Recipe<? extends RecipeInput>> extends MaidCheckRateTask {
     private static final int MAX_DELAY_TIME = 120;
@@ -32,20 +31,13 @@ public class MaidCookMoveTask<B extends BlockEntity, R extends Recipe<? extends 
 
     public MaidCookMoveTask(ICookTask<B, R> task, float movementSpeed, int verticalSearchRange, MaidRecipesManager<R> maidRecipesManager) {
         super(ImmutableMap.of(MemoryModuleType.WALK_TARGET, MemoryStatus.VALUE_ABSENT,
-                InitEntities.TARGET_POS.get(), MemoryStatus.VALUE_ABSENT));
+                InitEntities.TARGET_POS.get(), MemoryStatus.VALUE_ABSENT,
+                MkMemories.WORK_POS.get(), MemoryStatus.VALUE_ABSENT));
         this.task = task;
         this.movementSpeed = movementSpeed;
         this.verticalSearchRange = verticalSearchRange;
         this.setMaxCheckRate(MAX_DELAY_TIME);
         this.maidRecipesManager = maidRecipesManager;
-    }
-
-    private static void setWalkAndLookTargetMemories(LivingEntity pLivingEntity, BlockPos walkPos, BlockPos lookPos, float pSpeed, int pDistance) {
-        pLivingEntity.getBrain().setMemory(MemoryModuleType.WALK_TARGET, new WalkTarget(walkPos, pSpeed, pDistance));
-        pLivingEntity.getBrain().setMemory(MemoryModuleType.LOOK_TARGET, new BlockPosTracker(lookPos));
-        
-        pLivingEntity.getBrain().setMemory(InitEntities.TARGET_POS.get(), new BlockPosTracker(lookPos));
-        pLivingEntity.getBrain().setMemory(MkMemories.DESTROY_POS.get(), new BlockPosTracker(lookPos));
     }
 
     private static BlockPos getSearchPos(EntityMaid maid) {
@@ -106,7 +98,14 @@ public class MaidCookMoveTask<B extends BlockEntity, R extends Recipe<? extends 
                         if (maid.isWithinRestriction(mutableBlockPos) && shouldMoveTo(worldIn, maid, mutableBlockPos)
 //                                && checkPathReach(maid, mutableBlockPos)
                                 && checkOwnerPos(maid, mutableBlockPos)) {
-                            setWalkAndLookTargetMemories(maid, mutableBlockPos, mutableBlockPos, this.movementSpeed, 0);
+                            BlockPos workPos = mutableBlockPos.immutable();
+                            BlockEntity blockEntity = worldIn.getBlockEntity(workPos);
+                            if (blockEntity == null || !this.task.isCookBE(blockEntity)) {
+                                continue;
+                            }
+                            @SuppressWarnings("unchecked")
+                            B cookBlockEntity = (B) blockEntity;
+                            MemoryUtil.rememberWorkPos(maid, this.task.getWalkPos(cookBlockEntity), workPos, this.movementSpeed, 0);
                             this.setNextCheckTickCount(5);
                             return;
                         }
