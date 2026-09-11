@@ -3,6 +3,7 @@
 
 ## Credits
   - The native dual-coordinate cooking state in the 1.21.1 fork is adapted from MaidsoulKitchen's own `1.20.1-1.0-dev` design. Reachable side-position search is an independent implementation using Minecraft pathfinding APIs; no SimplePathfinder source is included.
+  - The native DrinkBeer barrel safeguards and compatibility recipes are adapted from MaidSoul Brewery Public commits `ca84cf4`, `0a0a46b`, and `f5e0fa9`; the restored altar recipes come from `de47e15` and were originally migrated from MaidsoulKitchen 1.20.1 data.
 
 ## Notice
   - Due to the author's personal reasons, the development progress will be extremely slow (maybe the pit will be abandoned...)

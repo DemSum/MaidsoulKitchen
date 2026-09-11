@@ -1,0 +1,6 @@
+{
+  "replace": false,
+  "values": [
+    { "id": "ratatouille:wheat_kernels", "required": false }
+  ]
+}

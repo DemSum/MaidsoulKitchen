@@ -3,6 +3,7 @@
 
 ## 鸣谢
   - 1.21.1 fork 的原生烹饪双坐标状态设计改编自 MaidsoulKitchen 自身的 `1.20.1-1.0-dev` 分支；可达侧面落脚点搜索基于 Minecraft 寻路 API 独立实现，未包含 SimplePathfinder 源码。
+  - 原生 DrinkBeer 酒桶保护和兼容配方改编自 MaidSoul Brewery Public 的 `ca84cf4`、`0a0a46b`、`f5e0fa9`；补回的祭坛配方来自 `de47e15`，其原始数据迁移自 MaidsoulKitchen 1.20.1。
 
 ## 注意
   - 由于作者个人原因，开发进度会及其缓慢（保不准会弃坑...）

@@ -1,0 +1,20 @@
+{
+  "type": "drinkbeer:brewing",
+  "ingredients": [
+    [
+      { "item": "minecraft:wheat" },
+      { "tag": "c:crops/wheat" },
+      { "tag": "maidsoulkitchen:drinkbeer_wheat_inputs" }
+    ],
+    [
+      { "item": "minecraft:wheat" },
+      { "tag": "c:crops/wheat" },
+      { "tag": "maidsoulkitchen:drinkbeer_wheat_inputs" }
+    ],
+    { "item": "minecraft:sweet_berries" },
+    { "tag": "maidsoulkitchen:drinkbeer_water_inputs" }
+  ],
+  "cup": { "id": "drinkbeer:empty_beer_mug", "count": 4 },
+  "brewing_time": 24000,
+  "result": { "id": "drinkbeer:beer_mug_sweet_berry_kriek", "count": 4 }
+}
