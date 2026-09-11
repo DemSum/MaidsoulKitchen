@@ -2,6 +2,8 @@ package com.github.wallev.maidsoulkitchen.task.cook.farmersdelight;
 
 import com.github.tartaricacid.touhoulittlemaid.entity.passive.EntityMaid;
 import com.github.wallev.maidsoulkitchen.init.MkMemories;
+import com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskClassAnalyzer;
+import com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskInfo;
 import com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookTargetMemory;
 import com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookTargetState;
 import com.github.wallev.maidsoulkitchen.task.cook.common.inventory.MaidRecipesManager;
@@ -19,6 +21,7 @@ import vectorwing.farmersdelight.common.crafting.CuttingBoardRecipe;
 
 import java.util.Optional;
 
+@TaskClassAnalyzer(TaskInfo.FD_CUTTING_BOARD)
 public class MaidCuttingMakeTask extends Behavior<EntityMaid> {
     private final TaskFdCuttingBoard task;
     private final MaidRecipesManager<CuttingBoardRecipe> maidRecipesManager;

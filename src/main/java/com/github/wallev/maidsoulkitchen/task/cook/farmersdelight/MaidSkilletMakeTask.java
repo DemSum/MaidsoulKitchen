@@ -3,6 +3,8 @@ package com.github.wallev.maidsoulkitchen.task.cook.farmersdelight;
 import com.github.tartaricacid.touhoulittlemaid.entity.passive.EntityMaid;
 import com.github.wallev.maidsoulkitchen.entity.passive.IAddonMaid;
 import com.github.wallev.maidsoulkitchen.init.MkMemories;
+import com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskClassAnalyzer;
+import com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskInfo;
 import com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookTargetMemory;
 import com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookTargetState;
 import com.github.wallev.maidsoulkitchen.task.cook.common.cbaccessor.IRecipeExperinceAward;
@@ -32,6 +34,7 @@ import java.util.Collections;
 /**
  * </ul>
  */
+@TaskClassAnalyzer(TaskInfo.FD_SKILLET)
 public class MaidSkilletMakeTask extends Behavior<EntityMaid> {
     private final TaskFdSkillet task;
     private int cookCount = 0;

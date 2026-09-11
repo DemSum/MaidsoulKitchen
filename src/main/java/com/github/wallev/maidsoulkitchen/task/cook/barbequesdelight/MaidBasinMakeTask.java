@@ -2,6 +2,8 @@ package com.github.wallev.maidsoulkitchen.task.cook.barbequesdelight;
 
 import com.github.tartaricacid.touhoulittlemaid.entity.passive.EntityMaid;
 import com.github.wallev.maidsoulkitchen.init.MkMemories;
+import com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskClassAnalyzer;
+import com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskInfo;
 import com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookTargetMemory;
 import com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookTargetState;
 import com.github.wallev.maidsoulkitchen.task.cook.common.inventory.MaidRecipesManager;
@@ -22,6 +24,7 @@ import net.neoforged.neoforge.items.ItemHandlerHelper;
 
 import java.util.List;
 
+@TaskClassAnalyzer(TaskInfo.BD_BASIN)
 public class MaidBasinMakeTask extends Behavior<EntityMaid> {
     private final TaskBdBasin task;
     private final MaidRecipesManager<SkeweringRecipe<?>> maidRecipesManager;
