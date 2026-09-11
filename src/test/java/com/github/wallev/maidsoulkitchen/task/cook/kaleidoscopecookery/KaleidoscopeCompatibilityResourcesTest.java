@@ -58,12 +58,12 @@ class KaleidoscopeCompatibilityResourcesTest {
     }
 
     @Test
-    void pinsTheReviewedKaleidoscopeArtifactWithoutChangingMskVersion() throws IOException {
+    void pinsTheReviewedKaleidoscopeArtifactAndMskVersion() throws IOException {
         String versionProperties = Files.readString(PROJECT.resolve("setting/version/1.21.1/gradle.properties"));
         String modProperties = Files.readString(PROJECT.resolve("gradle.properties"));
 
         assertTrue(versionProperties.contains("kaleidoscope_cookery_version=TqaHu4Ma"));
-        assertEquals("0.1.3", property(modProperties, "mod_version"));
+        assertEquals("0.1.4", property(modProperties, "mod_version"));
     }
 
     private static String property(String content, String key) {
