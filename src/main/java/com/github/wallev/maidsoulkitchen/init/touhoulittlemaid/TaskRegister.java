@@ -59,12 +59,6 @@ public final class TaskRegister {
         if (TaskInfo.CD_CUISINE_SKILLET.canLoad()) {
             manager.add(new TaskCdCuisineSkillet());
         }
-//        if (Mods.FRD.isLoaded() && RegisterConfig.FR_KETTLE_TASK_ENABLED.get()) {
-//            manager.add(new TaskFrKettle());
-//        }
-        if (TaskInfo.BNC_KEY.canLoad()) {
-//            manager.add(new TaskBncKeg());
-        }
         if (TaskInfo.BD_BASIN.canLoad()) {
             manager.add(new TaskBdBasin());
         }

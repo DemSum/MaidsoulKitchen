@@ -1,7 +1,6 @@
 package com.github.wallev.maidsoulkitchen;
 
 import com.github.tartaricacid.touhoulittlemaid.entity.ai.brain.ExtraMaidBrainManager;
-import com.github.wallev.maidsoulkitchen.chest.FarmDelightCabinet;
 import com.github.wallev.maidsoulkitchen.entity.ai.brain.MaidBrain;
 import com.github.wallev.maidsoulkitchen.foundation.utility.Mods;
 import com.github.wallev.maidsoulkitchen.init.MkItems;
@@ -57,10 +56,6 @@ public final class MaidPlugin implements ILittleMaid {
 
     @Override
     public void addChestType(ChestManager manager) {
-        if (Mods.FD.isLoaded()) {
-            // 农夫乐事的橱柜并没有实现 NeoForge 的 Cap 系统 ，故禁用
-//            manager.add(new FarmDelightCabinet());
-        }
     }
 
     @Override
