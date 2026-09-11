@@ -24,17 +24,13 @@ public abstract class MaidRunOneMixin extends RunOne<EntityMaid> {
         super(pEntryCondition);
     }
 
-    @Inject(at = @At("HEAD"), cancellable = true, method = "tryStart(Lnet/minecraft/server/level/ServerLevel;Lcom/github/tartaricacid/touhoulittlemaid/entity/passive/EntityMaid;J)Z")
+    @Inject(at = @At("HEAD"), method = "tryStart(Lnet/minecraft/server/level/ServerLevel;Lcom/github/tartaricacid/touhoulittlemaid/entity/passive/EntityMaid;J)Z")
     private void tlmk$tryStart(ServerLevel pLevel, EntityMaid maid, long pGameTime, CallbackInfoReturnable<Boolean> cir) {
         boolean hasCookTarget = maid.getBrain().hasMemoryValue(MkMemories.DESTROY_POS.get())
                 || maid.getBrain().hasMemoryValue(MkMemories.WORK_POS.get())
                 || maid.getBrain().hasMemoryValue(MkMemories.COOK_WALK_POS.get());
         if (CookTargetState.shouldClearForTask(hasCookTarget, maid.getTask() instanceof ICookTargetTask)) {
             CookTargetMemory.clear(maid);
-            return;
-        }
-        if (maid.getBrain().hasMemoryValue(MkMemories.DESTROY_POS.get())) {
-            cir.setReturnValue(false);
         }
     }
 
