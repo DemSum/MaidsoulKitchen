@@ -225,6 +225,8 @@
   "task.maidsoulkitchen.kk_air_compressor": "空气压缩机",
   "task.maidsoulkitchen.kk_air_compressor.desc": "女仆会使用胡萝卜厨房的空气压缩机制作食物",
   "task.maidsoulkitchen.kk_air_compressor.enable_condition.has_enough_favor": "女仆好感度等级大于等于1",
+  "task.maidsoulkitchen.kaleidoscope_steamer": "蒸笼",
+  "task.maidsoulkitchen.kaleidoscope_steamer.desc": "女仆会向准备好的蒸笼放入食材，并收取完成的食物",
 
 
   "overlay.maidsoulkitchen.book.tips": "书本会改变工作模式为水果的女仆的检索起始高度值\n右击+1,潜行右击-1\n检索范围为起始高度向上延伸2格",

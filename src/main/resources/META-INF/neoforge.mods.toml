@@ -36,3 +36,10 @@ license = "${mod_license}"
     versionRange="[1.1.13,)"
     ordering="AFTER"
     side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="kaleidoscope_cookery"
+    type="optional"
+    versionRange="[1.4.1,2)"
+    ordering="AFTER"
+    side="BOTH"

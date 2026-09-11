@@ -5,6 +5,7 @@ import com.github.tartaricacid.touhoulittlemaid.entity.data.TaskDataRegister;
 import com.github.wallev.maidsoulkitchen.entity.data.inner.task.BerryData;
 import com.github.wallev.maidsoulkitchen.entity.data.inner.task.CookData;
 import com.github.wallev.maidsoulkitchen.entity.data.inner.task.FruitData;
+import com.github.wallev.maidsoulkitchen.entity.data.inner.task.RecipeFilterData;
 import com.github.wallev.maidsoulkitchen.task.TaskInfo;
 
 public final class DataRegister {
@@ -27,6 +28,7 @@ public final class DataRegister {
     public static TaskDataKey<CookData> CUISINE_SKILLET;
     public static TaskDataKey<CookData> CP_CROCK_POT;
     public static TaskDataKey<CookData> DB_BEER;
+    public static TaskDataKey<RecipeFilterData> KC_STEAMER;
     public static TaskDataKey<CookData> KC_BREW_BARREL;
     public static TaskDataKey<CookData> KC_AIR_COMPRESSOR;
     private DataRegister() {
@@ -54,6 +56,7 @@ public final class DataRegister {
 
         CP_CROCK_POT = data.register(TaskInfo.CP_CROCK_POT.uid, CookData.CODEC);
         DB_BEER = data.register(TaskInfo.DB_BEER.uid, CookData.CODEC);
+        KC_STEAMER = data.register(TaskInfo.KC_STEAMER.uid, RecipeFilterData.CODEC);
         KC_BREW_BARREL = data.register(TaskInfo.KK_BREW_BARREL.uid, CookData.CODEC);
         KC_AIR_COMPRESSOR = data.register(TaskInfo.KK_AIR_COMPRESSOR.uid, CookData.CODEC);
     }

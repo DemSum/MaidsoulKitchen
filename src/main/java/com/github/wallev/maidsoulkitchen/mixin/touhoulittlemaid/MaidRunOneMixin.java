@@ -3,7 +3,7 @@ package com.github.wallev.maidsoulkitchen.mixin.touhoulittlemaid;
 import com.github.tartaricacid.touhoulittlemaid.entity.ai.brain.task.MaidRunOne;
 import com.github.tartaricacid.touhoulittlemaid.entity.passive.EntityMaid;
 import com.github.wallev.maidsoulkitchen.init.MkMemories;
-import com.github.wallev.maidsoulkitchen.api.task.v1.cook.ICookTask;
+import com.github.wallev.maidsoulkitchen.api.task.v1.cook.ICookTargetTask;
 import com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookTargetMemory;
 import com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookTargetState;
 import com.mojang.datafixers.util.Pair;
@@ -29,7 +29,7 @@ public abstract class MaidRunOneMixin extends RunOne<EntityMaid> {
         boolean hasCookTarget = maid.getBrain().hasMemoryValue(MkMemories.DESTROY_POS.get())
                 || maid.getBrain().hasMemoryValue(MkMemories.WORK_POS.get())
                 || maid.getBrain().hasMemoryValue(MkMemories.COOK_WALK_POS.get());
-        if (CookTargetState.shouldClearForTask(hasCookTarget, maid.getTask() instanceof ICookTask<?, ?>)) {
+        if (CookTargetState.shouldClearForTask(hasCookTarget, maid.getTask() instanceof ICookTargetTask)) {
             CookTargetMemory.clear(maid);
             return;
         }

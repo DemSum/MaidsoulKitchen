@@ -46,6 +46,7 @@ public enum Mods {
     CP("crockpot"),
     DB("drinkbeer"),
     KK("kitchenkarrot"),
+    KC("kaleidoscope_cookery"),
 
     TWT("thirst"),
 

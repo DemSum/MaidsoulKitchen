@@ -33,6 +33,7 @@ public class RegisterConfig {
     public static ModConfigSpec.BooleanValue KK_BREW_BARREL;
     public static ModConfigSpec.BooleanValue KK_AIR_COMPRESSOR;
     public static ModConfigSpec.BooleanValue DB_BEER_TASK_ENABLED;
+    public static ModConfigSpec.BooleanValue KC_STEAMER_TASK_ENABLED;
     public static ModConfigSpec.BooleanValue CP_CROk_POT_TASK_ENABLED;
 
     public static void init(ModConfigSpec.Builder builder) {
@@ -89,6 +90,8 @@ public class RegisterConfig {
         CP_CROk_POT_TASK_ENABLED = builder.define("CkCrockPotTaskEnabled", true);
         builder.comment("This can make the db beer task enabled or not.");
         DB_BEER_TASK_ENABLED = builder.define("DbBeerTaskEnabled", true);
+        builder.comment("This can make the Kaleidoscope Cookery steamer task enabled or not.");
+        KC_STEAMER_TASK_ENABLED = builder.define("KcSteamerTaskEnabled", true);
         builder.comment("This can make the kc brew barrel task enabled or not.");
         KK_BREW_BARREL = builder.define("KkBrewBarrelTaskEnabled", true);
         builder.comment("This can make the kc air compressor task enabled or not.");

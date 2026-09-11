@@ -43,7 +43,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Predicate;
 
-public interface ICookTask<B extends BlockEntity, R extends Recipe<? extends RecipeInput>> extends IMaidsoulKitchenTask, IDataTask<CookData> {
+public interface ICookTask<B extends BlockEntity, R extends Recipe<? extends RecipeInput>> extends ICookTargetTask, IDataTask<CookData> {
 
     @Override
     default List<Pair<Integer, BehaviorControl<? super EntityMaid>>> createBrainTasks(EntityMaid maid) {

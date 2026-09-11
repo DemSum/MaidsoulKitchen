@@ -34,6 +34,8 @@ dependencies {
         implementation "maven.modrinth:kitchen-karrot:${kitchen_karrot_version}-${mod_loader},${minecraft_version}"
     if (!drink_beer_refill_version.isEmpty())
         implementation "maven.modrinth:drink-beer-refill:${drink_beer_refill_version}-${mod_loader},${minecraft_version}"
+    if (!kaleidoscope_cookery_version.isEmpty())
+        implementation "maven.modrinth:v17FatAc:${kaleidoscope_cookery_version}"
     if (!crock_pot_file_id.isEmpty())
         implementation "curse.maven:crock-pot-404523:${crock_pot_file_id}"
 

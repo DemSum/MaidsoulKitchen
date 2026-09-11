@@ -117,6 +117,10 @@ public final class CookTargetMemory {
 
     public static void clear(EntityMaid maid) {
         Brain<EntityMaid> brain = maid.getBrain();
+        if (maid.level() instanceof ServerLevel level) {
+            brain.getMemory(MkMemories.WORK_POS.get()).ifPresent(
+                    tracker -> CookWorkLocks.release(level, tracker.currentBlockPosition(), maid));
+        }
         brain.eraseMemory(MemoryModuleType.WALK_TARGET);
         brain.eraseMemory(MemoryModuleType.LOOK_TARGET);
         brain.eraseMemory(InitEntities.TARGET_POS.get());

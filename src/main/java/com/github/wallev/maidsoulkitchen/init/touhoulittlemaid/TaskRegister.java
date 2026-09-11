@@ -10,6 +10,7 @@ import com.github.wallev.maidsoulkitchen.task.cook.farmersdelight.TaskFdCookPot;
 import com.github.wallev.maidsoulkitchen.task.cook.farmersdelight.TaskFdCuttingBoard;
 import com.github.wallev.maidsoulkitchen.task.cook.farmersdelight.TaskFdSkillet;
 import com.github.wallev.maidsoulkitchen.task.cook.minecraft.TaskFurnace;
+import com.github.wallev.maidsoulkitchen.task.cook.kaleidoscopecookery.TaskKcSteamer;
 import com.github.wallev.maidsoulkitchen.task.cook.youkaishomecoming.TaskYhcDryingRack;
 import com.github.wallev.maidsoulkitchen.task.cook.youkaishomecoming.TaskYhcFermentationTank;
 import com.github.wallev.maidsoulkitchen.task.cook.youkaishomecoming.TaskYhcMoka;
@@ -86,6 +87,9 @@ public final class TaskRegister {
 
         if (Mods.DB.isLoaded() && RegisterConfig.DB_BEER_TASK_ENABLED.get()) {
             manager.add(new TaskDbBeerBarrel());
+        }
+        if (Mods.KC.isLoaded() && RegisterConfig.KC_STEAMER_TASK_ENABLED.get()) {
+            manager.add(new TaskKcSteamer());
         }
 
     }

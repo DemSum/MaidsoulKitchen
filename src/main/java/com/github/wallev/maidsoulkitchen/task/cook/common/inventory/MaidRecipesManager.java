@@ -89,7 +89,7 @@ public class MaidRecipesManager<R extends Recipe<? extends RecipeInput>> {
     }
 
     public ItemStack findCulinaryHub() {
-        ItemStack culinaryHubItem = this.maid.getMaidInv().getStackInSlot(4);
+        ItemStack culinaryHubItem = this.maid.getMaidInv().getStackInSlot(ItemCulinaryHub.INV_SLOT);
         if (culinaryHubItem.is(MkItems.CULINARY_HUB.get())) return culinaryHubItem;
         return ItemStack.EMPTY;
     }

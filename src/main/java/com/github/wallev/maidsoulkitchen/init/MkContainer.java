@@ -7,6 +7,7 @@ import com.github.wallev.maidsoulkitchen.inventory.container.maid.BerryFarmConfi
 import com.github.wallev.maidsoulkitchen.inventory.container.maid.CompatMelonConfigContainer;
 import com.github.wallev.maidsoulkitchen.inventory.container.maid.CookConfigContainer;
 import com.github.wallev.maidsoulkitchen.inventory.container.maid.FruitFarmConfigContainer;
+import com.github.wallev.maidsoulkitchen.inventory.container.maid.SteamerRecipeFilterContainer;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.inventory.MenuType;
 import net.neoforged.neoforge.registries.DeferredHolder;
@@ -21,4 +22,5 @@ public final class MkContainer {
     public static final DeferredHolder<MenuType<?>, MenuType<CompatMelonConfigContainer>> COMPAT_MELON_CONFIG_CONTAINER = CONTAINER_TYPE.register("compat_melon_config_container", () -> CompatMelonConfigContainer.TYPE);
     public static final DeferredHolder<MenuType<?>, MenuType<CookBagContainer>> COOK_BAG_CONTAINER = CONTAINER_TYPE.register("culinary_hub_container", () -> CookBagContainer.TYPE);
     public static final DeferredHolder<MenuType<?>, MenuType<CookBagConfigContainer>> COOK_BAG_CONFIG_CONTAINER = CONTAINER_TYPE.register("culinary_hub_config_container", () -> CookBagConfigContainer.TYPE);
+    public static final DeferredHolder<MenuType<?>, MenuType<SteamerRecipeFilterContainer>> STEAMER_RECIPE_FILTER_CONTAINER = CONTAINER_TYPE.register("steamer_recipe_filter_container", () -> SteamerRecipeFilterContainer.TYPE);
 }

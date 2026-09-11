@@ -226,6 +226,8 @@
   "task.maidsoulkitchen.kk_air_compressor": "Air Compressor",
   "task.maidsoulkitchen.kk_air_compressor.desc": "Maid can cook food by use the kitchkarrot aircompressor",
   "task.maidsoulkitchen.kk_air_compressor.enable_condition.has_enough_favor": "Maid favor level >= 1",
+  "task.maidsoulkitchen.kaleidoscope_steamer": "Steamer",
+  "task.maidsoulkitchen.kaleidoscope_steamer.desc": "The maid loads ingredients into prepared steamers and collects finished food",
 
   "overlay.maidsoulkitchen.book.tips": "The book will change the working mode to the retrieval start height value of the maid of the fruit\nRight-click +1, stealth right-click -1\nThe search range is 2 blocks up from the starting height",
   "overlay.maidsoulkitchen.book.tips.search_yoffset": "SearchYOffest: ",
