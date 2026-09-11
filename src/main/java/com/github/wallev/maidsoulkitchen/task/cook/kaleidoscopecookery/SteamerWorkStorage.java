@@ -2,6 +2,7 @@ package com.github.wallev.maidsoulkitchen.task.cook.kaleidoscopecookery;
 
 import com.github.tartaricacid.touhoulittlemaid.entity.passive.EntityMaid;
 import com.github.wallev.maidsoulkitchen.task.cook.common.inventory.CulinaryHubWorkStorage;
+import com.github.wallev.maidsoulkitchen.task.cook.common.inventory.MaidInventoryCompat;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.IItemHandlerModifiable;
@@ -27,7 +28,7 @@ interface SteamerWorkStorage {
     static SteamerWorkStorage forMaid(EntityMaid maid) {
         return CulinaryHubWorkStorage.open(maid)
                 .<SteamerWorkStorage>map(HubStorage::new)
-                .orElseGet(() -> new MaidStorage(maid.getAvailableBackpackInv()));
+                .orElseGet(() -> new MaidStorage(MaidInventoryCompat.availableInventory(maid)));
     }
 
     final class MaidStorage implements SteamerWorkStorage {
