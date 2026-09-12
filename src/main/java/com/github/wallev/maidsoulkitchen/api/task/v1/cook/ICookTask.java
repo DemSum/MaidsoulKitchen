@@ -13,7 +13,6 @@ import com.github.wallev.maidsoulkitchen.inventory.tooltip.AmountTooltip;
 import com.github.wallev.maidsoulkitchen.task.cook.common.ai.MaidCookMakeTask;
 import com.github.wallev.maidsoulkitchen.task.cook.common.ai.MaidCookMoveTask;
 import com.github.wallev.maidsoulkitchen.task.cook.common.ai.MaidCookPathingTask;
-import com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookSearchDiagnostics;
 import com.github.wallev.maidsoulkitchen.task.cook.common.cbaccessor.IRecipeExperinceAward;
 import com.github.wallev.maidsoulkitchen.task.cook.common.inventory.MaidRecipesManager;
 import com.google.common.collect.Lists;
@@ -51,8 +50,6 @@ public interface ICookTask<B extends BlockEntity, R extends Recipe<? extends Rec
         if (maid.level.isClientSide) {
             return Collections.emptyList();
         }
-
-        CookSearchDiagnostics.brainCreated(maid, getUid());
 
         MaidRecipesManager<R> cookingPotRecipeMaidRecipesManager = getRecipesManager(maid);
         MaidCookMoveTask<B, R> maidCookMoveTask = new MaidCookMoveTask<>(this, cookingPotRecipeMaidRecipesManager);

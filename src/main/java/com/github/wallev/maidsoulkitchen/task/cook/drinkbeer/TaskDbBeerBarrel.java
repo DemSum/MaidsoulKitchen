@@ -82,7 +82,6 @@ public class TaskDbBeerBarrel extends TaskBaseContainerCook<BeerBarrelBlockEntit
         return new MaidRecipesManager<>(maid, this, false){
             @Override
             protected Pair<List<Integer>, List<Item>> getAmountIngredient(BrewingRecipe recipe, Map<Item, Integer> available) {
-                String debugAvailableBefore = DrinkBeerDiagnostics.available(available);
                 List<Ingredient> ingredients = recipe.getIngredients();
                 List<Item> invIngredient = new ArrayList<>();
                 Map<Item, Integer> itemTimes = new HashMap<>();
@@ -145,9 +144,6 @@ public class TaskDbBeerBarrel extends TaskBaseContainerCook<BeerBarrelBlockEntit
 
 
                 if (!canMake[0] || invIngredient.stream().anyMatch(item -> available.get(item) <= 0)) {
-                    DrinkBeerDiagnostics.recipePlan(
-                            beerCup, ingredients.size(), false, 0,
-                            Collections.emptyList(), debugAvailableBefore, available);
                     return Pair.of(Collections.emptyList(), Collections.emptyList());
                 }
 
@@ -173,9 +169,6 @@ public class TaskDbBeerBarrel extends TaskBaseContainerCook<BeerBarrelBlockEntit
                     available.put(item, available.get(item) - maxCount);
                 }
 
-                DrinkBeerDiagnostics.recipePlan(
-                        beerCup, ingredients.size(), true, maxCount,
-                        countList, debugAvailableBefore, available);
                 return Pair.of(countList, invIngredient);
             }
 
@@ -190,55 +183,37 @@ public class TaskDbBeerBarrel extends TaskBaseContainerCook<BeerBarrelBlockEntit
     @Override
     public boolean maidShouldMoveTo(ServerLevel serverLevel, EntityMaid entityMaid, BeerBarrelBlockEntity blockEntity, MaidRecipesManager<BrewingRecipe> maidRecipesManager) {
         Container inventory = getContainer(blockEntity);
-        IItemHandlerModifiable inputInventory = maidRecipesManager.getInputInv();
-        boolean canModify = DrinkBeerBarrelAdapter.canModifyInputs(blockEntity);
-        boolean brewing = DrinkBeerBarrelAdapter.isBrewing(blockEntity);
-        boolean outputReady = canTakeOutput(inventory, blockEntity);
-        boolean needsCups = DrinkBeerBarrelInventory.needsCups(inventory);
-        boolean hasMugs = inputInventory != null
-                && DrinkBeerBarrelInventory.hasEmptyBeerMug(inputInventory);
-        List<Pair<List<Integer>, List<List<ItemStack>>>> recipesIngredients = maidRecipesManager.getRecipesIngredients();
-        boolean returnedBucket = DrinkBeerBarrelInventory.hasReturnedBucket(inventory);
-
-        boolean actionable;
-        String reason;
-        if (outputReady) {
-            actionable = true;
-            reason = "output_ready";
-        } else if (canModify && needsCups && hasMugs) {
-            actionable = true;
-            reason = "refill_cups";
-        } else if (!brewing && !recipesIngredients.isEmpty()) {
-            actionable = true;
-            reason = "recipe_plan";
-        } else if (returnedBucket) {
-            actionable = true;
-            reason = "returned_bucket";
-        } else {
-            actionable = false;
-            reason = brewing ? "brewing" : recipesIngredients.isEmpty()
-                    ? "no_recipe_plan" : "no_action";
+        if (canTakeOutput(inventory, blockEntity)) {
+            return true;
         }
 
-        DrinkBeerDiagnostics.evaluation(
-                entityMaid, blockEntity, maidRecipesManager, actionable, reason,
-                canModify, brewing, DrinkBeerBarrelAdapter.isOutputReady(blockEntity),
-                needsCups, hasMugs, returnedBucket);
-        return actionable;
+        IItemHandlerModifiable inputInventory = maidRecipesManager.getInputInv();
+        if (DrinkBeerBarrelAdapter.canModifyInputs(blockEntity)
+                && DrinkBeerBarrelInventory.needsCups(inventory)
+                && inputInventory != null
+                && DrinkBeerBarrelInventory.hasEmptyBeerMug(inputInventory)) {
+            return true;
+        }
+
+        // 啤酒桶正在酿造时无需重复投料。
+        boolean b = DrinkBeerBarrelAdapter.isBrewing(blockEntity);
+        List<Pair<List<Integer>, List<List<ItemStack>>>> recipesIngredients = maidRecipesManager.getRecipesIngredients();
+        // 空闲或等待取出成品时仍需靠近设备处理库存。
+        if (!b && !recipesIngredients.isEmpty()) {
+            return true;
+        }
+
+        // 有输入
+        return DrinkBeerBarrelInventory.hasReturnedBucket(inventory);
     }
 
     @Override
     public void maidCookMake(ServerLevel serverLevel, EntityMaid entityMaid, BeerBarrelBlockEntity blockEntity, MaidRecipesManager<BrewingRecipe> maidRecipesManager) {
-        DrinkBeerDiagnostics.Snapshot before = DrinkBeerDiagnostics.snapshot(
-                entityMaid, blockEntity, maidRecipesManager);
         extractOutputStack(getContainer(blockEntity), maidRecipesManager.getOutputInv(), blockEntity);
         extractInputStack(getContainer(blockEntity), maidRecipesManager.getInputInv(), blockEntity);
         tryInsertItem(serverLevel, entityMaid, blockEntity, maidRecipesManager);
 
         maidRecipesManager.syncInv();
-        DrinkBeerDiagnostics.action(
-                entityMaid, blockEntity, before,
-                DrinkBeerDiagnostics.snapshot(entityMaid, blockEntity, maidRecipesManager));
     }
 
     @Override

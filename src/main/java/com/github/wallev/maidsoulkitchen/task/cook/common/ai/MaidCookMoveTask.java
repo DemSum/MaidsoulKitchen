@@ -58,43 +58,23 @@ public class MaidCookMoveTask<B extends BlockEntity, R extends Recipe<? extends 
 
     @SuppressWarnings("unchecked")
     protected boolean shouldMoveTo(ServerLevel worldIn, EntityMaid maid, BlockPos blockPos) {
-        return shouldMoveTo(worldIn, maid, blockPos, null);
-    }
-
-    @SuppressWarnings("unchecked")
-    private boolean shouldMoveTo(ServerLevel worldIn, EntityMaid maid, BlockPos blockPos,
-                                 CookSearchDiagnostics.Scan diagnostics) {
         BlockEntity blockEntity = worldIn.getBlockEntity(blockPos);
         if (blockEntity == null) {
-            if (diagnostics != null) diagnostics.missingBlockEntity();
             return false;
         }
         if (this.task.isCookBE(blockEntity)) {
-            if (diagnostics != null) diagnostics.cookDevice();
-            boolean actionable = this.task.shouldMoveTo(
-                    worldIn, this.maidRecipesManager.getMaid(), (B) blockEntity, maidRecipesManager);
-            if (!actionable && diagnostics != null) diagnostics.inactiveCookDevice();
-            return actionable;
+            return this.task.shouldMoveTo(worldIn, this.maidRecipesManager.getMaid(), (B) blockEntity, maidRecipesManager);
         }
-        if (diagnostics != null) diagnostics.wrongBlockEntity();
         return false;
     }
 
     protected final void searchForDestination(ServerLevel worldIn, EntityMaid maid) {
+        if (!this.processRecipeManager()) {
+            return;
+        }
         BlockPos centrePos = getSearchPos(maid);
         int searchRange = (int) maid.getRestrictRadius();
         try (CookSearchDiagnostics.Scan diagnostics = CookSearchDiagnostics.begin(maid, task.getUid())) {
-            boolean managerReady = this.processRecipeManager();
-            if (CookSearchDiagnostics.enabled()) {
-                diagnostics.recipeManager(
-                        managerReady,
-                        this.maidRecipesManager.getRecipesIngredients().size(),
-                        !this.maidRecipesManager.findCulinaryHub().isEmpty(),
-                        CookSearchDiagnostics.totalItems(this.maidRecipesManager.getInputInv()),
-                        CookSearchDiagnostics.totalItems(this.maidRecipesManager.getOutputInv())
-                );
-            }
-            if (!managerReady) return;
             ReachableCookDeviceSearch.find(
                     worldIn,
                     maid,
@@ -102,13 +82,8 @@ public class MaidCookMoveTask<B extends BlockEntity, R extends Recipe<? extends 
                     searchRange,
                     this.verticalSearchStart,
                     this.verticalSearchRange,
-                    pos -> {
-                        if (!CookWorkLocks.isAvailable(worldIn, pos, maid)) {
-                            diagnostics.lockedDevice();
-                            return false;
-                        }
-                        return shouldMoveTo(worldIn, maid, pos, diagnostics);
-                    },
+                    pos -> CookWorkLocks.isAvailable(worldIn, pos, maid)
+                            && shouldMoveTo(worldIn, maid, pos),
                     diagnostics,
                     targetCycle
             ).ifPresent(result -> {
@@ -124,7 +99,7 @@ public class MaidCookMoveTask<B extends BlockEntity, R extends Recipe<? extends 
                         0
                 );
                 targetCycle.recordSelection(result.workPos().asLong());
-                diagnostics.selected(result.walkPos(), result.workPos());
+                diagnostics.selected();
                 this.setNextCheckTickCount(5);
             });
         }

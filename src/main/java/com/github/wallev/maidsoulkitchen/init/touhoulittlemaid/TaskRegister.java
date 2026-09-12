@@ -14,7 +14,6 @@ import com.github.wallev.maidsoulkitchen.task.cook.youkaishomecoming.TaskYhcDryi
 import com.github.wallev.maidsoulkitchen.task.cook.youkaishomecoming.TaskYhcFermentationTank;
 import com.github.wallev.maidsoulkitchen.task.cook.youkaishomecoming.TaskYhcMoka;
 import com.github.wallev.maidsoulkitchen.task.cook.youkaishomecoming.TaskYhcTeaKettle;
-import com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookSearchDiagnostics;
 import com.github.wallev.maidsoulkitchen.task.farm.*;
 import com.github.wallev.maidsoulkitchen.task.other.TaskFeedAnimalT;
 import com.github.tartaricacid.touhoulittlemaid.entity.task.TaskManager;
@@ -79,11 +78,7 @@ public final class TaskRegister {
             manager.add(new TaskYhcFermentationTank());
         }
 
-        boolean dbBeerEnabled = TaskInfo.DB_BEER.canLoad();
-        CookSearchDiagnostics.registration(
-                com.github.wallev.maidsoulkitchen.task.TaskInfo.DB_BEER.uid,
-                dbBeerEnabled);
-        if (dbBeerEnabled) {
+        if (TaskInfo.DB_BEER.canLoad()) {
             manager.add(new TaskDbBeerBarrel());
         }
         if (TaskInfo.KC_STEAMER.canLoad()) {

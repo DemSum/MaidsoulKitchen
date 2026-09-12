@@ -31,14 +31,8 @@ public class MaidCookMakeTask<B extends BlockEntity, R extends Recipe<? extends 
         }
         CookTargetState.StartState state = CookTargetMemory.evaluateStart(
                 worldIn, maid, task::isCookBE, task.getCloseEnoughDist());
-        if (CookSearchDiagnostics.enabled()) {
-            BlockPos debugWorkPos = CookTargetMemory.getWorkPos(maid)
-                    .map(pos -> pos.currentBlockPosition()).orElse(maid.blockPosition());
-            CookSearchDiagnostics.assignmentState(maid, task.getUid(), state, debugWorkPos);
-        }
         if (state == CookTargetState.StartState.CLEAR_INVALID) {
             CookTargetMemory.clear(maid);
-            CookSearchDiagnostics.assignmentCleared(maid);
         }
         return state == CookTargetState.StartState.READY;
     }
@@ -53,28 +47,12 @@ public class MaidCookMakeTask<B extends BlockEntity, R extends Recipe<? extends 
             BlockPos basePos = posWrapper.currentBlockPosition();
             BlockEntity blockEntity = worldIn.getBlockEntity(basePos);
             if (blockEntity != null && task.isCookBE(blockEntity)) {
-                int inputBefore = CookSearchDiagnostics.enabled()
-                        ? CookSearchDiagnostics.totalItems(this.maidRecipesManager.getInputInv()) : -1;
-                int outputBefore = CookSearchDiagnostics.enabled()
-                        ? CookSearchDiagnostics.totalItems(this.maidRecipesManager.getOutputInv()) : -1;
-                CookSearchDiagnostics.makeStarted(
-                        maid, task.getUid(), basePos, inputBefore, outputBefore);
                 this.task.processCookMake(worldIn, maid, (B) blockEntity, this.maidRecipesManager);
                 this.maidRecipesManager.getCookInv().syncInv();
-                int inputAfter = CookSearchDiagnostics.enabled()
-                        ? CookSearchDiagnostics.totalItems(this.maidRecipesManager.getInputInv()) : -1;
-                int outputAfterProcess = CookSearchDiagnostics.enabled()
-                        ? CookSearchDiagnostics.totalItems(this.maidRecipesManager.getOutputInv()) : -1;
                 this.maidRecipesManager.tranOutput2Chest();
                 this.maidRecipesManager.getCookInv().syncInv();
-                int outputAfterStorage = CookSearchDiagnostics.enabled()
-                        ? CookSearchDiagnostics.totalItems(this.maidRecipesManager.getOutputInv()) : -1;
-                CookSearchDiagnostics.makeCompleted(
-                        maid, task.getUid(), basePos, inputBefore, inputAfter,
-                        outputBefore, outputAfterProcess, outputAfterStorage);
             }
             CookTargetMemory.clear(maid);
-            CookSearchDiagnostics.assignmentCleared(maid);
         });
     }
 }
