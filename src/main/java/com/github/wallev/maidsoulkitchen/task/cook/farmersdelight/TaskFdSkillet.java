@@ -87,7 +87,7 @@ public class TaskFdSkillet implements ICookTask<SkilletBlockEntity, CampfireCook
         MaidRecipesManager<CampfireCookingRecipe> skilletRecipeMaidRecipesManager = getRecipesManager(maid);
         MaidCookMoveTask<SkilletBlockEntity, CampfireCookingRecipe> maidCookMoveTask = new MaidCookMoveTask<>(this, skilletRecipeMaidRecipesManager);
         MaidSkilletMakeTask maidCookMakeTask = new MaidSkilletMakeTask(this, skilletRecipeMaidRecipesManager);
-        MaidCookPathingTask<SkilletBlockEntity, CampfireCookingRecipe> maidCookPathingTask = new MaidCookPathingTask<>(this);
+        MaidCookPathingTask maidCookPathingTask = new MaidCookPathingTask(this);
         return Lists.newArrayList(Pair.of(5, maidCookMoveTask), Pair.of(6, maidCookMakeTask), Pair.of(7, maidCookPathingTask));
     }
     

@@ -90,7 +90,7 @@ public class TaskBdGrill implements ICookTask<GrillBlockEntity, GrillingRecipe<?
         MaidRecipesManager<GrillingRecipe<?>> cookingPotRecipeMaidRecipesManager = getRecipesManager(maid);
         MaidCookMoveTask<GrillBlockEntity, GrillingRecipe<?>> maidCookMoveTask = new MaidCookMoveTask<>(this, cookingPotRecipeMaidRecipesManager);
         MaidGrillMakeTask maidGrillMakeTask = new MaidGrillMakeTask(this, cookingPotRecipeMaidRecipesManager);
-        MaidCookPathingTask<GrillBlockEntity, GrillingRecipe<?>> maidCookPathingTask = new MaidCookPathingTask<>(this);
+        MaidCookPathingTask maidCookPathingTask = new MaidCookPathingTask(this);
         return Lists.newArrayList(Pair.of(5, maidCookMoveTask), Pair.of(6, maidGrillMakeTask), Pair.of(7, maidCookPathingTask));
     }
 

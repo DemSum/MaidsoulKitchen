@@ -70,7 +70,7 @@ public class TaskBdBasin implements ICookTask<BasinBlockEntity, SkeweringRecipe<
         MaidRecipesManager<SkeweringRecipe<?>> cookingPotRecipeMaidRecipesManager = getRecipesManager(maid);
         MaidCookMoveTask<BasinBlockEntity, SkeweringRecipe<?>> maidCookMoveTask = new MaidCookMoveTask<>(this, cookingPotRecipeMaidRecipesManager);
         MaidBasinMakeTask maidBasinMakeTask = new MaidBasinMakeTask(this, cookingPotRecipeMaidRecipesManager);
-        MaidCookPathingTask<BasinBlockEntity, SkeweringRecipe<?>> maidCookPathingTask = new MaidCookPathingTask<>(this);
+        MaidCookPathingTask maidCookPathingTask = new MaidCookPathingTask(this);
         return Lists.newArrayList(Pair.of(5, maidCookMoveTask), Pair.of(6, maidBasinMakeTask), Pair.of(7, maidCookPathingTask));
     }
 

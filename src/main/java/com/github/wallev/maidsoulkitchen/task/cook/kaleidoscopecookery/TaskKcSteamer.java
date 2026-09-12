@@ -7,6 +7,7 @@ import com.github.wallev.maidsoulkitchen.init.touhoulittlemaid.DataRegister;
 import com.github.wallev.maidsoulkitchen.inventory.container.maid.SteamerRecipeFilterContainer;
 import com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskClassAnalyzer;
 import com.github.wallev.maidsoulkitchen.task.TaskInfo;
+import com.github.wallev.maidsoulkitchen.task.cook.common.ai.MaidCookPathingTask;
 import com.github.ysbbbbbb.kaleidoscopecookery.init.ModItems;
 import com.mojang.datafixers.util.Pair;
 import net.minecraft.core.BlockPos;
@@ -52,7 +53,12 @@ public final class TaskKcSteamer implements ICookTargetTask {
     public List<Pair<Integer, BehaviorControl<? super EntityMaid>>> createBrainTasks(EntityMaid maid) {
         return new ArrayList<>(List.of(
                 Pair.of(5, new MaidSteamerMoveTask()),
-                Pair.of(6, new MaidSteamerWorkTask())
+                Pair.of(6, new MaidSteamerWorkTask()),
+                Pair.of(7, new MaidCookPathingTask(
+                        SteamerAdapter::supports,
+                        SteamerAdapter.STACK_INTERACTION_DISTANCE,
+                        0.6F
+                ))
         ));
     }
 

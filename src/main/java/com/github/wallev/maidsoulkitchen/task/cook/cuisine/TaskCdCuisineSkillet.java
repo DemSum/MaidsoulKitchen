@@ -91,7 +91,7 @@ public class TaskCdCuisineSkillet implements ICookTask<CuisineSkilletBlockEntity
         MaidRecipesManager<BaseCuisineRecipe<?>> cookingPotRecipeMaidRecipesManager = getRecipesManager(maid);
         MaidCookMoveTask<CuisineSkilletBlockEntity, BaseCuisineRecipe<?>> maidCookMoveTask = new MaidCookMoveTask<>(this, cookingPotRecipeMaidRecipesManager);
         MaidCuisineMakeTask maidCookMakeTask = new MaidCuisineMakeTask(this, cookingPotRecipeMaidRecipesManager);
-        MaidCookPathingTask<CuisineSkilletBlockEntity, BaseCuisineRecipe<?>> maidCookPathingTask = new MaidCookPathingTask<>(this);
+        MaidCookPathingTask maidCookPathingTask = new MaidCookPathingTask(this);
         return Lists.newArrayList(Pair.of(5, maidCookMoveTask), Pair.of(6, maidCookMakeTask), Pair.of(7, maidCookPathingTask));
     }
 }
