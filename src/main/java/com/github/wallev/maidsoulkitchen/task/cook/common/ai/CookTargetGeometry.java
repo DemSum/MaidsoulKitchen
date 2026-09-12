@@ -2,7 +2,13 @@ package com.github.wallev.maidsoulkitchen.task.cook.common.ai;
 
 /** Pure coordinate checks shared by the reachable-device search and its tests. */
 public final class CookTargetGeometry {
+    private static final int SAME_FLOOR_VERTICAL_RANGE = 2;
+
     private CookTargetGeometry() {
+    }
+
+    public static boolean isDifferentFloorOffset(int deltaY) {
+        return Math.abs(deltaY) > SAME_FLOOR_VERTICAL_RANGE;
     }
 
     public static boolean isSideApproachOffset(int deltaX, int deltaY, int deltaZ) {

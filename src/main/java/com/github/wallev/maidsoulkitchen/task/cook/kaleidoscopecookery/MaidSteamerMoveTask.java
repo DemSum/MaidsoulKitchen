@@ -53,7 +53,13 @@ final class MaidSteamerMoveTask extends MaidCheckRateTask {
         SteamerApproachSearch.find(level, maid, pos -> selectAdjacentSteamer(
                 level, maid, pos, storage, recipeFilter, checkedSteamers, selection));
         Target target = selection.result();
-        if (target == null || !CookWorkLocks.tryClaim(level, target.workPos(), maid)) return;
+        if (target == null) {
+            BlockPos searchCenter = maid.hasRestriction()
+                    ? maid.getRestrictCenter() : maid.blockPosition();
+            CookTargetMemory.guideBackToWorkArea(maid, searchCenter, MOVEMENT_SPEED);
+            return;
+        }
+        if (!CookWorkLocks.tryClaim(level, target.workPos(), maid)) return;
         CookTargetMemory.remember(
                 maid,
                 target.walkPos(),

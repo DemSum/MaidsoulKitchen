@@ -7,6 +7,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ReachableCookDeviceSearchTest {
     @Test
+    void distinguishesAdjacentFloorsFromNormalStepHeight() {
+        assertFalse(CookTargetGeometry.isDifferentFloorOffset(2));
+        assertTrue(CookTargetGeometry.isDifferentFloorOffset(3));
+        assertTrue(CookTargetGeometry.isDifferentFloorOffset(-3));
+    }
+
+    @Test
     void acceptsCardinalDevicesAtFootOrCounterHeight() {
         assertTrue(CookTargetGeometry.isSideApproachOffset(1, 0, 0));
         assertTrue(CookTargetGeometry.isSideApproachOffset(0, 0, -1));

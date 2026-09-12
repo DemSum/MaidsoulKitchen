@@ -63,6 +63,9 @@ class Tlm15ApiMigrationTest {
         String targetTask = classFileText(
                 "com/github/wallev/maidsoulkitchen/api/task/v1/cook/ICookTargetTask.class"
         );
+        String genericMove = classFileText(
+                "com/github/wallev/maidsoulkitchen/task/cook/common/ai/MaidCookMoveTask.class"
+        );
         String steamerMove = classFileText(
                 "com/github/wallev/maidsoulkitchen/task/cook/kaleidoscopecookery/"
                         + "MaidSteamerMoveTask.class"
@@ -72,8 +75,10 @@ class Tlm15ApiMigrationTest {
         assertTrue(memories.contains("cook_task_uid"));
         assertTrue(targetTask.contains("enableLookAndRandomWalk"));
         assertTrue(targetTask.contains("enableEating"));
+        assertTrue(genericMove.contains("guideBackToWorkArea"));
         assertTrue(steamerMove.contains("CookTargetCycle"));
         assertTrue(steamerMove.contains("isAvailable"));
+        assertTrue(steamerMove.contains("guideBackToWorkArea"));
     }
 
     @Test

@@ -8,6 +8,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.ai.Brain;
 import net.minecraft.world.entity.ai.behavior.BlockPosTracker;
+import net.minecraft.world.entity.ai.behavior.BehaviorUtils;
 import net.minecraft.world.entity.ai.behavior.PositionTracker;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
 import net.minecraft.world.entity.ai.memory.WalkTarget;
@@ -51,6 +52,25 @@ public final class CookTargetMemory {
 
     public static Optional<PositionTracker> getWorkPos(EntityMaid maid) {
         return maid.getBrain().getMemory(MkMemories.WORK_POS.get());
+    }
+
+    /**
+     * Bridges schedule changes where TLM's spherical restriction considers an
+     * adjacent floor "inside" the work area even though its cooking graph is
+     * disconnected from the appliances below or above.
+     */
+    public static void guideBackToWorkArea(
+            EntityMaid maid,
+            BlockPos searchCenter,
+            float speed
+    ) {
+        if (!maid.hasRestriction()
+                || !maid.canBrainMoving()
+                || !CookTargetGeometry.isDifferentFloorOffset(
+                maid.blockPosition().getY() - searchCenter.getY())) {
+            return;
+        }
+        BehaviorUtils.setWalkAndLookTargetMemories(maid, searchCenter, speed, 3);
     }
 
     public static boolean hasValidWorkTarget(
