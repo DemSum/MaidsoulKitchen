@@ -5,13 +5,14 @@ import com.github.tartaricacid.touhoulittlemaid.entity.passive.EntityMaid;
 import com.github.wallev.maidsoulkitchen.entity.data.inner.task.RecipeFilterData;
 import com.github.wallev.maidsoulkitchen.init.MkMemories;
 import com.github.wallev.maidsoulkitchen.init.touhoulittlemaid.DataRegister;
+import com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookTargetCycle;
 import com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookTargetMemory;
 import com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookWorkLocks;
+import com.github.wallev.maidsoulkitchen.task.cook.common.ai.ReachableCookDeviceSearch;
 import com.google.common.collect.ImmutableMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.ai.memory.MemoryModuleType;
 import net.minecraft.world.entity.ai.memory.MemoryStatus;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -24,13 +25,11 @@ import java.util.function.Predicate;
 final class MaidSteamerMoveTask extends MaidCheckRateTask {
     private static final float MOVEMENT_SPEED = 0.6F;
     private static final int MAX_DELAY_TICKS = 120;
-    private static final int[] INTERACTION_HEIGHT_OFFSETS = SteamerAdapter.interactionHeightOffsets();
+    private static final int MAX_STACK_LAYERS = SteamerAdapter.maxHeatedLayers();
+    private final CookTargetCycle targetCycle = new CookTargetCycle();
 
     MaidSteamerMoveTask() {
-        super(ImmutableMap.of(
-                MemoryModuleType.WALK_TARGET, MemoryStatus.VALUE_ABSENT,
-                MkMemories.WORK_POS.get(), MemoryStatus.VALUE_ABSENT
-        ));
+        super(ImmutableMap.of(MkMemories.WORK_POS.get(), MemoryStatus.VALUE_ABSENT));
         setMaxCheckRate(MAX_DELAY_TICKS);
     }
 
@@ -49,19 +48,30 @@ final class MaidSteamerMoveTask extends MaidCheckRateTask {
             RecipeFilterData recipeFilter
     ) {
         Set<BlockPos> checkedSteamers = new HashSet<>();
-        BlockPos[] selectedSteamer = new BlockPos[1];
-        SteamerApproachSearch.find(level, maid, pos -> selectAdjacentSteamer(
-                level, maid, pos, storage, recipeFilter, checkedSteamers, selectedSteamer))
-                .ifPresent(approach -> {
-                    CookTargetMemory.remember(
-                            maid,
-                            approach,
-                            selectedSteamer[0],
-                            MOVEMENT_SPEED,
-                            0
-                    );
-                    setNextCheckTickCount(5);
-                });
+        BlockPos searchCenter = maid.hasRestriction()
+                ? maid.getRestrictCenter()
+                : maid.blockPosition().below();
+        int searchRange = (int) maid.getRestrictRadius();
+        ReachableCookDeviceSearch.findCustom(
+                level,
+                maid,
+                searchCenter,
+                searchRange,
+                targetCycle,
+                (approach, offerSteamer) -> selectAdjacentSteamer(
+                        level, maid, approach, storage, recipeFilter,
+                        checkedSteamers, offerSteamer)
+        ).ifPresent(result ->
+                rememberTarget(level, maid, result.walkPos(), result.workPos()));
+    }
+
+    private void rememberTarget(ServerLevel level, EntityMaid maid, BlockPos approach, BlockPos steamer) {
+        if (steamer == null || !CookWorkLocks.tryClaim(level, steamer, maid)) {
+            return;
+        }
+        targetCycle.recordSelection(steamer.asLong());
+        CookTargetMemory.remember(maid, approach, steamer, MOVEMENT_SPEED, 0);
+        setNextCheckTickCount(5);
     }
 
     private boolean selectAdjacentSteamer(
@@ -71,13 +81,16 @@ final class MaidSteamerMoveTask extends MaidCheckRateTask {
             SteamerWorkStorage storage,
             RecipeFilterData filter,
             Set<BlockPos> checkedSteamers,
-            BlockPos[] selectedSteamer
+            Predicate<BlockPos> offerSteamer
     ) {
         if (!maid.isWithinRestriction(approachPos)) {
             return false;
         }
         BlockPos.MutableBlockPos steamerPos = new BlockPos.MutableBlockPos();
-        for (int yOffset : INTERACTION_HEIGHT_OFFSETS) {
+        // The maid stands beside the bottom of a continuous stack. Each layer
+        // above remains a distinct work target, but an upper floor is never an
+        // approach point for that stack.
+        for (int yOffset = 0; yOffset < MAX_STACK_LAYERS; yOffset++) {
             for (int xOffset = -1; xOffset <= 1; xOffset++) {
                 for (int zOffset = -1; zOffset <= 1; zOffset++) {
                     if (!SteamerSearchGeometry.isSideOffset(xOffset, zOffset)) {
@@ -92,21 +105,44 @@ final class MaidSteamerMoveTask extends MaidCheckRateTask {
                     }
 
                     BlockPos immutableSteamerPos = steamerPos.immutable();
+                    if (!isBottomLevelApproach(level, approachPos, immutableSteamerPos)) {
+                        continue;
+                    }
                     if (!checkedSteamers.add(immutableSteamerPos)) {
                         continue;
                     }
                     BlockEntity blockEntity = level.getBlockEntity(steamerPos);
                     if (!SteamerAdapter.supports(blockEntity)
-                            || !shouldUseSteamer(level, blockEntity, filter, storage)
-                            || !CookWorkLocks.tryClaim(level, immutableSteamerPos, maid)) {
+                            || !CookWorkLocks.isAvailable(level, immutableSteamerPos, maid)
+                            || !shouldUseSteamer(level, blockEntity, filter, storage)) {
                         continue;
                     }
-                    selectedSteamer[0] = immutableSteamerPos;
-                    return true;
+                    if (offerSteamer.test(immutableSteamerPos)) {
+                        return true;
+                    }
                 }
             }
         }
         return false;
+    }
+
+    private static boolean isBottomLevelApproach(
+            ServerLevel level,
+            BlockPos approachPos,
+            BlockPos steamerPos
+    ) {
+        BlockPos cursor = steamerPos;
+        int continuousLayersBelow = 0;
+        for (int depth = 1; depth < MAX_STACK_LAYERS; depth++) {
+            BlockPos below = cursor.below();
+            if (!level.isLoaded(below) || !SteamerAdapter.supports(level.getBlockState(below))) {
+                break;
+            }
+            cursor = below;
+            continuousLayersBelow++;
+        }
+        return SteamerSearchGeometry.isBottomLevelApproach(
+                approachPos.getY(), steamerPos.getY(), continuousLayersBelow);
     }
 
     private static boolean shouldUseSteamer(
@@ -141,4 +177,5 @@ final class MaidSteamerMoveTask extends MaidCheckRateTask {
         LivingEntity owner = maid.getOwner();
         return owner != null && pos.closerToCenterThan(owner.position(), 8.0);
     }
+
 }
