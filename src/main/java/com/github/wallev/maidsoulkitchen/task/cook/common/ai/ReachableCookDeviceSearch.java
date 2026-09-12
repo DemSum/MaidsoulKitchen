@@ -108,6 +108,7 @@ public final class ReachableCookDeviceSearch {
             Selection selection
     ) {
         if (!maid.isWithinRestriction(candidateWalkPos)) {
+            diagnostics.rejectedWalkRestriction();
             return false;
         }
         for (Direction direction : HORIZONTAL_DIRECTIONS) {
@@ -122,10 +123,21 @@ public final class ReachableCookDeviceSearch {
             )) {
                 continue;
             }
-            if (!maid.isWithinRestriction(devicePos)
-                    || !isWithinOwnerRange(maid, devicePos)
-                    || !level.isLoaded(devicePos)
-                    || !checkedDevices.add(devicePos)) {
+            diagnostics.adjacentInBounds();
+            if (!maid.isWithinRestriction(devicePos)) {
+                diagnostics.rejectedDeviceRestriction();
+                continue;
+            }
+            if (!isWithinOwnerRange(maid, devicePos)) {
+                diagnostics.rejectedOwnerRange();
+                continue;
+            }
+            if (!level.isLoaded(devicePos)) {
+                diagnostics.rejectedUnloaded();
+                continue;
+            }
+            if (!checkedDevices.add(devicePos)) {
+                diagnostics.rejectedDuplicate();
                 continue;
             }
             diagnostics.deviceCandidate();
