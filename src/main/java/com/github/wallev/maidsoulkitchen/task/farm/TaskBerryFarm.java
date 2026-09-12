@@ -15,6 +15,7 @@ import com.github.wallev.maidsoulkitchen.task.cook.common.ai.MaidCompatFarmPlant
 import com.github.wallev.maidsoulkitchen.task.farm.handler.IFarmHandlerManager;
 import com.github.tartaricacid.touhoulittlemaid.api.entity.data.TaskDataKey;
 import com.github.tartaricacid.touhoulittlemaid.entity.passive.EntityMaid;
+import com.github.tartaricacid.touhoulittlemaid.entity.passive.MaidPathFindingBFS;
 import com.github.wallev.maidsoulkitchen.task.farm.handler.berry.BerryHandler;
 import com.github.wallev.maidsoulkitchen.task.farm.handler.berry.BerryHandlerManager;
 import com.google.common.collect.Lists;
@@ -60,10 +61,10 @@ public class TaskBerryFarm implements ICompatFarm<BerryHandler, BerryData>, IFak
         if (maid.level.isClientSide) return Lists.newArrayList();
         MaidCompatFarmMoveTask<BerryHandler> maidFarmMoveTask = new MaidCompatFarmMoveTask<>(maid, this, 0.6F) {
             @Override
-            public boolean checkPathReach(EntityMaid maid, BlockPos pos) {
+            public boolean checkPathReach(EntityMaid maid, MaidPathFindingBFS pathFinding, BlockPos pos) {
                 for (int x = -1; x <= 1; ++x) {
                     for (int z = -1; z <= 1; ++z) {
-                        if (maid.canPathReach(pos.offset(x, 0, z))) {
+                        if (pathFinding.canPathReach(pos.offset(x, 0, z))) {
                             return true;
                         }
                     }

@@ -39,6 +39,15 @@ class Tlm15ApiMigrationTest {
     }
 
     @Test
+    void berryTaskOverridesTheSharedBfsReachabilityHook() throws IOException {
+        String moveTask = classFileText(
+                "com/github/wallev/maidsoulkitchen/task/farm/TaskBerryFarm$1.class"
+        );
+        assertTrue(moveTask.contains("MaidPathFindingBFS"));
+        assertTrue(moveTask.contains("canPathReach"));
+    }
+
+    @Test
     void oldInventoryCompatibilityShimIsAbsent() {
         assertNull(getClass().getClassLoader().getResource(
                 "com/github/wallev/maidsoulkitchen/task/cook/common/inventory/"
