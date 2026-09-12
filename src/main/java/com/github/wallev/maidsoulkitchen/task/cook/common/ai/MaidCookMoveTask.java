@@ -8,7 +8,6 @@ import com.github.wallev.maidsoulkitchen.task.cook.common.inventory.MaidRecipesM
 import com.google.common.collect.ImmutableMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.entity.ai.memory.MemoryModuleType;
 import net.minecraft.world.entity.ai.memory.MemoryStatus;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeInput;
@@ -27,8 +26,13 @@ public class MaidCookMoveTask<B extends BlockEntity, R extends Recipe<? extends 
     }
 
     public MaidCookMoveTask(ICookTask<B, R> task, float movementSpeed, int verticalSearchRange, MaidRecipesManager<R> maidRecipesManager) {
-        super(ImmutableMap.of(MemoryModuleType.WALK_TARGET, MemoryStatus.VALUE_ABSENT,
-                MkMemories.WORK_POS.get(), MemoryStatus.VALUE_ABSENT));
+        // Do not gate the scan on WALK_TARGET. TLM's low-priority idle stroll
+        // owns that memory while the maid is between jobs; making it a required
+        // absence also freezes MaidCheckRateTask's cooldown and can starve cook
+        // discovery indefinitely. The existing 120-239 tick cooldown still
+        // limits BFS work, and remember(...) only replaces the walk target after
+        // an actionable, reachable appliance has actually been found.
+        super(ImmutableMap.of(MkMemories.WORK_POS.get(), MemoryStatus.VALUE_ABSENT));
         this.task = task;
         this.movementSpeed = movementSpeed;
         this.verticalSearchRange = verticalSearchRange;

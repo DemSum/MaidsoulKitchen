@@ -52,6 +52,9 @@
   `WALK_TARGET`。
 - 无朝向属性的厨具不会自动回退到设备自身坐标。
 - 搜索结果在任务周期内复用，不进行每 tick 完整 BFS。
+- 通用烹饪搜索的 120–239 tick 随机冷却不再因 TLM 闲置游荡占用
+  `WALK_TARGET` 而冻结；未发现目标时保留现有移动，只有找到实际可操作且可达的
+  厨具后才用工作落脚点覆盖它。
 
 ### 3.4 官方 1.20.1 烹饪任务约定
 
@@ -156,15 +159,15 @@
 
 ## 5. 当前验证基线
 
-- 最近完整测试：45 tests，0 failures，0 errors，0 skipped。
+- 最近完整测试：46 tests，0 failures，0 errors，0 skipped。
 - `clean test build`：通过。
-- NeoForge 21.1.244 开发服务器：最新启动至 `Done (4.982s)`。
+- NeoForge 21.1.244 开发服务器：最新启动至 `Done (4.435s)`。
 - 服务端模组清单确认 TLM `1.5.3-neoforge+mc1.21.1`，并记录到官方 special-crop
   回调成功注册 Farmer's Delight 蘑菇群落处理器。
 - 验证组合包含 KC 1.4.1、DrinkBeer 1.4.1、Farmer's Delight 1.2.7 和 TLM 1.5.3。
 - 测试构建：`build/libs/maidsoulkitchen-1.21.1-beta-v0.1.4.jar`。
 - 该检查点构建 SHA-256：
-  `989BC47A5899ADEA01169DDCF0B1B1A71B79C8724971367C631EBE408254FC1C`。
+  `50D8A337C384CA5B8B8F52EA6580C8CA43E44A5E41E04B479A63C06D00FFA047`。
 
 开发服沿用的旧世界曾记录 TLM 1.1.13，因此 NeoForge 显示一次世界持久化版本差异
 `1.1.13 -> 1.5.3`；实际加载清单和运行调用栈只有 1.5.3，不是依赖降级。
