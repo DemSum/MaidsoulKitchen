@@ -9,7 +9,7 @@
 本文只记录已经进入当前分支的内容。计划项、候选实现和仍需游戏内验证的功能会被
 明确标记，不能在 README 或发布说明中写成已经验证完成。
 
-记录检查点：`4554e99f`（`Migrate slim to TLM 1.5.3 crop API`）。
+记录检查点：`25040fc1`（`Fix berry task reachability on TLM 1.5.3`）。
 
 ## 2. 代码来源与分支边界
 
@@ -103,6 +103,10 @@
 
 - 修复 Farmer's Delight 厨锅等任务的兼容清单映射，避免已实现任务不出现在 UI。
 - 当前统一注册和保护 19 个活动任务。
+- 修复浆果任务仍覆写 TLM 已废弃的两参数可达性接口的问题；现在直接覆写 TLM 1.5.3
+  的共享 BFS 接口，并在目标同层九宫格内接受任一可达落脚点。
+- 浆果可达性检查复用 TLM 当前搜索建立的 `MaidPathFindingBFS`，不会为每个候选作物
+  重新创建完整寻路搜索。实现原生适配自 Public `de47e15`，未移植其 Mixin。
 - 将官方庞大的构建期/运行期通用分析框架替换为静态 `CompatibilityRegistry`。
 - 任务注册、Mixin gate、API 检查和客户端兼容报告使用同一份静态清单。
 - 可选模组缺失或 API 不满足时采用受控加载，不让对应兼容类破坏服务器启动。
@@ -146,15 +150,15 @@
 
 ## 5. 当前验证基线
 
-- 最近完整测试：44 tests，0 failures，0 errors，0 skipped。
+- 最近完整测试：45 tests，0 failures，0 errors，0 skipped。
 - `clean test build`：通过。
-- NeoForge 21.1.244 开发服务器：启动至 `Done (5.606s)`。
+- NeoForge 21.1.244 开发服务器：启动至 `Done (6.030s)`。
 - 服务端模组清单确认 TLM `1.5.3-neoforge+mc1.21.1`，并记录到官方 special-crop
   回调成功注册 Farmer's Delight 蘑菇群落处理器。
 - 验证组合包含 KC 1.4.1、DrinkBeer 1.4.1、Farmer's Delight 1.2.7 和 TLM 1.5.3。
 - 测试构建：`build/libs/maidsoulkitchen-1.21.1-beta-v0.1.4.jar`。
 - 该检查点构建 SHA-256：
-  `53F3F72035D6A71BA96D8C64F817D78E7FEC48AD837A9B3D4F67C0BE2E0D50CB`。
+  `C004D9A8D78E0FD441899E7351C431B5F5EFD7F70F5D32748ABA6A060B05054D`。
 
 开发服沿用的旧世界曾记录 TLM 1.1.13，因此 NeoForge 显示一次世界持久化版本差异
 `1.1.13 -> 1.5.3`；实际加载清单和运行调用栈只有 1.5.3，不是依赖降级。
@@ -167,9 +171,13 @@
 - 多层蒸笼：代码已修复，等待 2/3/4 层、半/整蒸笼、断火恢复和逐层入库实测。
 - 通用双坐标完整游戏矩阵：阻挡、楼层、任务切换、女仆重载、多女仆竞争和长期
   Tick 型厨具仍需继续验证。
+- 浆果任务：新版 BFS 钩子和服务端加载已验证；不同阻挡布局、围栏边缘和多名女仆
+  同时寻找浆果仍需游戏内确认。
 - 纯 TLM、单个兼容模组和所有兼容模组组合的完整客户端/服务器矩阵尚未全部完成。
-- `api/task/v2`、旧公开接口和旧任务数据键仍等待维护者的兼容策略决定。
-- Public 的临时坐标 Mixin 尚未删除；只能在正式 fork 实机稳定后另行评估。
+- `api/task/v2`、旧公开接口和旧任务数据键决定继续保留，避免破坏潜在第三方调用和
+  旧女仆任务数据；不再列入当前瘦身删除范围。
+- Public 的临时坐标 Mixin 不进入正式 fork；正式 fork 实机稳定后的删除评估只针对
+  Public patch 自身。
 
 ## 7. README 可复用摘要
 
@@ -192,7 +200,8 @@ TLM 1.5.3，并通过其官方 special-crop API 原生支持 Farmer's Delight �
 
 - 标明来自 MSK 官方分支、正式 0.1.4 sources 或 Public 的具体提交。
 - 说明是原生适配、设计参考还是直接资源移植。
-- 若未来实际采用 SimplePathfinder 源码，必须先核查许可证并补充 README credits。
+- Public 的两个临时坐标 Mixin 和 SimplePathfinder 源码均为永久不移植项，避免与
+  当前原生双坐标状态和 TLM 1.5.3 官方 BFS 冲突。
 
 ### Compatibility
 

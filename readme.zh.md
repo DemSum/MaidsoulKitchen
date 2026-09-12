@@ -7,7 +7,7 @@
   - 本 1.21.1 fork 已同步官方 MaidsoulKitchen `1.21.1-beta-v0.1.4` 源码发布版；准确的源码包、校验值、合并边界和保留的 fork 改动见[上游同步记录](./docs/upstream-sync/0.1.4.md)。
   - 1.21.1 fork 的原生烹饪双坐标状态设计改编自 MaidsoulKitchen 自身的 `1.20.1-1.0-dev` 分支；可达侧面落脚点搜索基于 Minecraft 寻路 API 独立实现，未包含 SimplePathfinder 源码。
   - 原生 DrinkBeer 酒桶保护和兼容配方改编自 MaidSoul Brewery Public 的 `ca84cf4`、`0a0a46b`、`f5e0fa9`；补回的祭坛配方来自 `de47e15`，其原始数据迁移自 MaidsoulKitchen 1.20.1。
-  - 原生万花筒之宴蒸笼任务、过滤界面和烹饪中枢仓储支持改编自 MaidSoul Brewery Public 的 `de47e15`。万花筒之宴作者为 ysbbbbbb、tartaric_acid 和 Azumic；本联动仅调用其公开 API，未复制其源码。
+  - 原生万花筒之宴蒸笼任务、过滤界面、烹饪中枢仓储支持和 TLM 1.5.3 浆果任务可达性修复改编自 MaidSoul Brewery Public 的 `de47e15`。万花筒之宴作者为 ysbbbbbb、tartaric_acid 和 Azumic；本联动仅调用其公开 API，未复制其源码。
   - 农夫乐事蘑菇群落耕作适配改编自 MaidSoul Brewery Public 的 `f5e0fa9` 和 `de47e15`，并通过车万女仆 1.5.3 官方 `registerSpecialCropHandler` 扩展接口注册。
 
 ## 注意
