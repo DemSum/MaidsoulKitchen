@@ -74,34 +74,27 @@ public class MaidCookMoveTask<B extends BlockEntity, R extends Recipe<? extends 
         }
         BlockPos centrePos = getSearchPos(maid);
         int searchRange = (int) maid.getRestrictRadius();
-        try (CookSearchDiagnostics.Scan diagnostics = CookSearchDiagnostics.begin(maid, task.getUid())) {
-            ReachableCookDeviceSearch.find(
-                    worldIn,
+        ReachableCookDeviceSearch.find(
+                worldIn,
+                maid,
+                centrePos,
+                searchRange,
+                this.verticalSearchStart,
+                this.verticalSearchRange,
+                pos -> CookWorkLocks.isAvailable(worldIn, pos, maid)
+                        && shouldMoveTo(worldIn, maid, pos),
+                targetCycle
+        ).ifPresent(result -> {
+            if (!CookWorkLocks.tryClaim(worldIn, result.workPos(), maid)) return;
+            CookTargetMemory.remember(
                     maid,
-                    centrePos,
-                    searchRange,
-                    this.verticalSearchStart,
-                    this.verticalSearchRange,
-                    pos -> CookWorkLocks.isAvailable(worldIn, pos, maid)
-                            && shouldMoveTo(worldIn, maid, pos),
-                    diagnostics,
-                    targetCycle
-            ).ifPresent(result -> {
-                if (!CookWorkLocks.tryClaim(worldIn, result.workPos(), maid)) {
-                    diagnostics.rejectedClaim();
-                    return;
-                }
-                CookTargetMemory.remember(
-                        maid,
-                        result.walkPos(),
-                        result.workPos(),
-                        this.movementSpeed,
-                        0
-                );
-                targetCycle.recordSelection(result.workPos().asLong());
-                diagnostics.selected();
-                this.setNextCheckTickCount(5);
-            });
-        }
+                    result.walkPos(),
+                    result.workPos(),
+                    this.movementSpeed,
+                    0
+            );
+            targetCycle.recordSelection(result.workPos().asLong());
+            this.setNextCheckTickCount(5);
+        });
     }
 }

@@ -15,4 +15,9 @@ public interface ICookTargetTask extends IMaidsoulKitchenTask {
     default boolean enableLookAndRandomWalk(EntityMaid maid) {
         return !maid.getBrain().hasMemoryValue(MkMemories.WORK_POS.get());
     }
+
+    @Override
+    default boolean enableEating(EntityMaid maid) {
+        return !maid.getBrain().hasMemoryValue(MkMemories.WORK_POS.get());
+    }
 }

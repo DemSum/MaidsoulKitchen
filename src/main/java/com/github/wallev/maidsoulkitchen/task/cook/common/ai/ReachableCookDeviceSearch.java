@@ -30,38 +30,7 @@ public final class ReachableCookDeviceSearch {
             int searchRange,
             int verticalSearchStart,
             int verticalSearchRange,
-            Predicate<BlockPos> isValidDevice
-    ) {
-        try (CookSearchDiagnostics.Scan diagnostics = CookSearchDiagnostics.begin(
-                maid, maid.getTask().getUid())) {
-            return find(level, maid, searchCenter, searchRange, verticalSearchStart,
-                    verticalSearchRange, isValidDevice, diagnostics);
-        }
-    }
-
-    public static Optional<Result> find(
-            ServerLevel level,
-            EntityMaid maid,
-            BlockPos searchCenter,
-            int searchRange,
-            int verticalSearchStart,
-            int verticalSearchRange,
             Predicate<BlockPos> isValidDevice,
-            CookSearchDiagnostics.Scan diagnostics
-    ) {
-        return find(level, maid, searchCenter, searchRange, verticalSearchStart,
-                verticalSearchRange, isValidDevice, diagnostics, null);
-    }
-
-    public static Optional<Result> find(
-            ServerLevel level,
-            EntityMaid maid,
-            BlockPos searchCenter,
-            int searchRange,
-            int verticalSearchStart,
-            int verticalSearchRange,
-            Predicate<BlockPos> isValidDevice,
-            CookSearchDiagnostics.Scan diagnostics,
             CookTargetCycle targetCycle
     ) {
         if (searchRange <= 0) {
@@ -70,14 +39,12 @@ public final class ReachableCookDeviceSearch {
 
         Set<BlockPos> checkedDevices = new HashSet<>();
         Selection selection = new Selection(targetCycle);
-        findReachableWalkPosition(
+        CookPathSearch.find(
                 level,
                 maid,
                 searchCenter,
                 searchRange,
-                candidateWalkPos -> {
-                    diagnostics.visitedWalkNode();
-                    return selectAdjacentDevice(
+                candidateWalkPos -> selectAdjacentDevice(
                         level,
                         maid,
                         candidateWalkPos,
@@ -87,10 +54,8 @@ public final class ReachableCookDeviceSearch {
                         verticalSearchRange,
                         checkedDevices,
                         isValidDevice,
-                        diagnostics,
                         selection
-                    );
-                }
+                )
         );
         return Optional.ofNullable(selection.result());
     }
@@ -105,12 +70,8 @@ public final class ReachableCookDeviceSearch {
             int verticalSearchRange,
             Set<BlockPos> checkedDevices,
             Predicate<BlockPos> isValidDevice,
-            CookSearchDiagnostics.Scan diagnostics,
             Selection selection
     ) {
-        if (!maid.isWithinRestriction(candidateWalkPos)) {
-            return false;
-        }
         for (int heightOffset : DEVICE_HEIGHT_OFFSETS) {
             for (Direction direction : HORIZONTAL_DIRECTIONS) {
                 BlockPos devicePos = candidateWalkPos.above(heightOffset).relative(direction).immutable();
@@ -130,42 +91,12 @@ public final class ReachableCookDeviceSearch {
                         || !checkedDevices.add(devicePos)) {
                     continue;
                 }
-                diagnostics.deviceCandidate();
                 if (isValidDevice.test(devicePos)) {
-                    diagnostics.actionableDevice();
                     if (selection.offer(new Result(candidateWalkPos.immutable(), devicePos))) return true;
                 }
             }
         }
         return false;
-    }
-
-    /**
-     * Runs one breadth-first traversal over the maid navigation graph. Candidate
-     * devices are evaluated from visited standing nodes, so this never creates a
-     * separate path for every device.
-     */
-    private static Optional<BlockPos> findReachableWalkPosition(
-            ServerLevel level,
-            EntityMaid maid,
-            BlockPos searchCenter,
-            int searchRange,
-            Predicate<BlockPos> isWantedWalkPosition
-    ) {
-        return CookPathSearch.find(level, maid, searchCenter, searchRange, isWantedWalkPosition);
-    }
-
-    static boolean isInsideNavigationBounds(
-            BlockPos pos,
-            BlockPos center,
-            int horizontalRange,
-            int verticalRange
-    ) {
-        int x = pos.getX() - center.getX();
-        int y = pos.getY() - center.getY();
-        int z = pos.getZ() - center.getZ();
-        return CookTargetGeometry.isInsideNavigationBounds(
-                x, y, z, horizontalRange, verticalRange);
     }
 
     static boolean isDeviceWithinSearchBounds(
@@ -212,7 +143,7 @@ public final class ReachableCookDeviceSearch {
         }
 
         private boolean offer(Result candidate) {
-            if (targetCycle == null || targetCycle.prefers(candidate.workPos().asLong())) {
+            if (targetCycle.prefers(candidate.workPos().asLong())) {
                 preferred = candidate;
                 return true;
             }

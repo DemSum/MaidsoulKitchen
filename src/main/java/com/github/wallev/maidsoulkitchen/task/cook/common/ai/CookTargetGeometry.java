@@ -32,14 +32,4 @@ public final class CookTargetGeometry {
                 && Math.abs(deltaZ) < searchRange;
     }
 
-    public static boolean isInsideNavigationBounds(
-            int deltaX,
-            int deltaY,
-            int deltaZ,
-            int horizontalRange,
-            int verticalRange
-    ) {
-        return Math.abs(deltaY) <= verticalRange
-                && deltaX * deltaX + deltaZ * deltaZ <= horizontalRange * horizontalRange;
-    }
 }

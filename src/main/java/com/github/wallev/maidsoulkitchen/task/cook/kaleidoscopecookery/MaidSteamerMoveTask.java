@@ -5,6 +5,7 @@ import com.github.tartaricacid.touhoulittlemaid.entity.passive.EntityMaid;
 import com.github.wallev.maidsoulkitchen.entity.data.inner.task.RecipeFilterData;
 import com.github.wallev.maidsoulkitchen.init.MkMemories;
 import com.github.wallev.maidsoulkitchen.init.touhoulittlemaid.DataRegister;
+import com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookTargetCycle;
 import com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookTargetMemory;
 import com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookWorkLocks;
 import com.google.common.collect.ImmutableMap;
@@ -24,6 +25,7 @@ final class MaidSteamerMoveTask extends MaidCheckRateTask {
     private static final float MOVEMENT_SPEED = 0.6F;
     private static final int MAX_DELAY_TICKS = 120;
     private static final int[] INTERACTION_HEIGHT_OFFSETS = SteamerAdapter.interactionHeightOffsets();
+    private final CookTargetCycle targetCycle = new CookTargetCycle();
 
     MaidSteamerMoveTask() {
         super(ImmutableMap.of(
@@ -47,19 +49,20 @@ final class MaidSteamerMoveTask extends MaidCheckRateTask {
             RecipeFilterData recipeFilter
     ) {
         Set<BlockPos> checkedSteamers = new HashSet<>();
-        BlockPos[] selectedSteamer = new BlockPos[1];
+        Selection selection = new Selection(targetCycle);
         SteamerApproachSearch.find(level, maid, pos -> selectAdjacentSteamer(
-                level, maid, pos, storage, recipeFilter, checkedSteamers, selectedSteamer))
-                .ifPresent(approach -> {
-                    CookTargetMemory.remember(
-                            maid,
-                            approach,
-                            selectedSteamer[0],
-                            MOVEMENT_SPEED,
-                            0
-                    );
-                    setNextCheckTickCount(5);
-                });
+                level, maid, pos, storage, recipeFilter, checkedSteamers, selection));
+        Target target = selection.result();
+        if (target == null || !CookWorkLocks.tryClaim(level, target.workPos(), maid)) return;
+        CookTargetMemory.remember(
+                maid,
+                target.walkPos(),
+                target.workPos(),
+                MOVEMENT_SPEED,
+                0
+        );
+        targetCycle.recordSelection(target.workPos().asLong());
+        setNextCheckTickCount(5);
     }
 
     private boolean selectAdjacentSteamer(
@@ -69,11 +72,8 @@ final class MaidSteamerMoveTask extends MaidCheckRateTask {
             SteamerWorkStorage storage,
             RecipeFilterData filter,
             Set<BlockPos> checkedSteamers,
-            BlockPos[] selectedSteamer
+            Selection selection
     ) {
-        if (!maid.isWithinRestriction(approachPos)) {
-            return false;
-        }
         BlockPos.MutableBlockPos steamerPos = new BlockPos.MutableBlockPos();
         for (int yOffset : INTERACTION_HEIGHT_OFFSETS) {
             for (int xOffset = -1; xOffset <= 1; xOffset++) {
@@ -96,11 +96,10 @@ final class MaidSteamerMoveTask extends MaidCheckRateTask {
                     BlockEntity blockEntity = level.getBlockEntity(steamerPos);
                     if (!SteamerAdapter.supports(blockEntity)
                             || !shouldUseSteamer(level, blockEntity, filter, storage)
-                            || !CookWorkLocks.tryClaim(level, immutableSteamerPos, maid)) {
+                            || !CookWorkLocks.isAvailable(level, immutableSteamerPos, maid)) {
                         continue;
                     }
-                    selectedSteamer[0] = immutableSteamerPos;
-                    return true;
+                    if (selection.offer(new Target(approachPos.immutable(), immutableSteamerPos))) return true;
                 }
             }
         }
@@ -138,5 +137,31 @@ final class MaidSteamerMoveTask extends MaidCheckRateTask {
         }
         LivingEntity owner = maid.getOwner();
         return owner != null && pos.closerToCenterThan(owner.position(), 8.0);
+    }
+
+    private record Target(BlockPos walkPos, BlockPos workPos) {
+    }
+
+    private static final class Selection {
+        private final CookTargetCycle targetCycle;
+        private Target preferred;
+        private Target fallback;
+
+        private Selection(CookTargetCycle targetCycle) {
+            this.targetCycle = targetCycle;
+        }
+
+        private boolean offer(Target candidate) {
+            if (targetCycle.prefers(candidate.workPos().asLong())) {
+                preferred = candidate;
+                return true;
+            }
+            if (fallback == null) fallback = candidate;
+            return false;
+        }
+
+        private Target result() {
+            return preferred != null ? preferred : fallback;
+        }
     }
 }

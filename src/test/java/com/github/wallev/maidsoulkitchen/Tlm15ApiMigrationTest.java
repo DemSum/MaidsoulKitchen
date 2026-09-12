@@ -46,6 +46,10 @@ class Tlm15ApiMigrationTest {
         assertTrue(genericSearch.contains("CookPathSearch"));
         assertFalse(genericSearch.contains("NodeEvaluator"));
         assertTrue(steamerSearch.contains("CookPathSearch"));
+        assertNull(getClass().getClassLoader().getResource(
+                "com/github/wallev/maidsoulkitchen/task/cook/common/ai/"
+                        + "CookSearchDiagnostics.class"
+        ));
     }
 
     @Test
@@ -56,9 +60,20 @@ class Tlm15ApiMigrationTest {
         String memories = classFileText(
                 "com/github/wallev/maidsoulkitchen/init/MkMemories.class"
         );
+        String targetTask = classFileText(
+                "com/github/wallev/maidsoulkitchen/api/task/v1/cook/ICookTargetTask.class"
+        );
+        String steamerMove = classFileText(
+                "com/github/wallev/maidsoulkitchen/task/cook/kaleidoscopecookery/"
+                        + "MaidSteamerMoveTask.class"
+        );
         assertTrue(memory.contains("COOK_TASK_UID"));
         assertTrue(memory.contains("CookWorkLocks"));
         assertTrue(memories.contains("cook_task_uid"));
+        assertTrue(targetTask.contains("enableLookAndRandomWalk"));
+        assertTrue(targetTask.contains("enableEating"));
+        assertTrue(steamerMove.contains("CookTargetCycle"));
+        assertTrue(steamerMove.contains("isAvailable"));
     }
 
     @Test

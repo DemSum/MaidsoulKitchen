@@ -38,13 +38,4 @@ class ReachableCookDeviceSearchTest {
                 0, 3, 0, 8, 0, 2));
     }
 
-    @Test
-    void navigationBoundsAreCircularAndAllowStairHeightChanges() {
-        assertTrue(CookTargetGeometry.isInsideNavigationBounds(
-                6, 7, 8, 10, 7));
-        assertFalse(CookTargetGeometry.isInsideNavigationBounds(
-                7, 0, 8, 10, 7));
-        assertFalse(CookTargetGeometry.isInsideNavigationBounds(
-                0, 8, 0, 10, 7));
-    }
 }

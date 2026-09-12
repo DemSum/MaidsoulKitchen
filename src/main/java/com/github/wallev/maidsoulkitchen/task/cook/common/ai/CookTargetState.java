@@ -25,7 +25,4 @@ public final class CookTargetState {
         return walkTargetMatches ? StartState.WAITING_FOR_PATH : StartState.CLEAR_INVALID;
     }
 
-    public static boolean shouldClearForTask(boolean hasCookTarget, boolean currentTaskIsCook) {
-        return hasCookTarget && !currentTaskIsCook;
-    }
 }
