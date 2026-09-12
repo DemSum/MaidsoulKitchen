@@ -71,9 +71,11 @@ public class MaidCuttingMakeTask extends Behavior<EntityMaid> {
         CookTargetMemory.getWorkPos(maid).ifPresent(posWrapper -> {
             BlockEntity blockEntity = worldIn.getBlockEntity(posWrapper.currentBlockPosition());
             if (blockEntity instanceof CuttingBoardBlockEntity cuttingBoardBlockEntity) {
+                boolean continuingStoredItem = !cuttingBoardBlockEntity.getStoredItem().isEmpty();
                 task.processCookMake(worldIn, maid, cuttingBoardBlockEntity, this.maidRecipesManager, (item) -> {
                     this.processItem = item;
                 });
+                if (continuingStoredItem && this.processItem != null) this.maidHand = true;
                 this.maidRecipesManager.getCookInv().syncInv();
             }
         });

@@ -24,8 +24,10 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeType;
+import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.neoforged.neoforge.items.ItemHandlerHelper;
+import net.neoforged.neoforge.items.IItemHandlerModifiable;
 import net.neoforged.neoforge.items.ItemStackHandler;
 import vectorwing.farmersdelight.common.block.entity.CuttingBoardBlockEntity;
 import vectorwing.farmersdelight.common.crafting.CuttingBoardRecipe;
@@ -65,7 +67,7 @@ public class TaskFdCuttingBoard implements ICookTask<CuttingBoardBlockEntity, Cu
         if (blockEntity.getStoredItem().isEmpty() && !recManager.getRecipesIngredients().isEmpty()) {
             return true;
         }
-        return false;
+        return findStoredRecipe(serverLevel, maid, blockEntity, recManager).isPresent();
     }
 
     @Override
@@ -74,11 +76,19 @@ public class TaskFdCuttingBoard implements ICookTask<CuttingBoardBlockEntity, Cu
     }
 
     public void processCookMake(ServerLevel serverLevel, EntityMaid maid, CuttingBoardBlockEntity blockEntity, MaidRecipesManager<CuttingBoardRecipe> recManager, Consumer<Item> item) {
+        if (!blockEntity.getStoredItem().isEmpty()) {
+            findStoredRecipe(serverLevel, maid, blockEntity, recManager).ifPresent(recipe -> {
+                if (equipTool(maid, recManager.getInputInv(), recipe.getTool())) {
+                    item.accept(blockEntity.getStoredItem().getItem());
+                }
+            });
+            return;
+        }
         if (blockEntity.getStoredItem().isEmpty() && !recManager.getRecipesIngredients().isEmpty()) {
             Pair<List<Integer>, List<List<ItemStack>>> recipeIngredient = recManager.getRecipeIngredient();
             if (recipeIngredient.getFirst().isEmpty()) return;
 
-            ItemStackHandler availableInv = maid.getMaidInv();
+            IItemHandlerModifiable availableInv = recManager.getInputInv();
 
             List<ItemStack> itemStacks = recipeIngredient.getSecond().get(0);
             for (ItemStack itemStack : itemStacks) {
@@ -110,6 +120,56 @@ public class TaskFdCuttingBoard implements ICookTask<CuttingBoardBlockEntity, Cu
             }
 
         }
+    }
+
+    private Optional<CuttingBoardRecipe> findStoredRecipe(
+            ServerLevel level,
+            EntityMaid maid,
+            CuttingBoardBlockEntity board,
+            MaidRecipesManager<CuttingBoardRecipe> recipeManager
+    ) {
+        return level.getRecipeManager().getAllRecipesFor(getRecipeType()).stream()
+                .filter(holder -> recipeManager.isRecipeEnabled(holder.id()))
+                .map(RecipeHolder::value)
+                .filter(recipe -> !recipe.getIngredients().isEmpty()
+                        && recipe.getIngredients().getFirst().test(board.getStoredItem())
+                        && hasTool(maid, recipeManager.getInputInv(), recipe.getTool()))
+                .findFirst();
+    }
+
+    private boolean hasTool(EntityMaid maid, IItemHandlerModifiable inventory, Ingredient tool) {
+        if (tool.test(maid.getMainHandItem())) return true;
+        for (int slot = 0; slot < inventory.getSlots(); slot++) {
+            if (tool.test(inventory.getStackInSlot(slot))) return true;
+        }
+        return false;
+    }
+
+    private boolean equipTool(EntityMaid maid, IItemHandlerModifiable inventory, Ingredient tool) {
+        if (tool.test(maid.getMainHandItem())) return true;
+        int toolSlot = -1;
+        for (int slot = 0; slot < inventory.getSlots(); slot++) {
+            if (tool.test(inventory.getStackInSlot(slot))) {
+                toolSlot = slot;
+                break;
+            }
+        }
+        if (toolSlot < 0) return false;
+
+        ItemStack previous = maid.getMainHandItem();
+        if (!previous.isEmpty() && !ItemHandlerHelper.insertItemStacked(inventory, previous.copy(), true).isEmpty()) {
+            return false;
+        }
+        if (!previous.isEmpty()) {
+            ItemHandlerHelper.insertItemStacked(inventory, previous.copy(), false);
+            maid.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+        }
+
+        ItemStack source = inventory.getStackInSlot(toolSlot);
+        ItemStack equipped = source.copyWithCount(1);
+        source.shrink(1);
+        maid.setItemInHand(InteractionHand.MAIN_HAND, equipped);
+        return true;
     }
 
     @Override

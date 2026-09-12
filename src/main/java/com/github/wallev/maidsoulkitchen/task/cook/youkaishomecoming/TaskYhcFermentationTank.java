@@ -7,6 +7,7 @@ import com.github.wallev.maidsoulkitchen.init.touhoulittlemaid.DataRegister;
 import com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskClassAnalyzer;
 import com.github.wallev.maidsoulkitchen.task.TaskInfo;
 import com.github.wallev.maidsoulkitchen.task.cook.common.inventory.MaidRecipesManager;
+import com.github.wallev.maidsoulkitchen.task.cook.common.inventory.CookInventoryTransactions;
 import com.github.tartaricacid.touhoulittlemaid.api.entity.data.TaskDataKey;
 import com.github.tartaricacid.touhoulittlemaid.entity.passive.EntityMaid;
 import com.github.wallev.maidsoulkitchen.util.FakePlayerUtil;
@@ -59,6 +60,7 @@ public class TaskYhcFermentationTank implements ICookTask<FermentationTankBlockE
     protected static final Map<Fluid, List<ItemStack>> FLUID_CONTAINERS = new HashMap<>();
 
     protected static final List<RecipeHolder<FermentationRecipe<?>>> FERMENTATION_RECIPES = new ArrayList<>();
+    private static long fermentationRecipeFingerprint = Long.MIN_VALUE;
 
     @Override
     public TaskDataKey<CookData> getCookDataKey() {
@@ -249,22 +251,23 @@ public class TaskYhcFermentationTank implements ICookTask<FermentationTankBlockE
             while (!fluidInTank.isEmpty() && !fluidContainer.isEmpty()) {
                 ItemStack interactItem = fluidContainer.copyWithCount(1);
                 ItemStack interactedItem = FakePlayerUtil.interactUseOnBlock(maid, blockEntity.getBlockPos(), interactItem.copy());
+                boolean interactionChangedItem = !ItemStack.isSameItemSameComponents(interactItem, interactedItem)
+                        || interactItem.getCount() != interactedItem.getCount();
+                boolean interactionSucceeded = false;
 
                 if (!interactedItem.isEmpty()) {
-                    if (!ItemStack.isSameItem(interactItem, interactedItem)) {
-                        ItemStack leftItem = ItemHandlerHelper.insertItemStacked(outputInv, interactedItem, false);
+                    if (interactionChangedItem) {
+                        CookInventoryTransactions.returnOrDrop(outputInv, interactedItem, maid);
                         fluidContainer.shrink(1);
-                        if (!leftItem.isEmpty()) {
-                            maid.spawnAtLocation(leftItem);
-                        }
+                        interactionSucceeded = true;
                     }
                 } else if (fluid instanceof SakeFluid sakeFluid) {
-                    ItemStack leftItem = ItemHandlerHelper.insertItemStacked(outputInv, sakeFluid.type.asStack(1), false);
+                    CookInventoryTransactions.returnOrDrop(outputInv, sakeFluid.type.asStack(1), maid);
                     fluidContainer.shrink(1);
-                    if (!leftItem.isEmpty()) {
-                        maid.spawnAtLocation(leftItem);
-                    }
+                    interactionSucceeded = true;
                 }
+
+                if (!interactionSucceeded) break;
 
                 blockEntity.notifyTile();
 
@@ -306,16 +309,24 @@ public class TaskYhcFermentationTank implements ICookTask<FermentationTankBlockE
 
                 // 填充流体
                 List<ItemStack> fluidItems = recipeIngredient.getSecond().get(0);
-                for (int times = 0; times < recipeIngredient.getFirst().get(0); ) {
+                int requiredFluidItems = recipeIngredient.getFirst().get(0);
+                for (int times = 0; times < requiredFluidItems; ) {
+                    boolean progressed = false;
                     for (ItemStack fluidItem : fluidItems) {
+                        if (fluidItem.isEmpty()) continue;
                         ItemStack interactItem = fluidItem.copyWithCount(1);
                         ItemStack interactedStack = FakePlayerUtil.interactUseOnBlock(maid, blockEntity.getBlockPos(), interactItem.copy());
-                        if (!ItemStack.isSameItem(interactItem, interactedStack)) {
+                        boolean interactionChangedItem = !ItemStack.isSameItemSameComponents(interactItem, interactedStack)
+                                || interactItem.getCount() != interactedStack.getCount();
+                        if (interactionChangedItem) {
                             fluidItem.shrink(1);
-                            ItemHandlerHelper.insertItemStacked(inputInv, interactedStack, false);
+                            CookInventoryTransactions.returnOrDrop(inputInv, interactedStack, maid);
+                            progressed = true;
+                            times++;
+                            if (times >= requiredFluidItems) break;
                         }
-                        times++;
                     }
+                    if (!progressed) break;
                 }
 
 
@@ -361,11 +372,17 @@ public class TaskYhcFermentationTank implements ICookTask<FermentationTankBlockE
 
     @Override
     public List<RecipeHolder<FermentationRecipe<?>>> getRecipeHolders(Level level) {
-        if (FERMENTATION_RECIPES.isEmpty()) {
+        List<RecipeHolder<FermentationRecipe<?>>> recipeHolders = ICookTask.super.getRecipeHolders(level);
+        long currentFingerprint = 1L;
+        for (RecipeHolder<FermentationRecipe<?>> holder : recipeHolders) {
+            currentFingerprint = 31L * currentFingerprint + holder.id().hashCode();
+            currentFingerprint = 31L * currentFingerprint + System.identityHashCode(holder.value());
+        }
+        if (currentFingerprint != fermentationRecipeFingerprint) {
+            FERMENTATION_RECIPES.clear();
             FLUID_CONTAINERS.clear();
             FERMENTATION_RECIPE_INGREDIENTS.clear();
 
-            List<RecipeHolder<FermentationRecipe<?>>> recipeHolders = ICookTask.super.getRecipeHolders(level);
             List<? extends FermentationRecipe<?>> recipes = recipeHolders.stream().map(RecipeHolder::value).toList();
 
             Map<Fluid, List<Pair<ItemStack, Integer>>> fluidItems1 = new HashMap<>();
@@ -483,6 +500,7 @@ public class TaskYhcFermentationTank implements ICookTask<FermentationTankBlockE
             }
 
             FERMENTATION_RECIPES.addAll(recipeHolders);
+            fermentationRecipeFingerprint = currentFingerprint;
         }
 
         return FERMENTATION_RECIPES;

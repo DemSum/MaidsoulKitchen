@@ -56,6 +56,24 @@ public interface IAddonMaid {
         return ItemStack.EMPTY;
     }
 
+    static ItemUseOutcome tryInteractUseOnBlockWithItem(EntityMaid maid, BlockPos blockPos, ItemStack itemStack) {
+        WeakReference<FakePlayer> reference = ((IAddonMaid) maid).tlmk$getFakePlayer();
+        FakePlayer fakePlayer = reference == null ? null : reference.get();
+        if (fakePlayer == null) return new ItemUseOutcome(InteractionResult.FAIL, itemStack.copy());
+
+        fakePlayer.setItemInHand(InteractionHand.MAIN_HAND, itemStack.copy());
+        try {
+            InteractionResult result = FakePlayerUtil.interactUseOnBlock(
+                    reference, maid.level(), blockPos, InteractionHand.MAIN_HAND, null);
+            return new ItemUseOutcome(result, fakePlayer.getMainHandItem().copy());
+        } catch (RuntimeException exception) {
+            LOGGER.warn("Fake player item interaction failed at {}", blockPos, exception);
+            return new ItemUseOutcome(InteractionResult.FAIL, itemStack.copy());
+        } finally {
+            fakePlayer.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+        }
+    }
+
     static ItemStack interactUseOnBlockWithoutItem(EntityMaid maid, BlockPos blockPos) {
         IAddonMaid addonMaid = (IAddonMaid) maid;
         WeakReference<FakePlayer> fakePlayer$tlma = addonMaid.tlmk$getFakePlayer();
@@ -97,6 +115,9 @@ public interface IAddonMaid {
     static void pickupAction(EntityMaid maid) {
         maid.swing(InteractionHand.MAIN_HAND);
         maid.playSound(SoundEvents.ITEM_PICKUP, 1.0F, maid.getRandom().nextFloat() * 0.1F + 1.0F);
+    }
+
+    record ItemUseOutcome(InteractionResult result, ItemStack remainder) {
     }
 
 }

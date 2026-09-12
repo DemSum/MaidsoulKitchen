@@ -6,6 +6,7 @@ import com.github.wallev.maidsoulkitchen.api.task.v1.farm.ICompatFarmHandler;
 import com.github.wallev.maidsoulkitchen.api.task.v1.farm.IHandlerInfo;
 import com.github.wallev.maidsoulkitchen.entity.passive.IAddonMaid;
 import com.github.wallev.maidsoulkitchen.task.farm.FarmType;
+import com.github.wallev.maidsoulkitchen.task.cook.common.inventory.CookInventoryTransactions;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
@@ -52,10 +53,12 @@ public abstract class BerryHandler implements ICompatFarmHandler, IHandlerInfo {
         if (this.processCanHarvest(maid, cropPos, cropState) != ActionState.DENY) {
             ItemStack toolStack = ItemsUtil.getStack(maid.getAvailableInv(true), predicate);
             if (!toolStack.isEmpty()) {
-                ItemStack toolCopy = toolStack.copy();
-                toolStack.setCount(0);
-                IAddonMaid.interactUseOnBlockWithItem(maid, cropPos, toolCopy);
-
+                IAddonMaid.ItemUseOutcome outcome = IAddonMaid.tryInteractUseOnBlockWithItem(
+                        maid, cropPos, toolStack.copyWithCount(1));
+                if (!outcome.result().consumesAction()) return false;
+                toolStack.shrink(1);
+                CookInventoryTransactions.returnOrDrop(
+                        maid.getAvailableInv(true), outcome.remainder(), maid);
                 return true;
             }
         }

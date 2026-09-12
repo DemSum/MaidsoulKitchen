@@ -6,6 +6,7 @@ import com.github.wallev.maidsoulkitchen.init.touhoulittlemaid.DataRegister;
 import com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskClassAnalyzer;
 import com.github.wallev.maidsoulkitchen.task.TaskInfo;
 import com.github.wallev.maidsoulkitchen.task.cook.common.inventory.MaidRecipesManager;
+import com.github.wallev.maidsoulkitchen.task.cook.common.inventory.CookInventoryTransactions;
 import com.github.wallev.maidsoulkitchen.task.cook.common.TaskFdPot;
 import com.github.wallev.maidsoulkitchen.util.FakePlayerUtil;
 import com.github.tartaricacid.touhoulittlemaid.api.entity.data.TaskDataKey;
@@ -185,24 +186,20 @@ public class TaskYhcTeaKettle extends TaskFdPot<KettleBlockEntity, KettleRecipe>
                 WeakReference<FakePlayer> fakePlayer$tlma = ((IAddonMaid) entityMaid).tlmk$getFakePlayer();
                 FakePlayer fakePlayer = fakePlayer$tlma.get();
                 if (fakePlayer != null) {
-                    fakePlayer.setItemInHand(InteractionHand.MAIN_HAND, waterStack.split(1));
+                    fakePlayer.setItemInHand(InteractionHand.MAIN_HAND, waterStack.copyWithCount(1));
                     try {
                         InteractionResult interactionResult = FakePlayerUtil.interactUseOnBlock(fakePlayer$tlma, entityMaid.level, blockEntity.getBlockPos(), InteractionHand.MAIN_HAND, null);
+                        if (!interactionResult.consumesAction()) return false;
 
-                        if (interactionResult != InteractionResult.PASS) {
-                            ItemStack itemInHand = fakePlayer.getItemInHand(InteractionHand.MAIN_HAND);
-                            ItemHandlerHelper.insertItemStacked(entityMaid.getAvailableInv(true), itemInHand.copy(), false);
-                            fakePlayer.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
-                        } else {
-                            fakePlayer.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
-                        }
-
-                        if (interactionResult == InteractionResult.PASS) {
-                            BlockState blockState = entityMaid.level.getBlockState(blockEntity.getBlockPos());
-                            Block block = blockState.getBlock();
-                        }
-                    } catch (Exception e) {
+                        ItemStack remainder = fakePlayer.getItemInHand(InteractionHand.MAIN_HAND).copy();
+                        waterStack.shrink(1);
+                        CookInventoryTransactions.returnOrDrop(
+                                entityMaid.getAvailableInv(true), remainder, entityMaid);
+                        return true;
+                    } catch (RuntimeException e) {
                         return false;
+                    } finally {
+                        fakePlayer.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
                     }
                 }
             }

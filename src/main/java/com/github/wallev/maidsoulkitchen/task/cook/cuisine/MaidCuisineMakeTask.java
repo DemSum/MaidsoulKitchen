@@ -9,6 +9,7 @@ import com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskInfo;
 import com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookTargetMemory;
 import com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookTargetState;
 import com.github.wallev.maidsoulkitchen.task.cook.common.inventory.MaidRecipesManager;
+import com.github.wallev.maidsoulkitchen.task.cook.common.inventory.CookInventoryTransactions;
 import com.google.common.collect.ImmutableMap;
 import com.mojang.datafixers.util.Pair;
 import dev.xkmc.cuisinedelight.content.block.CuisineSkilletBlockEntity;
@@ -198,8 +199,12 @@ public class MaidCuisineMakeTask extends Behavior<EntityMaid> {
                     data.stir(worldIn.getGameTime(), 0);
                     CookedFoodData food = CookedFoodData.of(data);
                     ItemStack foodStack = BaseCuisineRecipe.findBestMatch(worldIn, food);
+                    if (foodStack.isEmpty()
+                            || !CookInventoryTransactions.canInsertAll(maidRecipesManager.getOutputInv(), foodStack)) {
+                        return;
+                    }
                     plateItem.shrink(1);
-                    ItemHandlerHelper.insertItemStacked(maidRecipesManager.getOutputInv(), foodStack, false);
+                    CookInventoryTransactions.insertAll(maidRecipesManager.getOutputInv(), foodStack);
 
                     cuisineSkilletBlockEntity.cookingData = new CookingData();
                     cuisineSkilletBlockEntity.sync();
