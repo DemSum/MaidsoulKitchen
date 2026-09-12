@@ -13,7 +13,6 @@
   ],
   "mixins": [
     "brewinandchewin.KegBlockEntityMixin",
-    "drinkbeer.BeerBarrelBlockMixin",
     "farmersdelight.CookingPotBlockEntityMixin",
     "minecraft.AbstractFurnaceMixin",
     "touhoulittlemaid.EntityMaidMixin",

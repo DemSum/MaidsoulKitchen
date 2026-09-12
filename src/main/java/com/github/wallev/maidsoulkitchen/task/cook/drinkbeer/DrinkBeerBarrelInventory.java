@@ -216,7 +216,7 @@ final class DrinkBeerBarrelInventory {
 
     private static void markChanged(BlockEntity blockEntity) {
         if (blockEntity instanceof BeerBarrelBlockEntity barrel) {
-            barrel.markDirty();
+            DrinkBeerBarrelAdapter.markChanged(barrel);
         } else {
             blockEntity.setChanged();
         }

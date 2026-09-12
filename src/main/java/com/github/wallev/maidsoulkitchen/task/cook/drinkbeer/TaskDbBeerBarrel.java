@@ -32,8 +32,6 @@ import java.util.*;
 
 @TaskClassAnalyzer(com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskInfo.DB_BEER)
 public class TaskDbBeerBarrel extends TaskBaseContainerCook<BeerBarrelBlockEntity, BrewingRecipe> {
-    private static final int STATUS_IDLE = 0;
-
     @Override
     public boolean isCookBE(BlockEntity blockEntity) {
         return blockEntity instanceof BeerBarrelBlockEntity;
@@ -61,12 +59,7 @@ public class TaskDbBeerBarrel extends TaskBaseContainerCook<BeerBarrelBlockEntit
 
     @Override
     public boolean beInnerCanCook(Container inventory, BeerBarrelBlockEntity be) {
-        BeerBarrelBlockAccessor be1 = (BeerBarrelBlockAccessor) be;
-//        BrewingRecipe recipe = be.getLevel().getRecipeManager().getRecipeFor(RecipeRegistry.RECIPE_TYPE_BREWING.get(), be.getBrewingInventory(), be.getLevel()).orElse(null);
-//        return be1.canBrew$tlma(recipe) && be1.hasEnoughEmptyCap$tlma(recipe);
-//        return be1.statusCode$tlma() == 0 && be1.canBrew$tlma(recipe) && be1.hasEnoughEmptyCap$tlma(recipe);
-
-        return be1.tlmk$statusCode() == 1;
+        return DrinkBeerBarrelAdapter.isBrewing(be);
     }
 
     @Override
@@ -187,10 +180,6 @@ public class TaskDbBeerBarrel extends TaskBaseContainerCook<BeerBarrelBlockEntit
         };
     }
 
-    // statusCode$tlma:
-    // 0 - waiting for ingredient,
-    // 1 - brewing,
-    // 2 - waiting for pickup product
     @Override
     public boolean maidShouldMoveTo(ServerLevel serverLevel, EntityMaid entityMaid, BeerBarrelBlockEntity blockEntity, MaidRecipesManager<BrewingRecipe> maidRecipesManager) {
         Container inventory = getContainer(blockEntity);
@@ -199,17 +188,17 @@ public class TaskDbBeerBarrel extends TaskBaseContainerCook<BeerBarrelBlockEntit
         }
 
         IItemHandlerModifiable inputInventory = maidRecipesManager.getInputInv();
-        if (getStatus(blockEntity) == STATUS_IDLE
+        if (DrinkBeerBarrelAdapter.canModifyInputs(blockEntity)
                 && DrinkBeerBarrelInventory.needsCups(inventory)
                 && inputInventory != null
                 && DrinkBeerBarrelInventory.hasEmptyBeerMug(inputInventory)) {
             return true;
         }
 
-        // 啤酒桶现在在酿酒吗
-        boolean b = getStatus(blockEntity) == 1;
+        // 啤酒桶正在酿造时无需重复投料。
+        boolean b = DrinkBeerBarrelAdapter.isBrewing(blockEntity);
         List<Pair<List<Integer>, List<List<ItemStack>>>> recipesIngredients = maidRecipesManager.getRecipesIngredients();
-        // 可放入原料进行酿酒(啤酒桶可酿酒:statusCode$tlma==2||statusCode$tlma==0和有原料)
+        // 空闲或等待取出成品时仍需靠近设备处理库存。
         if (!b && !recipesIngredients.isEmpty()) {
             return true;
         }
@@ -231,11 +220,12 @@ public class TaskDbBeerBarrel extends TaskBaseContainerCook<BeerBarrelBlockEntit
     public void extractOutputStack(Container inventory, IItemHandlerModifiable availableInv, BlockEntity blockEntity) {
         ItemStack stackInSlot = inventory.getItem(this.getOutputSlot());
 
-        if (!stackInSlot.isEmpty() && ((BeerBarrelBlockAccessor)blockEntity).tlmk$statusCode() == 2) {
+        BeerBarrelBlockEntity barrel = (BeerBarrelBlockEntity) blockEntity;
+        if (!stackInSlot.isEmpty() && DrinkBeerBarrelAdapter.isOutputReady(barrel)) {
             ItemStack copy = stackInSlot.copy();
             ItemStack leftStack = ItemHandlerHelper.insertItemStacked(availableInv, copy, false);
             inventory.removeItem(this.getOutputSlot(), stackInSlot.getCount() - leftStack.getCount());
-            ((BeerBarrelBlockEntity)blockEntity).markDirty();
+            DrinkBeerBarrelAdapter.markChanged(barrel);
         }
     }
 
@@ -243,18 +233,17 @@ public class TaskDbBeerBarrel extends TaskBaseContainerCook<BeerBarrelBlockEntit
     public boolean canTakeOutput(Container inventory, BeerBarrelBlockEntity beerBarrelBlockEntity) {
         ItemStack outputStack = inventory.getItem(this.getOutputSlot());
 
-        return !outputStack.isEmpty() && ((BeerBarrelBlockAccessor)beerBarrelBlockEntity).tlmk$statusCode() == 2;
+        return !outputStack.isEmpty() && DrinkBeerBarrelAdapter.isOutputReady(beerBarrelBlockEntity);
     }
 
     @Override
     public void tryInsertItem(ServerLevel serverLevel, EntityMaid entityMaid, BeerBarrelBlockEntity blockEntity, MaidRecipesManager<BrewingRecipe> maidRecipesManager) {
-        if (getStatus(blockEntity) != STATUS_IDLE) return;
+        if (!DrinkBeerBarrelAdapter.canModifyInputs(blockEntity)) return;
 
         Container inventory = getContainer(blockEntity);
         IItemHandlerModifiable inputInventory = maidRecipesManager.getInputInv();
         if (inputInventory != null && DrinkBeerBarrelInventory.fillCups(inventory, inputInventory)) {
-            inventory.setChanged();
-            blockEntity.markDirty();
+            DrinkBeerBarrelAdapter.markChanged(blockEntity);
             return;
         }
         super.tryInsertItem(serverLevel, entityMaid, blockEntity, maidRecipesManager);
@@ -302,7 +291,4 @@ public class TaskDbBeerBarrel extends TaskBaseContainerCook<BeerBarrelBlockEntit
         return ingres.isEmpty() ? Optional.empty() : Optional.of(new AmountTooltip(getRecipeId(recipe), list, modeRandom, overSize, cookData));
     }
 
-    private static int getStatus(BeerBarrelBlockEntity blockEntity) {
-        return ((BeerBarrelBlockAccessor) blockEntity).tlmk$statusCode();
-    }
 }

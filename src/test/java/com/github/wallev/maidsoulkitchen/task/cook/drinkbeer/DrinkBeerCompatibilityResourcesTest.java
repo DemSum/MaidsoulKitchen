@@ -15,6 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class DrinkBeerCompatibilityResourcesTest {
+    private static final Path PROJECT = Path.of("");
     private static final Path RESOURCES = Path.of("src", "main", "resources");
     private static final List<String> OVERRIDDEN_RECIPES = List.of(
             "beer_mug",
@@ -53,6 +54,34 @@ class DrinkBeerCompatibilityResourcesTest {
 
         assertAltarResult("burn_protect_bauble", "maidsoulkitchen:burn_protect_bauble");
         assertAltarResult("culinary_hub", "maidsoulkitchen:culinary_hub");
+    }
+
+    @Test
+    void compatibilityManifestTargetsDrinkBeerRefill141PublicApi() throws IOException {
+        JsonObject task = readJson(RESOURCES.resolve("mod_task_clazz.json"))
+                .getAsJsonObject("clazzInfoMap")
+                .getAsJsonObject("maidsoulkitchen:drinkbeer_beer_barrel_brewing")
+                .getAsJsonObject("clazzInfo");
+        String methods = task.getAsJsonArray("methods").toString();
+        String fields = task.getAsJsonArray("fields").toString();
+
+        assertTrue(methods.contains("#canModifyInputs()Z"));
+        assertTrue(methods.contains("#isOutputReady()Z"));
+        assertTrue(methods.contains("#updateBE()V"));
+        assertFalse(methods.contains("#canBrew("));
+        assertFalse(methods.contains("#hasEnoughEmptyCap("));
+        assertFalse(methods.contains("#markDirty()V"));
+        assertFalse(fields.contains("#statusCode"));
+    }
+
+    @Test
+    void drinkBeer141DependencyUsesPinnedModrinthVersionId() throws IOException {
+        String properties = Files.readString(PROJECT.resolve(
+                "setting/version/1.21.1/gradle.properties"));
+        assertTrue(properties.contains("neo_version=21.1.244"));
+        assertTrue(properties.contains("drink_beer_refill_version=1.4.1"));
+        assertTrue(properties.contains("drink_beer_refill_maven_project=RZwVw5iA"));
+        assertTrue(properties.contains("drink_beer_refill_maven_version=VnFS8aUY"));
     }
 
     private static void assertAltarResult(String recipeName, String expectedItem) throws IOException {

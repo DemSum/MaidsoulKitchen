@@ -19,6 +19,7 @@ class CompatibilityRegistryTest {
     @Test
     void manifestCoversEveryMaintainedCompatibilityIdentity() throws IOException {
         CompatibilityRegistry.Manifest manifest = readManifest();
+        assertEquals("[1.4.1,2)", Mods.DB.versionRange());
         Set<String> expectedTasks = Arrays.stream(TaskInfo.VALUES)
                 .filter(task -> task != TaskInfo.NONE)
                 .map(TaskInfo::getUidStr)
@@ -39,9 +40,7 @@ class CompatibilityRegistryTest {
         CompatibilityRegistry.Manifest manifest = readManifest();
         Map<String, java.util.List<Mods>> gates = manifest.mixinRequirements();
 
-        assertEquals(6, gates.size());
-        assertEquals(java.util.List.of(Mods.DB),
-                gates.get("lekavar.lma.drinkbeer.blockentities.BeerBarrelBlockEntity"));
+        assertEquals(5, gates.size());
         assertEquals(java.util.List.of(Mods.BNCD),
                 gates.get("umpaz.brewinandchewin.common.block.entity.KegBlockEntity"));
         assertEquals(java.util.List.of(Mods.FD),

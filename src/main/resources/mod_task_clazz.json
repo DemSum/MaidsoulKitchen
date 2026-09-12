@@ -81,14 +81,13 @@
           "lekavar.lma.drinkbeer.registries.RecipeRegistry"
         ],
         "methods": [
-          "lekavar.lma.drinkbeer.blockentities.BeerBarrelBlockEntity#canBrew(Llekavar/lma/drinkbeer/recipes/BrewingRecipe;)Z",
+          "lekavar.lma.drinkbeer.blockentities.BeerBarrelBlockEntity#canModifyInputs()Z",
           "lekavar.lma.drinkbeer.blockentities.BeerBarrelBlockEntity#getBrewingInventory()Llekavar/lma/drinkbeer/blockentities/BeerBarrelBlockEntity$BrewingInventory;",
-          "lekavar.lma.drinkbeer.blockentities.BeerBarrelBlockEntity#hasEnoughEmptyCap(Llekavar/lma/drinkbeer/recipes/BrewingRecipe;)Z",
-          "lekavar.lma.drinkbeer.blockentities.BeerBarrelBlockEntity#markDirty()V",
+          "lekavar.lma.drinkbeer.blockentities.BeerBarrelBlockEntity#isOutputReady()Z",
+          "lekavar.lma.drinkbeer.blockentities.BeerBarrelBlockEntity#updateBE()V",
           "lekavar.lma.drinkbeer.recipes.BrewingRecipe#getBeerCup()Lnet/minecraft/world/item/ItemStack;"
         ],
         "fields": [
-          "lekavar.lma.drinkbeer.blockentities.BeerBarrelBlockEntity#statusCode",
           "lekavar.lma.drinkbeer.registries.BlockRegistry#BEER_BARREL",
           "lekavar.lma.drinkbeer.registries.RecipeRegistry#RECIPE_TYPE_BREWING"
         ]
@@ -555,15 +554,6 @@
           "compatMod": "YHCD",
           "mixinList": [
             "dev.xkmc.youkaishomecoming.content.pot.base.BasePotBlockEntity"
-          ]
-        }
-      ],
-      "maidsoulkitchen:drinkbeer_beer_barrel_brewing": [
-        {
-          "taskUid": "maidsoulkitchen:drinkbeer_beer_barrel_brewing",
-          "compatMod": "DB",
-          "mixinList": [
-            "lekavar.lma.drinkbeer.blockentities.BeerBarrelBlockEntity"
           ]
         }
       ],

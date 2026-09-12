@@ -49,7 +49,7 @@ public enum Mods {
      */
     MS("supplementaries"),
     CP("crockpot"),
-    DB("drinkbeer"),
+    DB("drinkbeer", "[1.4.1,2)"),
     KK("kitchenkarrot"),
     KC("kaleidoscope_cookery", "[1.4.1,2)"),
 
