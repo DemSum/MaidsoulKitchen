@@ -9,8 +9,7 @@
 本文只记录已经进入当前分支的内容。计划项、候选实现和仍需游戏内验证的功能会被
 明确标记，不能在 README 或发布说明中写成已经验证完成。
 
-记录检查点：`4bc66756094cfbda9e48a61a565bfbe204863cb5`
-（`Fix multi-layer steamer heat propagation`）。
+记录检查点：`4554e99f`（`Migrate slim to TLM 1.5.3 crop API`）。
 
 ## 2. 代码来源与分支边界
 
@@ -107,9 +106,23 @@
 - 将官方庞大的构建期/运行期通用分析框架替换为静态 `CompatibilityRegistry`。
 - 任务注册、Mixin gate、API 检查和客户端兼容报告使用同一份静态清单。
 - 可选模组缺失或 API 不满足时采用受控加载，不让对应兼容类破坏服务器启动。
-- TLM 1.1.13 与 1.5.3 的女仆可用背包返回类型差异由集中反射适配层隔离。
+- TLM 运行基线已统一为 1.5.3，女仆背包、槽位渲染和寻路直接使用新版公开 API，
+  不再保留 1.1.13 反射兼容分支。
 
-### 3.10 专项瘦身
+### 3.10 TLM 1.5.3 API 与蘑菇群落
+
+- 1.21.1 slim 的编译依赖和模组元数据最低运行版本均提升到 TLM 1.5.3。
+- `MaidPlugin` 通过官方
+  `ILittleMaid.registerSpecialCropHandler(SpecialCropManager)` 回调注册扩展。
+- 原生加入 Farmer's Delight 红/棕蘑菇群落的播种、成熟检测和收获处理。
+- 使用刀具收获时保留群落并重置年龄；无刀收获时退回普通蘑菇方块。
+- 背包已满时，未能收入女仆物品栏的产物会掉落在作物位置。
+- 实现改编自 MaidSoul Brewery Public 的 `f5e0fa9` 与 `de47e15`，README 和源码
+  均保留来源说明。
+- 蒸笼侧面搜索改为直接调用 TLM 1.5.3 `MaidPathFindingBFS`，仍只在寻找目标时执行
+  一次，不引入每 tick BFS。
+
+### 3.11 专项瘦身
 
 - 删除不可编译、不可达、空实现或已经禁用的源码残留。
 - 删除无使用方的运行时工具依赖。
@@ -121,50 +134,35 @@
 
 ## 4. 当前 TLM API 状态
 
-当前项目不是“已经完全切换到新 TLM API”，而是以下组合：
+- **编译 API 基线：TLM 1.5.3。** 1.21.1 配置使用官方 Modrinth 1.5.3 构件，
+  `touhou_little_maid_version=1.5.3`。
+- **最低运行版本：TLM 1.5.3。** NeoForge 与兼容 Forge 元数据均声明 `[1.5.3,)`。
+- **旧版兼容策略：不再兼容 1.1.13。** 已删除背包返回类型反射桥、旧槽位编号分支和
+  自维护的旧版寻路遍历；这些位置现在直接针对 1.5.3 API 编译。
+- **新 API 已实际使用。** 蘑菇群落通过 `registerSpecialCropHandler` 注册，蒸笼使用
+  `MaidPathFindingBFS`，中枢和蒸笼仓储直接调用新版女仆物品栏接口。
 
-- **编译 API 基线：TLM 1.1.13。**
-  `setting/version/1.21.1/gradle.properties` 当前仍声明
-  `touhou_little_maid_version=1.1.13`。
-- **已验证的较新运行环境：TLM 1.5.3。**
-  日常测试实例安装的是 `touhoulittlemaid-1.5.3-neoforge+mc1.21.1.jar`。
-- **跨版本兼容范围：部分。**
-  当前已专门兼容 `EntityMaid#getAvailableBackpackInv()` 在 1.1.13 与 1.5.3 之间的
-  返回类型变化，并按 1.4.2 前后区分客户端槽位渲染入口；这不代表所有 1.5.3 新 API
-  都已经成为编译基线。
-
-Public 的蘑菇群落扩展使用：
-
-- `ILittleMaid.registerSpecialCropHandler(SpecialCropManager)`；
-- `ISpecialCropHandler`；
-- `SpecialCropManager`。
-
-Public 自身直接以 TLM 1.5.3 JAR 编译，并声明运行范围 `[1.5.3,)`。当前 slim 的
-1.1.13 `ILittleMaid` 编译接口没有 `registerSpecialCropHandler` 回调，因此这部分不能在
-维持 1.1.13 编译基线的情况下直接复制进来。
-
-后续有两条可选路线：
-
-1. 将 slim 的编译和最低运行版本正式提升到 TLM 1.5.3，再通过官方扩展回调原生注册
-   蘑菇群落处理器。这是结构最清晰的方案。
-2. 继续支持 TLM 1.1.13，针对 1.5.3 新回调建立隔离兼容入口。这样会增加版本分支、
-   类加载和测试复杂度，且必须分别验证 1.1.13 与 1.5.3。
-
-在维护者决定最低 TLM 版本之前，蘑菇群落扩展继续保持“未移植”。
+这次迁移只提升依赖/API 基线，没有更改项目版本号、移动 tag 或修改 CurseForge 实例。
 
 ## 5. 当前验证基线
 
-- 最近完整测试：41 tests，0 failures，0 errors，0 skipped。
+- 最近完整测试：44 tests，0 failures，0 errors，0 skipped。
 - `clean test build`：通过。
-- NeoForge 21.1.244 开发服务器：启动至 `Done (5.179s)`。
-- 验证组合包含 KC 1.4.1、DrinkBeer 1.4.1 和 TLM 1.1.13/1.5.3 兼容检查。
+- NeoForge 21.1.244 开发服务器：启动至 `Done (5.606s)`。
+- 服务端模组清单确认 TLM `1.5.3-neoforge+mc1.21.1`，并记录到官方 special-crop
+  回调成功注册 Farmer's Delight 蘑菇群落处理器。
+- 验证组合包含 KC 1.4.1、DrinkBeer 1.4.1、Farmer's Delight 1.2.7 和 TLM 1.5.3。
 - 测试构建：`build/libs/maidsoulkitchen-1.21.1-beta-v0.1.4.jar`。
 - 该检查点构建 SHA-256：
-  `657F9B7F71BAC747C54D6673CF5A30AA687266182512A03459F4579A15DE6D0E`。
+  `53F3F72035D6A71BA96D8C64F817D78E7FEC48AD837A9B3D4F67C0BE2E0D50CB`。
+
+开发服沿用的旧世界曾记录 TLM 1.1.13，因此 NeoForge 显示一次世界持久化版本差异
+`1.1.13 -> 1.5.3`；实际加载清单和运行调用栈只有 1.5.3，不是依赖降级。
 
 ## 6. 尚未完成或尚未实机确认
 
-- Public 的 Farmer's Delight 蘑菇群落扩展：等待 TLM 最低版本/API 路线决定。
+- Farmer's Delight 蘑菇群落：代码、单元测试和注册启动验证已完成；播种、红/棕群落
+  成熟收获、刀具/非刀具、满背包掉落、任务切换与女仆重载仍需游戏内确认。
 - Brewin' and Chewin' Keg：尚未决定完整恢复还是完整移除。
 - 多层蒸笼：代码已修复，等待 2/3/4 层、半/整蒸笼、断火恢复和逐层入库实测。
 - 通用双坐标完整游戏矩阵：阻挡、楼层、任务切换、女仆重载、多女仆竞争和长期
@@ -178,8 +176,10 @@ Public 自身直接以 TLM 1.5.3 JAR 编译，并声明运行范围 `[1.5.3,)`�
 MaidsoulKitchen 1.21.1 slim 以官方 beta 0.1.4 为基线，原生分离女仆落脚位置与厨具
 工作位置，并通过一次性可达侧面搜索避免女仆站上厨具。该分支同步了官方 1.20.1
 的烹饪任务约定和简化烹饪中枢，原生适配 DrinkBeer 1.4.1，并加入支持配方过滤、
-中枢取材与成品回仓的 Kaleidoscope Cookery 蒸笼任务。兼容检查器已收敛为轻量静态
-注册表，同时保留现有任务 UID、旧中枢数据和可选模组安全加载行为。
+中枢取材与成品回仓的 Kaleidoscope Cookery 蒸笼任务。当前编译和最低运行基线为
+TLM 1.5.3，并通过其官方 special-crop API 原生支持 Farmer's Delight 蘑菇群落。
+兼容检查器已收敛为轻量静态注册表，同时保留现有任务 UID、旧中枢数据和可选模组
+安全加载行为。
 
 ## 8. 提交或发布说明可复用结构
 
