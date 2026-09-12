@@ -56,12 +56,12 @@ public final class TaskKcSteamer implements ICookTargetTask {
         ));
     }
 
-    // Present in newer TLM APIs. No @Override keeps source compatibility with 1.1.13.
+    @Override
     public boolean workPointTask(EntityMaid maid) {
         return true;
     }
 
-    // Present in newer TLM APIs. No @Override keeps source compatibility with 1.1.13.
+    @Override
     public String getMaidActionSummary() {
         return "Load ingredients into prepared steamers and collect finished food";
     }

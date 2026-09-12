@@ -3,9 +3,7 @@ package com.github.wallev.maidsoulkitchen.mixin.compat.touhoulittlemaid;
 import com.github.tartaricacid.touhoulittlemaid.client.gui.entity.maid.AbstractMaidContainerGui;
 import com.github.tartaricacid.touhoulittlemaid.entity.passive.EntityMaid;
 import com.github.tartaricacid.touhoulittlemaid.inventory.container.AbstractMaidContainer;
-import com.github.wallev.maidsoulkitchen.client.event.RenderSlotHighEventModern;
-import com.github.wallev.maidsoulkitchen.client.event.SlotRenderAndTipsHandler;
-import com.github.wallev.maidsoulkitchen.foundation.utility.Mods;
+import com.github.wallev.maidsoulkitchen.client.event.RenderSlotHighEvent;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
@@ -30,10 +28,11 @@ public abstract class AbstractMaidContainerGuiMixin<T extends AbstractMaidContai
 
     @Inject(at = @At("TAIL"), method = "renderLabels", remap = true)
     private void tlmk$renderHubSlotHighlight(GuiGraphics graphics, int x, int y, CallbackInfo ci) {
-        if (Mods.TLM_SLOT_LEGACY.versionLoad()) {
-            SlotRenderAndTipsHandler.renderSlotHighlight(((AbstractMaidContainerGui<?>)(Object)this), graphics, 0, 0);
-        } else if (Mods.TLM_SLOT_MODERN.versionLoad()) {
-            RenderSlotHighEventModern.renderSlotHighlight(((AbstractMaidContainerGui<?>)(Object)this), graphics, this.leftPos, this.topPos);
-        }
+        RenderSlotHighEvent.renderSlotHighlight(
+                (AbstractMaidContainerGui<?>) (Object) this,
+                graphics,
+                this.leftPos,
+                this.topPos
+        );
     }
 }

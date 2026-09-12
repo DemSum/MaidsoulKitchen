@@ -4,8 +4,6 @@ import com.github.wallev.maidsoulkitchen.util.ModUtil;
 
 public enum Mods {
     TLM("touhou_little_maid"),
-    TLM_SLOT_MODERN("touhou_little_maid", "[1.4.2,)"),
-    TLM_SLOT_LEGACY("touhou_little_maid", "[,1.4.2)"),
     MSK("maidsoulkitchen"),
 
     PATCHOULI("patchouli"),

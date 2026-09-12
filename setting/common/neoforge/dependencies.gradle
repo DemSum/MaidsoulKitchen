@@ -1,7 +1,11 @@
 // 直属依赖项
 dependencies {
-    if (!touhou_little_maid_version.isEmpty())
-        implementation "maven.modrinth:touhou-little-maid:${touhou_little_maid_version}-${mod_loader},${minecraft_version}"
+    if (!touhou_little_maid_version.isEmpty()) {
+        def tlmArtifact = project.findProperty("touhou_little_maid_maven_artifact") ?: "touhou-little-maid"
+        def tlmMavenVersion = project.findProperty("touhou_little_maid_maven_version")
+                ?: "${touhou_little_maid_version}-${mod_loader},${minecraft_version}"
+        implementation "maven.modrinth:${tlmArtifact}:${tlmMavenVersion}"
+    }
 
 }
 

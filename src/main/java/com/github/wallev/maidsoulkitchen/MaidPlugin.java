@@ -17,9 +17,11 @@ import com.github.tartaricacid.touhoulittlemaid.client.renderer.entity.GeckoEnti
 import com.github.tartaricacid.touhoulittlemaid.entity.backpack.BackpackManager;
 import com.github.tartaricacid.touhoulittlemaid.entity.data.TaskDataRegister;
 import com.github.tartaricacid.touhoulittlemaid.entity.task.TaskManager;
+import com.github.tartaricacid.touhoulittlemaid.entity.task.crop.SpecialCropManager;
 import com.github.tartaricacid.touhoulittlemaid.entity.task.meal.MaidMealManager;
 import com.github.tartaricacid.touhoulittlemaid.inventory.chest.ChestManager;
 import com.github.tartaricacid.touhoulittlemaid.item.bauble.BaubleManager;
+import com.github.wallev.maidsoulkitchen.compat.farmersdelight.FarmersDelightMushroomColonyCompat;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.world.entity.Mob;
 import net.neoforged.api.distmarker.Dist;
@@ -66,6 +68,13 @@ public final class MaidPlugin implements ILittleMaid {
     @Override
     public void registerTaskData(TaskDataRegister register) {
         DataRegister.init(register);
+    }
+
+    @Override
+    public void registerSpecialCropHandler(SpecialCropManager manager) {
+        if (Mods.FD.isLoaded()) {
+            FarmersDelightMushroomColonyCompat.register(manager);
+        }
     }
 
     @OnlyIn(Dist.CLIENT)

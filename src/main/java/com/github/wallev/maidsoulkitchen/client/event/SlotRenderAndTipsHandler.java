@@ -4,12 +4,11 @@ import com.github.tartaricacid.touhoulittlemaid.client.gui.entity.maid.AbstractM
 import com.github.tartaricacid.touhoulittlemaid.inventory.container.AbstractMaidContainer;
 import com.github.wallev.maidsoulkitchen.init.MkItems;
 import com.github.wallev.maidsoulkitchen.item.ItemCulinaryHub;
-import com.github.wallev.maidsoulkitchen.foundation.utility.Mods;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.world.inventory.Slot;
 public class SlotRenderAndTipsHandler {
-    static byte HUB_SLOT = (byte) ((Mods.TLM_SLOT_MODERN.versionLoad() ? 42 : 50) + ItemCulinaryHub.INV_SLOT);
+    static byte HUB_SLOT = (byte) (42 + ItemCulinaryHub.INV_SLOT);
 
     public static void init() {
     }

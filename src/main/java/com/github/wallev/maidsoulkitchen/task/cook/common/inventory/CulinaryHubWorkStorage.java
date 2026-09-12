@@ -116,7 +116,7 @@ public final class CulinaryHubWorkStorage {
                 }
                 if (!remainder.isEmpty()) {
                     remainder = ItemHandlerHelper.insertItemStacked(
-                            MaidInventoryCompat.availableInventory(maid), remainder, false);
+                            maid.getAvailableBackpackInv(), remainder, false);
                 }
                 if (!remainder.isEmpty()) {
                     maid.spawnAtLocation(remainder);

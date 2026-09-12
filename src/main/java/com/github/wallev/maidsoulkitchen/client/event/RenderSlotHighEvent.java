@@ -4,7 +4,7 @@ import com.github.tartaricacid.touhoulittlemaid.client.gui.entity.maid.AbstractM
 import com.github.tartaricacid.touhoulittlemaid.client.gui.entity.maid.backpack.IBackpackContainerScreen;
 import net.minecraft.client.gui.GuiGraphics;
 
-public class RenderSlotHighEventModern {
+public class RenderSlotHighEvent {
 
     public static void renderSlotHighlight(AbstractMaidContainerGui<?> gui, GuiGraphics graphics, int guiLeft, int guiTop) {
         if (!(gui instanceof IBackpackContainerScreen iBackpackContainerScreen))

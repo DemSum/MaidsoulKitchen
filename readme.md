@@ -1,11 +1,14 @@
 # [农耕与烹饪：车万女仆拓展](./readme.zh.md) | Farm And Cook: Touhou Little Maid Addon
  A [touhoulittlemaid](https://github.com/TartaricAcid/TouhouLittleMaid) addon mod, is designed to teach maids how to use other mods for cooking and farming.
 
+The maintained 1.21.1 slim branch requires Touhou Little Maid 1.5.3 or newer.
+
 ## Credits
   - This 1.21.1 fork is synchronized with the official MaidsoulKitchen `1.21.1-beta-v0.1.4` source release. The exact source artifact, checksums, merge boundary, and retained fork changes are recorded in [the upstream sync note](./docs/upstream-sync/0.1.4.md).
   - The native dual-coordinate cooking state in the 1.21.1 fork is adapted from MaidsoulKitchen's own `1.20.1-1.0-dev` design. Reachable side-position search is an independent implementation using Minecraft pathfinding APIs; no SimplePathfinder source is included.
   - The native DrinkBeer barrel safeguards and compatibility recipes are adapted from MaidSoul Brewery Public commits `ca84cf4`, `0a0a46b`, and `f5e0fa9`; the restored altar recipes come from `de47e15` and were originally migrated from MaidsoulKitchen 1.20.1 data.
   - Native Kaleidoscope Cookery steamer task, filter UI, and Culinary Hub storage support are adapted from MaidSoul Brewery Public commit `de47e15`. Kaleidoscope Cookery is by ysbbbbbb, tartaric_acid, and Azumic; this integration calls its public API and does not copy its source.
+  - Farmer's Delight mushroom-colony farming is adapted from MaidSoul Brewery Public commits `f5e0fa9` and `de47e15`, and is registered through Touhou Little Maid 1.5.3's official `registerSpecialCropHandler` extension API.
 
 ## Notice
   - Due to the author's personal reasons, the development progress will be extremely slow (maybe the pit will be abandoned...)
@@ -57,6 +60,7 @@
         - [x] Furnace
         - [ ] Brewing Stand
 - [ ] Farm
+    - [x] Farmer's Delight mushroom colonies
     - [x] Berry
         - [x] Simple Farming
         - [x] Vinery
@@ -112,6 +116,7 @@
         - [x] Furnace 未测试
         - [ ] Brewing Stand
 - [ ] Farm
+    - [x] Farmer's Delight mushroom colonies (TLM 1.5.3 official special-crop API)
     - [x] Berry
         - [x] Simple Farming 不兼容 1.21
         - [x] Vinery 不兼容 1.21
