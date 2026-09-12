@@ -12,6 +12,7 @@ import java.util.function.Predicate;
 
 /** Finds one reachable standing position and the valid cooking device beside it. */
 public final class ReachableCookDeviceSearch {
+    private static final int[] DEVICE_HEIGHT_OFFSETS = {0, 1};
     private static final Direction[] HORIZONTAL_DIRECTIONS = {
             Direction.NORTH, Direction.SOUTH, Direction.WEST, Direction.EAST
     };
@@ -110,28 +111,30 @@ public final class ReachableCookDeviceSearch {
         if (!maid.isWithinRestriction(candidateWalkPos)) {
             return false;
         }
-        for (Direction direction : HORIZONTAL_DIRECTIONS) {
-            BlockPos devicePos = candidateWalkPos.relative(direction).immutable();
-            if (!isHorizontalNeighbor(candidateWalkPos, devicePos)
-                    || !isDeviceWithinSearchBounds(
-                    devicePos,
-                    searchCenter,
-                    searchRange,
-                    verticalSearchStart,
-                    verticalSearchRange
-            )) {
-                continue;
-            }
-            if (!maid.isWithinRestriction(devicePos)
-                    || !isWithinOwnerRange(maid, devicePos)
-                    || !level.isLoaded(devicePos)
-                    || !checkedDevices.add(devicePos)) {
-                continue;
-            }
-            diagnostics.deviceCandidate();
-            if (isValidDevice.test(devicePos)) {
-                diagnostics.actionableDevice();
-                if (selection.offer(new Result(candidateWalkPos.immutable(), devicePos))) return true;
+        for (int heightOffset : DEVICE_HEIGHT_OFFSETS) {
+            for (Direction direction : HORIZONTAL_DIRECTIONS) {
+                BlockPos devicePos = candidateWalkPos.above(heightOffset).relative(direction).immutable();
+                if (!isSideApproach(candidateWalkPos, devicePos)
+                        || !isDeviceWithinSearchBounds(
+                        devicePos,
+                        searchCenter,
+                        searchRange,
+                        verticalSearchStart,
+                        verticalSearchRange
+                )) {
+                    continue;
+                }
+                if (!maid.isWithinRestriction(devicePos)
+                        || !isWithinOwnerRange(maid, devicePos)
+                        || !level.isLoaded(devicePos)
+                        || !checkedDevices.add(devicePos)) {
+                    continue;
+                }
+                diagnostics.deviceCandidate();
+                if (isValidDevice.test(devicePos)) {
+                    diagnostics.actionableDevice();
+                    if (selection.offer(new Result(candidateWalkPos.immutable(), devicePos))) return true;
+                }
             }
         }
         return false;
@@ -183,11 +186,11 @@ public final class ReachableCookDeviceSearch {
         );
     }
 
-    static boolean isHorizontalNeighbor(BlockPos first, BlockPos second) {
-        return CookTargetGeometry.isHorizontalNeighbor(
-                first.getX() - second.getX(),
-                first.getY() - second.getY(),
-                first.getZ() - second.getZ()
+    static boolean isSideApproach(BlockPos walkPos, BlockPos devicePos) {
+        return CookTargetGeometry.isSideApproachOffset(
+                devicePos.getX() - walkPos.getX(),
+                devicePos.getY() - walkPos.getY(),
+                devicePos.getZ() - walkPos.getZ()
         );
     }
 

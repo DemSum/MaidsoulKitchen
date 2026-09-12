@@ -5,8 +5,9 @@ public final class CookTargetGeometry {
     private CookTargetGeometry() {
     }
 
-    public static boolean isHorizontalNeighbor(int deltaX, int deltaY, int deltaZ) {
-        return deltaY == 0 && Math.abs(deltaX) + Math.abs(deltaZ) == 1;
+    public static boolean isSideApproachOffset(int deltaX, int deltaY, int deltaZ) {
+        return (deltaY == 0 || deltaY == 1)
+                && Math.abs(deltaX) + Math.abs(deltaZ) == 1;
     }
 
     public static boolean isSearchedVerticalOffset(int offset, int start, int range) {

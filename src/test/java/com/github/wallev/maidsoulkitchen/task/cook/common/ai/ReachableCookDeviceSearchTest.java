@@ -7,11 +7,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ReachableCookDeviceSearchTest {
     @Test
-    void acceptsOnlySameLevelCardinalNeighbors() {
-        assertTrue(CookTargetGeometry.isHorizontalNeighbor(1, 0, 0));
-        assertTrue(CookTargetGeometry.isHorizontalNeighbor(0, 0, -1));
-        assertFalse(CookTargetGeometry.isHorizontalNeighbor(1, 0, 1));
-        assertFalse(CookTargetGeometry.isHorizontalNeighbor(0, 1, 0));
+    void acceptsCardinalDevicesAtFootOrCounterHeight() {
+        assertTrue(CookTargetGeometry.isSideApproachOffset(1, 0, 0));
+        assertTrue(CookTargetGeometry.isSideApproachOffset(0, 0, -1));
+        assertTrue(CookTargetGeometry.isSideApproachOffset(1, 1, 0));
+        assertFalse(CookTargetGeometry.isSideApproachOffset(1, -1, 0));
+        assertFalse(CookTargetGeometry.isSideApproachOffset(1, 0, 1));
+        assertFalse(CookTargetGeometry.isSideApproachOffset(0, 1, 0));
     }
 
     @Test
