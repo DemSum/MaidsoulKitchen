@@ -299,8 +299,13 @@ public class ItemCulinaryHub extends Item implements MenuProvider {
             return stack;
         }
 
-        for (int slot = 0; slot < maid.getMaidBauble().getSlots(); slot++) {
-            stack = maid.getMaidBauble().getStackInSlot(slot);
+        var baubles = maid.getMaidBauble();
+        if (!baubles.containsItem(MkItems.CULINARY_HUB.get())) {
+            return ItemStack.EMPTY;
+        }
+
+        for (int slot = 0; slot < baubles.getSlots(); slot++) {
+            stack = baubles.getStackInSlot(slot);
             if (stack.is(MkItems.CULINARY_HUB.get())) {
                 return stack;
             }
