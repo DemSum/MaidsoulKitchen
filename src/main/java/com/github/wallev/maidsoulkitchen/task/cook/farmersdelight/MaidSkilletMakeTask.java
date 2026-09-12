@@ -23,7 +23,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.common.util.FakePlayer;
-import net.neoforged.neoforge.items.wrapper.CombinedInvWrapper;
+import net.neoforged.neoforge.items.IItemHandlerModifiable;
 import vectorwing.farmersdelight.common.block.entity.SkilletBlockEntity;
 import vectorwing.farmersdelight.common.registry.ModSounds;
 
@@ -105,8 +105,11 @@ public class MaidSkilletMakeTask extends Behavior<EntityMaid> {
             return;
         }
 
+        WeakReference<FakePlayer> fakePlayerRef = ((IAddonMaid) maid).tlmk$getFakePlayer();
+        FakePlayer fakePlayer = fakePlayerRef.get();
+        if (fakePlayer == null) return;
 
-        CombinedInvWrapper maidInventory = maid.getAvailableInv(true);
+        IItemHandlerModifiable inputInv = maidRecipesManager.getInputInv();
         
         // 首先尝试使用女仆的配方管理器中的配方
         if (!maidRecipesManager.getRecipesIngredients().isEmpty()) {
@@ -116,20 +119,15 @@ public class MaidSkilletMakeTask extends Behavior<EntityMaid> {
                 if (!itemStacks.isEmpty()) {
                     ItemStack cookingItem = itemStacks.get(0);
                     if (!cookingItem.isEmpty()) {
-
-                        WeakReference<FakePlayer> fakePlayer$tlma = ((IAddonMaid) maid).tlmk$getFakePlayer();
-                        FakePlayer fakePlayer = fakePlayer$tlma.get();
-                        if (fakePlayer != null) {
-                            // 计算烹饪数量
-                            cookCount = Math.max(cookingItem.getCount(),cookingItem.getMaxStackSize());
-                            cookingItem = cookingItem.split(cookCount);
-                            skilletBlockEntity.addItemToCook(cookingItem, fakePlayer);
-                            maid.swing(InteractionHand.MAIN_HAND);
-                            playSound(maid, maid.level, ModSounds.BLOCK_SKILLET_ADD_FOOD.get());
-                            // 同步物品库存
-                            this.maidRecipesManager.getCookInv().syncInv();
-                            return;
-                        }
+                        // 计算烹饪数量
+                        cookCount = Math.max(cookingItem.getCount(),cookingItem.getMaxStackSize());
+                        cookingItem = cookingItem.split(cookCount);
+                        skilletBlockEntity.addItemToCook(cookingItem, fakePlayer);
+                        maid.swing(InteractionHand.MAIN_HAND);
+                        playSound(maid, maid.level, ModSounds.BLOCK_SKILLET_ADD_FOOD.get());
+                        // 同步物品库存
+                        this.maidRecipesManager.getCookInv().syncInv();
+                        return;
                     }
                 }
             }
@@ -139,18 +137,14 @@ public class MaidSkilletMakeTask extends Behavior<EntityMaid> {
         for (CampfireCookingRecipe recipe : getRecipes()) {
             var ingredient = recipe.getIngredients().get(0);
             
-            for (int i = 0; i < maidInventory.getSlots(); i++) {
-                ItemStack stackInSlot = maidInventory.getStackInSlot(i);
+            for (int i = 0; i < inputInv.getSlots(); i++) {
+                ItemStack stackInSlot = inputInv.getStackInSlot(i);
                 if (!stackInSlot.isEmpty() && ingredient.test(stackInSlot)) {
                     // 找到匹配的物品
-                    WeakReference<FakePlayer> fakePlayer$tlma = ((IAddonMaid) maid).tlmk$getFakePlayer();
-                    FakePlayer fakePlayer = fakePlayer$tlma.get();
-                    if (fakePlayer != null) {
-                        cookCount = Math.max(stackInSlot.getCount(),stackInSlot.getMaxStackSize());
-                        ItemStack cookingItem = stackInSlot.split(cookCount);
-                        // 添加到煎锅中
-                        skilletBlockEntity.addItemToCook(cookingItem, fakePlayer);
-                    }
+                    cookCount = Math.max(stackInSlot.getCount(),stackInSlot.getMaxStackSize());
+                    ItemStack cookingItem = stackInSlot.split(cookCount);
+                    // 添加到煎锅中
+                    skilletBlockEntity.addItemToCook(cookingItem, fakePlayer);
                     maid.swing(InteractionHand.MAIN_HAND);
                     playSound(maid, maid.level, ModSounds.BLOCK_SKILLET_ADD_FOOD.get());
 

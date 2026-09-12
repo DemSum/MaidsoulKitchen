@@ -56,8 +56,10 @@ public class TaskYhcDryingRack implements ICookTask<DryingRackBlockEntity, Dryin
         if (!serverLevel.canSeeSky(blockEntity.getBlockPos()) || !serverLevel.isDay() || serverLevel.isRainingAt(blockEntity.getBlockPos())) {
             return;
         }
+        if (blockEntity.getItems().stream().anyMatch(stack -> !stack.isEmpty())) return;
+
         Pair<List<Integer>, List<List<ItemStack>>> recipeIngredient = recManager.getRecipeIngredient();
-        if (blockEntity.getItems().stream().allMatch(ItemStack::isEmpty) && !recipeIngredient.getFirst().isEmpty()) {
+        if (!recipeIngredient.getFirst().isEmpty()) {
             ItemStack itemStack = recipeIngredient.getSecond().get(0).get(0);
             Optional<DryingRackRecipe> cookableRecipe = blockEntity.getCookableRecipe(itemStack).map(RecipeHolder::value);
             if (cookableRecipe.isPresent()) {

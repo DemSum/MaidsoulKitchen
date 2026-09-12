@@ -28,9 +28,9 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.common.util.FakePlayer;
 import net.neoforged.neoforge.common.util.Lazy;
+import net.neoforged.neoforge.items.IItemHandlerModifiable;
 import net.neoforged.neoforge.items.ItemHandlerHelper;
 import net.neoforged.neoforge.items.ItemStackHandler;
-import net.neoforged.neoforge.items.wrapper.CombinedInvWrapper;
 import net.neoforged.neoforge.items.wrapper.RecipeWrapper;
 
 import java.lang.ref.WeakReference;
@@ -150,7 +150,7 @@ public class TaskYhcTeaKettle extends TaskFdPot<KettleBlockEntity, KettleRecipe>
         // 现在是否可以做饭（厨锅有没有正在做饭）
         boolean b = recipe.isPresent() && canCook(kettleBlockEntity, recipe.get());
         List<Pair<List<Integer>, List<List<ItemStack>>>> recipesIngredients = manager.getRecipesIngredients();
-        if (!b && !recipesIngredients.isEmpty() && heated && (!needWater(kettleBlockEntity) || findMaidHasWaterResource(maid, kettleBlockEntity) != -1) && mealStack.isEmpty()) {
+        if (!b && !recipesIngredients.isEmpty() && heated && (!needWater(kettleBlockEntity) || findWaterResource(manager.getInputInv(), kettleBlockEntity) != -1) && mealStack.isEmpty()) {
             return true;
         }
 
@@ -174,15 +174,16 @@ public class TaskYhcTeaKettle extends TaskFdPot<KettleBlockEntity, KettleRecipe>
 
     @Override
     public void tryExtractItem(ServerLevel serverLevel, EntityMaid entityMaid, KettleBlockEntity blockEntity, MaidRecipesManager<KettleRecipe> maidRecipesManager) {
-        this.replenishWater(entityMaid, blockEntity);
+        this.replenishWater(entityMaid, blockEntity, maidRecipesManager);
         super.tryExtractItem(serverLevel, entityMaid, blockEntity, maidRecipesManager);
     }
 
-    private boolean replenishWater(EntityMaid entityMaid, KettleBlockEntity blockEntity) {
+    private boolean replenishWater(EntityMaid entityMaid, KettleBlockEntity blockEntity, MaidRecipesManager<KettleRecipe> manager) {
         if (this.needWater(blockEntity)) {
-            int stackSlot = findMaidHasWaterResource(entityMaid, blockEntity);
+            IItemHandlerModifiable inputInv = manager.getInputInv();
+            int stackSlot = findWaterResource(inputInv, blockEntity);
             if (stackSlot != -1) {
-                ItemStack waterStack = entityMaid.getAvailableInv(true).getStackInSlot(stackSlot);
+                ItemStack waterStack = inputInv.getStackInSlot(stackSlot);
                 WeakReference<FakePlayer> fakePlayer$tlma = ((IAddonMaid) entityMaid).tlmk$getFakePlayer();
                 FakePlayer fakePlayer = fakePlayer$tlma.get();
                 if (fakePlayer != null) {
@@ -194,7 +195,7 @@ public class TaskYhcTeaKettle extends TaskFdPot<KettleBlockEntity, KettleRecipe>
                         ItemStack remainder = fakePlayer.getItemInHand(InteractionHand.MAIN_HAND).copy();
                         waterStack.shrink(1);
                         CookInventoryTransactions.returnOrDrop(
-                                entityMaid.getAvailableInv(true), remainder, entityMaid);
+                                inputInv, remainder, entityMaid);
                         return true;
                     } catch (RuntimeException e) {
                         return false;
@@ -218,11 +219,9 @@ public class TaskYhcTeaKettle extends TaskFdPot<KettleBlockEntity, KettleRecipe>
         return list;
     }
 
-    public int findMaidHasWaterResource(EntityMaid entityMaid, KettleBlockEntity kettleBlockEntity) {
+    private int findWaterResource(IItemHandlerModifiable inputInv, KettleBlockEntity kettleBlockEntity) {
         List<ItemStack> waterSourceList = getWaterSourceList(kettleBlockEntity);
-
-        CombinedInvWrapper availableInv = entityMaid.getAvailableInv(true);
-        int stackSlot = ItemsUtil.findStackSlot(availableInv, itemStack -> {
+        int stackSlot = ItemsUtil.findStackSlot(inputInv, itemStack -> {
             return waterSourceList.stream().anyMatch(ingredient -> ingredient.is(itemStack.getItem()));
         });
 

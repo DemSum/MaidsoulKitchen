@@ -14,7 +14,6 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.neoforged.neoforge.items.IItemHandlerModifiable;
 import net.neoforged.neoforge.items.ItemHandlerHelper;
 import net.neoforged.neoforge.items.ItemStackHandler;
-import net.neoforged.neoforge.items.wrapper.CombinedInvWrapper;
 import net.neoforged.neoforge.items.wrapper.RecipeWrapper;
 import org.jetbrains.annotations.NotNull;
 
@@ -81,7 +80,6 @@ public interface IFdPotCook<B extends BlockEntity, R extends Recipe<? extends Re
     }
 
     default void tryInsertItem(ServerLevel serverLevel, EntityMaid entityMaid, B blockEntity, MaidRecipesManager<R> maidRecipesManager) {
-        CombinedInvWrapper availableInv = entityMaid.getAvailableInv(true);
         ItemStackHandler inventory = getItemStackHandler(blockEntity);
         ItemStack mealStack = getBeInvMealStack(blockEntity, inventory);
         if (hasInput(inventory) || !mealStack.isEmpty()) return;
@@ -89,7 +87,8 @@ public interface IFdPotCook<B extends BlockEntity, R extends Recipe<? extends Re
         Pair<List<Integer>, List<List<ItemStack>>> recipeIngredient = maidRecipesManager.getRecipeIngredient();
         if (recipeIngredient.getFirst().isEmpty()) return;
 
-        this.insertInputsStack(inventory, availableInv, blockEntity, recipeIngredient);
+        IItemHandlerModifiable inputInv = maidRecipesManager.getInputInv();
+        this.insertInputsStack(inventory, inputInv, blockEntity, recipeIngredient);
 
         this.pickupAction(entityMaid);
     }

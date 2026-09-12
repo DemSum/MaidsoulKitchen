@@ -11,7 +11,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeInput;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.neoforged.neoforge.items.wrapper.CombinedInvWrapper;
+import net.neoforged.neoforge.items.IItemHandlerModifiable;
 
 import java.util.List;
 
@@ -88,12 +88,14 @@ public interface IBaseContainerPotCook<B extends BlockEntity, R extends Recipe<?
 
 
     default void tryInsertItem(ServerLevel serverLevel, EntityMaid entityMaid, B blockEntity, MaidRecipesManager<R> maidRecipesManager) {
-        CombinedInvWrapper availableInv = entityMaid.getAvailableInv(true);
         Container inventory = getContainer(blockEntity);
-        Pair<List<Integer>, List<List<ItemStack>>> recipeIngredient = maidRecipesManager.getRecipeIngredient();
-        if (hasInput(inventory) || recipeIngredient.getFirst().isEmpty()) return;
+        if (hasInput(inventory)) return;
 
-        insertInputStack(inventory, availableInv, blockEntity, recipeIngredient);
+        Pair<List<Integer>, List<List<ItemStack>>> recipeIngredient = maidRecipesManager.getRecipeIngredient();
+        if (recipeIngredient.getFirst().isEmpty()) return;
+
+        IItemHandlerModifiable inputInv = maidRecipesManager.getInputInv();
+        insertInputStack(inventory, inputInv, blockEntity, recipeIngredient);
 
         pickupAction(entityMaid);
     }

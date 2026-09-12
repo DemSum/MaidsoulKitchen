@@ -37,8 +37,8 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.common.util.FakePlayer;
+import net.neoforged.neoforge.items.IItemHandlerModifiable;
 import net.neoforged.neoforge.items.ItemHandlerHelper;
-import net.neoforged.neoforge.items.wrapper.CombinedInvWrapper;
 import vectorwing.farmersdelight.common.registry.ModSounds;
 
 import javax.annotation.Nullable;
@@ -110,23 +110,28 @@ public class MaidCuisineMakeTask extends Behavior<EntityMaid> {
         CookTargetMemory.getWorkPos(maid).ifPresent(posWrapper -> {
             BlockEntity blockEntity = worldIn.getBlockEntity(posWrapper.currentBlockPosition());
             if (blockEntity instanceof CuisineSkilletBlockEntity cuisineSkilletBlockEntity) {
-                CombinedInvWrapper maidAvailableInv = maid.getAvailableInv(true);
+                IItemHandlerModifiable inputInv = maidRecipesManager.getInputInv();
                 ItemStack mainHandItem = maid.getMainHandItem();
                 if (!mainHandItem.is(CDItems.SPATULA.get())) {
-                    int stackSlot = ItemsUtil.findStackSlot(maidAvailableInv, itemStack -> itemStack.is(CDItems.SPATULA.get()));
+                    int stackSlot = ItemsUtil.findStackSlot(inputInv, itemStack -> itemStack.is(CDItems.SPATULA.get()));
                     if (stackSlot == -1) return;
-                    ItemStack leftStack = ItemHandlerHelper.insertItemStacked(maidAvailableInv, mainHandItem, false);
+                    ItemStack leftStack = ItemHandlerHelper.insertItemStacked(inputInv, mainHandItem, false);
                     if (!leftStack.isEmpty()) return;
-                    maid.setItemInHand(InteractionHand.MAIN_HAND, maidAvailableInv.getStackInSlot(stackSlot));
+                    ItemStack spatula = inputInv.extractItem(stackSlot, 1, false);
+                    if (spatula.isEmpty()) return;
+                    maid.setItemInHand(InteractionHand.MAIN_HAND, spatula);
                 }
 
-                int plateSlot = ItemsUtil.findStackSlot(maidAvailableInv, itemStack -> itemStack.is(CDItems.PLATE.get()));
+                int plateSlot = ItemsUtil.findStackSlot(inputInv, itemStack -> itemStack.is(CDItems.PLATE.get()));
                 if (plateSlot > -1) {
-                    plateItem = maidAvailableInv.getStackInSlot(plateSlot);
+                    plateItem = inputInv.getStackInSlot(plateSlot);
                 } else {
                     return;
                 }
 
+                WeakReference<FakePlayer> fakePlayerRef = ((IAddonMaid) maid).tlmk$getFakePlayer();
+                FakePlayer fakePlayer = fakePlayerRef.get();
+                if (fakePlayer == null || maidRecipesManager.getRecipesIngredients().isEmpty()) return;
 
                 Pair<List<Integer>, List<List<ItemStack>>> recipeIngredient = this.maidRecipesManager.getRecipeIngredient();
                 for (List<ItemStack> itemStacks : recipeIngredient.getSecond()) {
@@ -144,17 +149,13 @@ public class MaidCuisineMakeTask extends Behavior<EntityMaid> {
                 }
                 processTickStacks.sort((a, b) -> a.getFirst() == 0 ? -1 : Integer.compare(b.getFirst(), a.getFirst()));
 
-                WeakReference<FakePlayer> fakePlayer$tlma = ((IAddonMaid) maid).tlmk$getFakePlayer();
-                FakePlayer fakePlayer = fakePlayer$tlma.get();
-                if (fakePlayer != null) {
-                    Integer time = processTickStacks.get(0).getFirst();
-                    List<Pair<Integer, ItemStack>> list = processTickStacks.stream().filter(pair -> pair.getFirst() == time || pair.getFirst() == tickMax).toList();
-                    processTickStacks.removeAll(list);
-                    for (Pair<Integer, ItemStack> integerItemStackPair : list) {
-                        fakePlayer.setItemInHand(InteractionHand.MAIN_HAND, integerItemStackPair.getSecond().split(1));
-                        this.interactUseOnBlock(maid, blockEntity.getBlockPos(), InteractionHand.MAIN_HAND, null);
-                        maid.swing(InteractionHand.MAIN_HAND);
-                    }
+                Integer time = processTickStacks.get(0).getFirst();
+                List<Pair<Integer, ItemStack>> list = processTickStacks.stream().filter(pair -> pair.getFirst() == time || pair.getFirst() == tickMax).toList();
+                processTickStacks.removeAll(list);
+                for (Pair<Integer, ItemStack> integerItemStackPair : list) {
+                    fakePlayer.setItemInHand(InteractionHand.MAIN_HAND, integerItemStackPair.getSecond().split(1));
+                    this.interactUseOnBlock(maid, blockEntity.getBlockPos(), InteractionHand.MAIN_HAND, null);
+                    maid.swing(InteractionHand.MAIN_HAND);
                 }
 
                 this.maidRecipesManager.syncInv();

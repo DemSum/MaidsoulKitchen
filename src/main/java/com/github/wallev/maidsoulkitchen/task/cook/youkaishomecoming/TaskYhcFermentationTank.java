@@ -40,7 +40,6 @@ import net.neoforged.neoforge.fluids.capability.wrappers.FluidBucketWrapper;
 import net.neoforged.neoforge.fluids.crafting.FluidIngredient;
 import net.neoforged.neoforge.items.IItemHandlerModifiable;
 import net.neoforged.neoforge.items.ItemHandlerHelper;
-import net.neoforged.neoforge.items.wrapper.CombinedInvWrapper;
 import net.neoforged.neoforge.capabilities.Capabilities;
 
 import java.util.*;
@@ -178,8 +177,6 @@ public class TaskYhcFermentationTank implements ICookTask<FermentationTankBlockE
     @SuppressWarnings("all")
     @Override
     public boolean shouldMoveTo(ServerLevel serverLevel, EntityMaid maid, FermentationTankBlockEntity blockEntity, MaidRecipesManager<FermentationRecipe<?>> recManager) {
-        CombinedInvWrapper maidInv = maid.getAvailableInv(true);
-
         // 发酵桶是否在发酵
         FermentationDummyContainer cont = new FermentationDummyContainer(blockEntity.items, blockEntity.fluids);
         Optional<FermentationRecipe<?>> beRecipe = maid.level.getRecipeManager().getRecipeFor((RecipeType) YHBlocks.FERMENT_RT.get(), cont, maid.level);
@@ -221,7 +218,6 @@ public class TaskYhcFermentationTank implements ICookTask<FermentationTankBlockE
     @SuppressWarnings("all")
     @Override
     public void processCookMake(ServerLevel serverLevel, EntityMaid maid, FermentationTankBlockEntity blockEntity, MaidRecipesManager<FermentationRecipe<?>> recManager) {
-        CombinedInvWrapper maidInv = maid.getAvailableInv(true);
         IItemHandlerModifiable inputInv = recManager.getInputInv();
         IItemHandlerModifiable outputAdditionInv = recManager.getOutputAdditionInv();
         IItemHandlerModifiable outputInv = recManager.getOutputInv();

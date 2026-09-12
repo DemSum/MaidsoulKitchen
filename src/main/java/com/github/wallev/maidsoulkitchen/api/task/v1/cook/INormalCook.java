@@ -10,7 +10,7 @@ import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeInput;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.neoforged.neoforge.items.ItemStackHandler;
-import net.neoforged.neoforge.items.wrapper.CombinedInvWrapper;
+import net.neoforged.neoforge.items.IItemHandlerModifiable;
 import net.neoforged.neoforge.items.wrapper.RecipeWrapper;
 
 import java.util.List;
@@ -19,8 +19,6 @@ import java.util.Optional;
 public interface INormalCook<B extends BlockEntity, R extends Recipe<? extends RecipeInput>> extends IBaseCookItemHandlerBe<B, R>, IHandlerCookBe<B>, IItemHandlerCook<B, R> {
 
     default boolean maidShouldMoveTo(ServerLevel serverLevel, EntityMaid entityMaid, B blockEntity, MaidRecipesManager<R> maidRecipesManager) {
-        CombinedInvWrapper availableInv = entityMaid.getAvailableInv(true);
-
         ItemStackHandler inventory = getItemStackHandler(blockEntity);
         ItemStack outputStack = inventory.getStackInSlot(getOutputSlot());
         // 有最终物品
@@ -55,19 +53,20 @@ public interface INormalCook<B extends BlockEntity, R extends Recipe<? extends R
     }
 
     default void tryInsertItem(ServerLevel serverLevel, EntityMaid entityMaid, B blockEntity, MaidRecipesManager<R> maidRecipesManager) {
-        CombinedInvWrapper availableInv = entityMaid.getAvailableInv(true);
         ItemStackHandler inventory = getItemStackHandler(blockEntity);
+        if (hasInput(inventory)) return;
+
         Pair<List<Integer>, List<List<ItemStack>>> recipeIngredient = maidRecipesManager.getRecipeIngredient();
         if (recipeIngredient.getFirst().isEmpty()) return;
 
-        insertInputsStack(inventory, availableInv, blockEntity, recipeIngredient);
+        IItemHandlerModifiable inputInv = maidRecipesManager.getInputInv();
+        insertInputsStack(inventory, inputInv, blockEntity, recipeIngredient);
 
         pickupAction(entityMaid);
     }
 
     default void tryExtractItem(ServerLevel serverLevel, EntityMaid entityMaid, B blockEntity, MaidRecipesManager<R> maidRecipesManager) {
         ItemStackHandler inventory = getItemStackHandler(blockEntity);
-        CombinedInvWrapper availableInv = entityMaid.getAvailableInv(true);
 
         // 取出最终物品
         extractOutputStack(inventory, maidRecipesManager.getOutputInv(), blockEntity);

@@ -28,7 +28,7 @@ import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.neoforged.neoforge.items.wrapper.CombinedInvWrapper;
+import net.neoforged.neoforge.items.IItemHandlerModifiable;
 
 import java.util.Collections;
 import java.util.List;
@@ -47,10 +47,12 @@ public class TaskCdCuisineSkillet implements ICookTask<CuisineSkilletBlockEntity
 
     @Override
     public boolean shouldMoveTo(ServerLevel serverLevel, EntityMaid maid, CuisineSkilletBlockEntity blockEntity, MaidRecipesManager<BaseCuisineRecipe<?>> recManager) {
-        CombinedInvWrapper maidAvailableInv = maid.getAvailableInv(true);
+        IItemHandlerModifiable inputInv = recManager.getInputInv();
+        boolean hasSpatula = maid.getMainHandItem().is(CDItems.SPATULA.get())
+                || ItemsUtil.findStackSlot(inputInv, stack -> stack.is(CDItems.SPATULA.get())) > -1;
         return !blockEntity.isCooking() && blockEntity.canCook()
-                && ItemsUtil.findStackSlot(maidAvailableInv, stack -> stack.is(CDItems.SPATULA.get())) > -1
-                && ItemsUtil.findStackSlot(maidAvailableInv, stack -> stack.is(CDItems.PLATE.get())) > -1
+                && hasSpatula
+                && ItemsUtil.findStackSlot(inputInv, stack -> stack.is(CDItems.PLATE.get())) > -1
                 && !recManager.getRecipesIngredients().isEmpty();
     }
 
