@@ -293,8 +293,19 @@ public class ItemCulinaryHub extends Item implements MenuProvider {
     }
 
     public static ItemStack getItem(EntityMaid maid) {
+        // Keep the documented legacy slot authoritative, then fall back to a registered bauble slot.
         ItemStack stack = maid.getMaidInv().getStackInSlot(INV_SLOT);
-        return stack.is(MkItems.CULINARY_HUB.get()) ? stack : ItemStack.EMPTY;
+        if (stack.is(MkItems.CULINARY_HUB.get())) {
+            return stack;
+        }
+
+        for (int slot = 0; slot < maid.getMaidBauble().getSlots(); slot++) {
+            stack = maid.getMaidBauble().getStackInSlot(slot);
+            if (stack.is(MkItems.CULINARY_HUB.get())) {
+                return stack;
+            }
+        }
+        return ItemStack.EMPTY;
     }
 
     /** Any block inventory is bindable, matching the official 1.20.1 update. */

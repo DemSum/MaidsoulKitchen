@@ -45,7 +45,7 @@ public final class CulinaryHubWorkStorage {
         if (!(maid.level() instanceof ServerLevel level)) {
             return Optional.empty();
         }
-        ItemStack stack = maid.getMaidInv().getStackInSlot(ItemCulinaryHub.INV_SLOT);
+        ItemStack stack = ItemCulinaryHub.getItem(maid);
         if (!(stack.getItem() instanceof ItemCulinaryHub)) {
             return Optional.empty();
         }
@@ -178,7 +178,7 @@ public final class CulinaryHubWorkStorage {
     }
 
     public void sync() {
-        ItemStack current = maid.getMaidInv().getStackInSlot(ItemCulinaryHub.INV_SLOT);
+        ItemStack current = ItemCulinaryHub.getItem(maid);
         if (current == hubStack && current.getItem() instanceof ItemCulinaryHub) {
             ItemCulinaryHub.setContainer(maid.registryAccess(), hubStack, containers);
         }

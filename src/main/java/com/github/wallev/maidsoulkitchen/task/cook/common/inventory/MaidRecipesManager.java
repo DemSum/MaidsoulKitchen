@@ -4,7 +4,6 @@ import com.github.tartaricacid.touhoulittlemaid.entity.passive.EntityMaid;
 import com.github.tartaricacid.touhoulittlemaid.util.ItemsUtil;
 import com.github.wallev.maidsoulkitchen.api.task.v1.cook.ICookTask;
 import com.github.wallev.maidsoulkitchen.entity.data.inner.task.CookData;
-import com.github.wallev.maidsoulkitchen.init.MkItems;
 import com.github.wallev.maidsoulkitchen.inventory.container.item.BagType;
 import com.github.wallev.maidsoulkitchen.item.ItemCulinaryHub;
 import com.google.common.collect.Lists;
@@ -97,9 +96,7 @@ public class MaidRecipesManager<R extends Recipe<? extends RecipeInput>> {
     }
 
     public ItemStack findCulinaryHub() {
-        ItemStack culinaryHubItem = this.maid.getMaidInv().getStackInSlot(ItemCulinaryHub.INV_SLOT);
-        if (culinaryHubItem.is(MkItems.CULINARY_HUB.get())) return culinaryHubItem;
-        return ItemStack.EMPTY;
+        return ItemCulinaryHub.getItem(this.maid);
     }
 
     private void tranCookBag2Chest(BagType bagType, boolean requireHasItem) {

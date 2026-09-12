@@ -2,6 +2,7 @@ package com.github.wallev.maidsoulkitchen;
 
 import com.github.tartaricacid.touhoulittlemaid.entity.ai.brain.ExtraMaidBrainManager;
 import com.github.wallev.maidsoulkitchen.entity.ai.brain.MaidBrain;
+import com.github.wallev.maidsoulkitchen.api.ILittleMaidBauble;
 import com.github.wallev.maidsoulkitchen.foundation.utility.Mods;
 import com.github.wallev.maidsoulkitchen.init.MkItems;
 import com.github.wallev.maidsoulkitchen.init.registry.CommonRegistry;
@@ -41,6 +42,8 @@ public final class MaidPlugin implements ILittleMaid {
 
     @Override
     public void bindMaidBauble(BaubleManager manager) {
+        manager.bind(MkItems.CULINARY_HUB, new ILittleMaidBauble() {
+        });
         if (Mods.MC.isLoaded()) {
             manager.bind(MkItems.BURN_PROTECT_BAUBLE, new BurnProtectBauble());
         }

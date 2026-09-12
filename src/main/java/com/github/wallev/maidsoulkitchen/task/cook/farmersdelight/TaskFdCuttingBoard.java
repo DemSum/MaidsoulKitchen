@@ -12,9 +12,7 @@ import com.github.wallev.maidsoulkitchen.task.cook.common.ai.MaidCookPathingTask
 import com.github.wallev.maidsoulkitchen.task.cook.common.inventory.MaidRecipesManager;
 import com.google.common.collect.Lists;
 import com.mojang.datafixers.util.Pair;
-import net.minecraft.ChatFormatting;
 import net.minecraft.core.NonNullList;
-import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.InteractionHand;
@@ -28,7 +26,6 @@ import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.neoforged.neoforge.items.ItemHandlerHelper;
 import net.neoforged.neoforge.items.IItemHandlerModifiable;
-import net.neoforged.neoforge.items.ItemStackHandler;
 import vectorwing.farmersdelight.common.block.entity.CuttingBoardBlockEntity;
 import vectorwing.farmersdelight.common.crafting.CuttingBoardRecipe;
 import vectorwing.farmersdelight.common.registry.ModBlocks;
@@ -173,30 +170,6 @@ public class TaskFdCuttingBoard implements ICookTask<CuttingBoardBlockEntity, Cu
     }
 
     @Override
-    public MaidRecipesManager<CuttingBoardRecipe> getRecipesManager(EntityMaid maid) {
-        return new MaidRecipesManager<>(maid, this, false) {
-            @Override
-            protected List<Pair<List<Integer>, List<Item>>> createIngres(Map<Item, Integer> available, boolean setRecipeIngres) {
-                ItemStackHandler availableInv = maid.getMaidInv();
-                boolean hasAvi = false;
-                for (int i = 0; i < availableInv.getSlots(); i++) {
-                    if (availableInv.getStackInSlot(i).isEmpty()) {
-                        hasAvi = true;
-                        break;
-                    }
-                }
-                if (!hasAvi) return Collections.emptyList();
-                return super.createIngres(available, setRecipeIngres);
-            }
-
-            @Override
-            protected boolean enableHub() {
-                return false;
-            }
-        };
-    }
-
-    @Override
     public ResourceLocation getUid() {
         return TaskInfo.FD_CUTTING_BOARD.uid;
     }
@@ -219,9 +192,4 @@ public class TaskFdCuttingBoard implements ICookTask<CuttingBoardBlockEntity, Cu
         return ingredients;
     }
 
-    @Override
-    public List<Component> getWarnComponent() {
-        return List.of(Component.translatable("gui.maidsoulkitchen.btn.cook_guide.info.warn").withStyle(ChatFormatting.YELLOW),
-                Component.translatable("gui.maidsoulkitchen.btn.cook_guide.info.warn.cuttingboard"));
-    }
 }

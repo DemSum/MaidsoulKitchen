@@ -10,9 +10,7 @@ import com.github.wallev.maidsoulkitchen.task.cook.common.TaskBaseContainerCook;
 import com.github.tartaricacid.touhoulittlemaid.api.entity.data.TaskDataKey;
 import com.github.tartaricacid.touhoulittlemaid.entity.passive.EntityMaid;
 import com.github.wallev.maidsoulkitchen.task.cook.common.cbaccessor.IAbstractFurnaceAccessor;
-import net.minecraft.ChatFormatting;
 import net.minecraft.core.Direction;
-import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.Container;
@@ -288,10 +286,4 @@ return true;
         return recipes;
     }
 
-    @Override
-    public List<Component> getWarnComponent() {
-        return List.of(Component.translatable("gui.maidsoulkitchen.btn.cook_guide.info.warn").withStyle(ChatFormatting.YELLOW),
-                Component.translatable("gui.maidsoulkitchen.btn.cook_guide.info.warn.furnace"),
-                Component.translatable("gui.maidsoulkitchen.btn.cook_guide.info.warn.furnace.1"));
-    }
 }
