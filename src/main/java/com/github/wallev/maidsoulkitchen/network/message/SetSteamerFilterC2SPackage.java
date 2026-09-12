@@ -5,7 +5,6 @@ import com.github.wallev.maidsoulkitchen.MaidsoulKitchen;
 import com.github.wallev.maidsoulkitchen.entity.data.inner.task.RecipeFilterData;
 import com.github.wallev.maidsoulkitchen.entity.data.inner.task.RecipeFilterRules;
 import com.github.wallev.maidsoulkitchen.init.touhoulittlemaid.DataRegister;
-import com.github.wallev.maidsoulkitchen.task.TaskInfo;
 import com.github.wallev.maidsoulkitchen.task.cook.kaleidoscopecookery.SteamerAdapter;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
@@ -76,8 +75,7 @@ public record SetSteamerFilterC2SPackage(int maidId, RecipeFilterData filter) im
     private static void applyOnServer(SetSteamerFilterC2SPackage payload, Player player) {
         Entity entity = player.level().getEntity(payload.maidId());
         if (!(entity instanceof EntityMaid maid)
-                || !maid.isOwnedBy(player)
-                || !TaskInfo.KC_STEAMER.uid.equals(maid.getTask().getUid())) {
+                || !maid.isOwnedBy(player)) {
             return;
         }
 

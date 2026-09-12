@@ -10,8 +10,12 @@ import com.github.wallev.maidsoulkitchen.inventory.container.maid.SteamerRecipeF
 import com.github.wallev.maidsoulkitchen.network.NetworkHandler;
 import com.github.wallev.maidsoulkitchen.network.message.SetSteamerFilterC2SPackage;
 import com.github.wallev.maidsoulkitchen.task.cook.kaleidoscopecookery.RecipeOption;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
@@ -79,7 +83,7 @@ public final class SteamerRecipeFilterGui extends MaidTaskConfigGui<SteamerRecip
         super.renderTooltip(graphics, mouseX, mouseY);
         for (RecipeButton button : recipeButtons) {
             if (button.isHovered()) {
-                graphics.renderTooltip(font, button.recipe().result(), mouseX, mouseY);
+                button.renderRecipeTooltip(graphics, mouseX, mouseY);
                 return;
             }
         }
@@ -194,6 +198,7 @@ public final class SteamerRecipeFilterGui extends MaidTaskConfigGui<SteamerRecip
     private static final class RecipeButton extends TouhouStateSwitchButton {
         private final RecipeOption recipe;
         private final RecipeFilterData.Mode mode;
+        private final boolean allowed;
         private final Runnable pressAction;
 
         private RecipeButton(
@@ -208,11 +213,26 @@ public final class SteamerRecipeFilterGui extends MaidTaskConfigGui<SteamerRecip
             setMessage(recipe.result().getHoverName());
             this.recipe = recipe;
             this.mode = filterData.mode();
+            this.allowed = filterData.allows(recipe.id());
             this.pressAction = pressAction;
         }
 
-        private RecipeOption recipe() {
-            return recipe;
+        private void renderRecipeTooltip(GuiGraphics graphics, int mouseX, int mouseY) {
+            Minecraft minecraft = Minecraft.getInstance();
+            ItemStack result = recipe.result();
+            List<Component> tooltip = new ArrayList<>(Screen.getTooltipFromItem(minecraft, result));
+            tooltip.add(CommonComponents.EMPTY);
+            tooltip.add(Component.translatable("gui.maidsoulkitchen.btn.cook_guide.warn.now_type")
+                    .append(Component.translatable("gui.maidsoulkitchen.btn.cook_guide.type."
+                            + mode.name().toLowerCase(java.util.Locale.ROOT)))
+                    .withStyle(ChatFormatting.GOLD));
+            tooltip.add(Component.translatable("gui.maidsoulkitchen.btn.cook_guide.can_cook")
+                    .append(Component.translatable("gui.maidsoulkitchen.btn.cook_guide.can_cook." + allowed))
+                    .withStyle(allowed ? ChatFormatting.DARK_GREEN : ChatFormatting.DARK_RED));
+            if (minecraft.options.advancedItemTooltips) {
+                tooltip.add(Component.literal("RecipeId: " + recipe.id()).withStyle(ChatFormatting.DARK_GRAY));
+            }
+            graphics.renderComponentTooltip(minecraft.font, tooltip, mouseX, mouseY, result);
         }
 
         @Override
