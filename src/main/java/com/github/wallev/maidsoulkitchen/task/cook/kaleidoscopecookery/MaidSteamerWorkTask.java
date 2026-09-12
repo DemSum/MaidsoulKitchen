@@ -46,7 +46,7 @@ final class MaidSteamerWorkTask extends Behavior<EntityMaid> {
                 TaskKcSteamer.workAt(maid, workPos);
             } finally {
                 CookWorkLocks.release(level, workPos, maid);
-                CookTargetMemory.complete(maid);
+                CookTargetMemory.clear(maid);
             }
         });
     }

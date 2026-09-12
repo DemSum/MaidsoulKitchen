@@ -11,7 +11,7 @@ class CookTargetStateTest {
     void readyWhenValidAndWithinInteractionRange() {
         assertEquals(
                 CookTargetState.StartState.READY,
-                CookTargetState.decideStart(true, true)
+                CookTargetState.decideStart(true, true, false)
         );
     }
 
@@ -19,15 +19,15 @@ class CookTargetStateTest {
     void waitsWhileMatchingWalkTargetIsStillActive() {
         assertEquals(
                 CookTargetState.StartState.WAITING_FOR_PATH,
-                CookTargetState.decideStart(true, false)
+                CookTargetState.decideStart(true, false, true)
         );
     }
 
     @Test
-    void waitsForRepathWhenPathTargetDisappearsOrChanges() {
+    void clearsWhenPathTargetDisappearsOrChanges() {
         assertEquals(
-                CookTargetState.StartState.WAITING_FOR_PATH,
-                CookTargetState.decideStart(true, false)
+                CookTargetState.StartState.CLEAR_INVALID,
+                CookTargetState.decideStart(true, false, false)
         );
     }
 
@@ -35,25 +35,8 @@ class CookTargetStateTest {
     void clearsInvalidOrDestroyedDeviceBeforeConsideringPath() {
         assertEquals(
                 CookTargetState.StartState.CLEAR_INVALID,
-                CookTargetState.decideStart(false, true)
+                CookTargetState.decideStart(false, true, true)
         );
-    }
-
-    @Test
-    void restoresMissingOrHijackedWalkTargetForValidDistantCooker() {
-        assertTrue(CookTargetState.shouldRestoreWalkTarget(true, false, false));
-    }
-
-    @Test
-    void doesNotOverwriteActivePathOrMovementAtInteractionRange() {
-        assertFalse(CookTargetState.shouldRestoreWalkTarget(true, false, true));
-        assertFalse(CookTargetState.shouldRestoreWalkTarget(true, true, false));
-    }
-
-    @Test
-    void abandonsCachedApproachOnlyAfterBoundedRepathAttempts() {
-        assertFalse(CookTargetState.shouldAbandonAfterRepaths(2, 3));
-        assertTrue(CookTargetState.shouldAbandonAfterRepaths(3, 3));
     }
 
     @Test

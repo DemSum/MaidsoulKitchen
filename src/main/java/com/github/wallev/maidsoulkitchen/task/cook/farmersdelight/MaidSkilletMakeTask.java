@@ -221,7 +221,7 @@ public class MaidSkilletMakeTask extends Behavior<EntityMaid> {
     @Override
     protected void stop(ServerLevel worldIn, EntityMaid maid, long pGameTime) {
         super.stop(worldIn, maid, pGameTime);
-        CookTargetMemory.complete(maid);
+        CookTargetMemory.clear(maid);
         cookCount = 0;
         this.tickCounter = 0;
         

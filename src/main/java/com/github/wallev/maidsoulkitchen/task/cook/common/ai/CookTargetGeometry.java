@@ -41,15 +41,4 @@ public final class CookTargetGeometry {
         return Math.abs(deltaY) <= verticalRange
                 && deltaX * deltaX + deltaZ * deltaZ <= horizontalRange * horizontalRange;
     }
-
-    public static boolean isInsideIdleAnchor(
-            int deltaX,
-            int deltaY,
-            int deltaZ,
-            int horizontalRange,
-            int verticalRange
-    ) {
-        return isInsideNavigationBounds(
-                deltaX, deltaY, deltaZ, horizontalRange, verticalRange);
-    }
 }

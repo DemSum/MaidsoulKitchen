@@ -216,7 +216,8 @@ public final class CulinaryHubWorkStorage {
     }
 
     private boolean withinWorkRange(BlockPos pos) {
-        return CulinaryHubRange.contains(maid, pos);
+        float radius = maid.getRestrictRadius() * ItemCulinaryHub.WORK_RANGE;
+        return maid.distanceToSqr(pos.getX(), pos.getY(), pos.getZ()) <= radius * radius;
     }
 
     private void markChanged(BlockEntity blockEntity) {

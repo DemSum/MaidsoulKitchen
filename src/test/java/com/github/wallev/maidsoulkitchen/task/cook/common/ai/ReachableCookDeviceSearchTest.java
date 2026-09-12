@@ -45,11 +45,4 @@ class ReachableCookDeviceSearchTest {
         assertFalse(CookTargetGeometry.isInsideNavigationBounds(
                 0, 8, 0, 10, 7));
     }
-
-    @Test
-    void idleStrollRemainsInsideItsLocalAnchor() {
-        assertTrue(CookTargetGeometry.isInsideIdleAnchor(3, 1, 0, 3, 1));
-        assertFalse(CookTargetGeometry.isInsideIdleAnchor(3, 0, 1, 3, 1));
-        assertFalse(CookTargetGeometry.isInsideIdleAnchor(0, 2, 0, 3, 1));
-    }
 }

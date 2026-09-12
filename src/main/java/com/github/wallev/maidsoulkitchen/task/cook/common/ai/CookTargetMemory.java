@@ -81,8 +81,12 @@ public final class CookTargetMemory {
             return CookTargetState.StartState.CLEAR_INVALID;
         }
 
-        boolean withinRange = isWithinWorkRange(maid, closeEnoughDistance);
-        return CookTargetState.decideStart(true, withinRange);
+        Brain<EntityMaid> brain = maid.getBrain();
+        PositionTracker workTracker = brain.getMemory(MkMemories.WORK_POS.get()).orElseThrow();
+        boolean withinRange = maid.distanceToSqr(workTracker.currentPosition())
+                <= closeEnoughDistance * closeEnoughDistance;
+        boolean walkTargetMatches = hasMatchingWalkTarget(brain);
+        return CookTargetState.decideStart(true, withinRange, walkTargetMatches);
     }
 
     private static boolean hasMatchingDeviceMemories(Brain<EntityMaid> brain, BlockPos workPos) {
@@ -91,39 +95,13 @@ public final class CookTargetMemory {
                 && brain.hasMemoryValue(MkMemories.COOK_WALK_POS.get());
     }
 
-    public static boolean isWithinWorkRange(EntityMaid maid, double closeEnoughDistance) {
-        return getWorkPos(maid)
-                .map(PositionTracker::currentPosition)
-                .map(pos -> maid.distanceToSqr(pos) <= closeEnoughDistance * closeEnoughDistance)
-                .orElse(false);
-    }
-
-    public static boolean hasMatchingWalkTarget(EntityMaid maid) {
-        Brain<EntityMaid> brain = maid.getBrain();
+    private static boolean hasMatchingWalkTarget(Brain<EntityMaid> brain) {
         Optional<WalkTarget> walkTarget = brain.getMemory(MemoryModuleType.WALK_TARGET);
         Optional<PositionTracker> rememberedWalkPos = brain.getMemory(MkMemories.COOK_WALK_POS.get());
         return walkTarget.isPresent()
                 && rememberedWalkPos.isPresent()
                 && walkTarget.get().getTarget().currentBlockPosition()
                 .equals(rememberedWalkPos.get().currentBlockPosition());
-    }
-
-    public static boolean restoreWalkTarget(EntityMaid maid, float speed) {
-        Optional<PositionTracker> walkPos = maid.getBrain().getMemory(MkMemories.COOK_WALK_POS.get());
-        Optional<PositionTracker> workPos = getWorkPos(maid);
-        if (walkPos.isEmpty() || workPos.isEmpty()) {
-            return false;
-        }
-
-        maid.getBrain().setMemory(
-                MemoryModuleType.WALK_TARGET,
-                new WalkTarget(walkPos.get().currentBlockPosition(), speed, 0)
-        );
-        maid.getBrain().setMemory(
-                MemoryModuleType.LOOK_TARGET,
-                new BlockPosTracker(workPos.get().currentBlockPosition())
-        );
-        return true;
     }
 
     private static boolean memoryMatches(
@@ -138,15 +116,6 @@ public final class CookTargetMemory {
     }
 
     public static void clear(EntityMaid maid) {
-        clear(maid, true);
-    }
-
-    /** Clears the active assignment while retaining its safe side as an idle anchor. */
-    public static void complete(EntityMaid maid) {
-        clear(maid, false);
-    }
-
-    private static void clear(EntityMaid maid, boolean eraseWalkAnchor) {
         Brain<EntityMaid> brain = maid.getBrain();
         if (maid.level() instanceof ServerLevel level) {
             brain.getMemory(MkMemories.WORK_POS.get()).ifPresent(
@@ -157,8 +126,6 @@ public final class CookTargetMemory {
         brain.eraseMemory(InitEntities.TARGET_POS.get());
         brain.eraseMemory(MkMemories.DESTROY_POS.get());
         brain.eraseMemory(MkMemories.WORK_POS.get());
-        if (eraseWalkAnchor) {
-            brain.eraseMemory(MkMemories.COOK_WALK_POS.get());
-        }
+        brain.eraseMemory(MkMemories.COOK_WALK_POS.get());
     }
 }
