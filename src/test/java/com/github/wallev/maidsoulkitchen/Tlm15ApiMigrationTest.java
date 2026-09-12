@@ -29,13 +29,68 @@ class Tlm15ApiMigrationTest {
     }
 
     @Test
-    void steamerUsesTlmPathFindingApiWithoutLegacyReflection() throws IOException {
-        String search = classFileText(
+    void allCookingSearchesUseOneTlmPathFindingAdapterWithoutLegacyReflection() throws IOException {
+        String adapter = classFileText(
+                "com/github/wallev/maidsoulkitchen/task/cook/common/ai/CookPathSearch.class"
+        );
+        String genericSearch = classFileText(
+                "com/github/wallev/maidsoulkitchen/task/cook/common/ai/ReachableCookDeviceSearch.class"
+        );
+        String steamerSearch = classFileText(
                 "com/github/wallev/maidsoulkitchen/task/cook/kaleidoscopecookery/"
                         + "SteamerApproachSearch.class"
         );
-        assertTrue(search.contains("MaidPathFindingBFS"));
-        assertFalse(search.contains("java/lang/reflect"));
+        assertTrue(adapter.contains("MaidPathFindingBFS"));
+        assertTrue(adapter.contains("finish"));
+        assertFalse(adapter.contains("java/lang/reflect"));
+        assertTrue(genericSearch.contains("CookPathSearch"));
+        assertFalse(genericSearch.contains("NodeEvaluator"));
+        assertTrue(steamerSearch.contains("CookPathSearch"));
+    }
+
+    @Test
+    void cookingAssignmentsCarryTaskOwnershipAndDeviceClaims() throws IOException {
+        String memory = classFileText(
+                "com/github/wallev/maidsoulkitchen/task/cook/common/ai/CookTargetMemory.class"
+        );
+        String memories = classFileText(
+                "com/github/wallev/maidsoulkitchen/init/MkMemories.class"
+        );
+        assertTrue(memory.contains("COOK_TASK_UID"));
+        assertTrue(memory.contains("CookWorkLocks"));
+        assertTrue(memories.contains("cook_task_uid"));
+    }
+
+    @Test
+    void cookingConfigPacketsValidateCurrentTaskAndRecipes() throws IOException {
+        String modePacket = classFileText(
+                "com/github/wallev/maidsoulkitchen/network/message/SetCookDataC2SPackage.class"
+        );
+        String recipePacket = classFileText(
+                "com/github/wallev/maidsoulkitchen/network/message/ActionCookDataRecC2SPackage.class"
+        );
+        assertTrue(modePacket.contains("ICookTask"));
+        assertTrue(modePacket.contains("isValidMode"));
+        assertTrue(recipePacket.contains("getRecipeHolders"));
+        assertTrue(recipePacket.contains("tryParse"));
+    }
+
+    @Test
+    void legacyTaskTransactionsUseSharedCapacityChecks() throws IOException {
+        String transactions = classFileText(
+                "com/github/wallev/maidsoulkitchen/task/cook/common/inventory/CookInventoryTransactions.class"
+        );
+        String furnace = classFileText(
+                "com/github/wallev/maidsoulkitchen/task/cook/minecraft/TaskFurnace.class"
+        );
+        String basin = classFileText(
+                "com/github/wallev/maidsoulkitchen/task/cook/barbequesdelight/MaidBasinMakeTask.class"
+        );
+        assertTrue(transactions.contains("canInsertAll"));
+        assertTrue(transactions.contains("returnOrDrop"));
+        assertTrue(furnace.contains("SMOKING"));
+        assertTrue(furnace.contains("BLASTING"));
+        assertTrue(basin.contains("completed"));
     }
 
     @Test
