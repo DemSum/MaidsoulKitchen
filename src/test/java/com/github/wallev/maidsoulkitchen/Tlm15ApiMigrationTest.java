@@ -72,6 +72,7 @@ class Tlm15ApiMigrationTest {
         );
         assertTrue(memory.contains("COOK_TASK_UID"));
         assertTrue(memory.contains("CookWorkLocks"));
+        assertTrue(memory.contains("net/minecraft/world/level/ClipContext"));
         assertTrue(memories.contains("cook_task_uid"));
         assertTrue(targetTask.contains("enableLookAndRandomWalk"));
         assertTrue(targetTask.contains("enableEating"));

@@ -88,7 +88,7 @@ public class MaidCookMoveTask<B extends BlockEntity, R extends Recipe<? extends 
                 targetCycle
         );
         if (result.isEmpty()) {
-            CookTargetMemory.guideBackToWorkArea(maid, centrePos, this.movementSpeed);
+            CookTargetMemory.guideBackToWorkArea(worldIn, maid, centrePos, this.movementSpeed);
             return;
         }
 

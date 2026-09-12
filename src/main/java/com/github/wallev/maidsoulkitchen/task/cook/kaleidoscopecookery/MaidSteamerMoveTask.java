@@ -56,7 +56,7 @@ final class MaidSteamerMoveTask extends MaidCheckRateTask {
         if (target == null) {
             BlockPos searchCenter = maid.hasRestriction()
                     ? maid.getRestrictCenter() : maid.blockPosition();
-            CookTargetMemory.guideBackToWorkArea(maid, searchCenter, MOVEMENT_SPEED);
+            CookTargetMemory.guideBackToWorkArea(level, maid, searchCenter, MOVEMENT_SPEED);
             return;
         }
         if (!CookWorkLocks.tryClaim(level, target.workPos(), maid)) return;

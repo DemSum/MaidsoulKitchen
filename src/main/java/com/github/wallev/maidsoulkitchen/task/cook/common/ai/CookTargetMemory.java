@@ -12,7 +12,10 @@ import net.minecraft.world.entity.ai.behavior.BehaviorUtils;
 import net.minecraft.world.entity.ai.behavior.PositionTracker;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
 import net.minecraft.world.entity.ai.memory.WalkTarget;
+import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.Vec3;
 
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -57,20 +60,38 @@ public final class CookTargetMemory {
     /**
      * Bridges schedule changes where TLM's spherical restriction considers an
      * adjacent floor "inside" the work area even though its cooking graph is
-     * disconnected from the appliances below or above.
+     * disconnected from the appliances below or above. A collision ray keeps
+     * this fallback limited to vertically separated, physically obstructed areas.
      */
     public static void guideBackToWorkArea(
+            ServerLevel level,
             EntityMaid maid,
             BlockPos searchCenter,
             float speed
     ) {
+        int deltaY = maid.blockPosition().getY() - searchCenter.getY();
         if (!maid.hasRestriction()
                 || !maid.canBrainMoving()
-                || !CookTargetGeometry.isDifferentFloorOffset(
-                maid.blockPosition().getY() - searchCenter.getY())) {
+                || !CookTargetGeometry.isDifferentFloorOffset(deltaY)
+                || !isDirectWorkAreaLineObstructed(level, maid, searchCenter)) {
             return;
         }
         BehaviorUtils.setWalkAndLookTargetMemories(maid, searchCenter, speed, 3);
+    }
+
+    private static boolean isDirectWorkAreaLineObstructed(
+            ServerLevel level,
+            EntityMaid maid,
+            BlockPos searchCenter
+    ) {
+        Vec3 target = Vec3.atCenterOf(searchCenter).add(0.0, 1.0, 0.0);
+        return level.clip(new ClipContext(
+                maid.getEyePosition(),
+                target,
+                ClipContext.Block.COLLIDER,
+                ClipContext.Fluid.NONE,
+                maid
+        )).getType() == HitResult.Type.BLOCK;
     }
 
     public static boolean hasValidWorkTarget(
