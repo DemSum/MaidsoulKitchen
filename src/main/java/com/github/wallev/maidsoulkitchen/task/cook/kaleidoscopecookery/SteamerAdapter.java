@@ -39,6 +39,8 @@ public final class SteamerAdapter {
     private static final int HALF_STEAMER_SLOTS = 4;
     private static final int FULL_STEAMER_SLOTS = 8;
     private static final int COOKING_COMPLETE = -1;
+    private static final int MAX_HEATED_LAYERS = SteamerBlockEntity.MAX_LIT_LEVEL;
+    static final double STACK_INTERACTION_DISTANCE = MAX_HEATED_LAYERS;
 
     private SteamerAdapter() {
     }
@@ -84,7 +86,7 @@ public final class SteamerAdapter {
                 steamer.getBlockPos(),
                 isAccessible(steamer, level),
                 hasCoveredTop(steamer, level),
-                steamer.hasHeatSource(level),
+                hasEffectiveHeatSource(steamer, level),
                 items,
                 progress,
                 times
@@ -229,6 +231,27 @@ public final class SteamerAdapter {
     private static boolean isAccessible(SteamerBlockEntity steamer, Level level) {
         BlockPos above = steamer.getBlockPos().above();
         return !level.getBlockState(above).isFaceSturdy(level, above, Direction.DOWN);
+    }
+
+    static int[] interactionHeightOffsets() {
+        return SteamerStackHeat.interactionHeightOffsets(MAX_HEATED_LAYERS);
+    }
+
+    private static boolean hasEffectiveHeatSource(SteamerBlockEntity steamer, Level level) {
+        BlockPos origin = steamer.getBlockPos();
+        return SteamerStackHeat.reaches(MAX_HEATED_LAYERS, depth -> {
+            BlockPos layerPos = origin.below(depth);
+            if (!level.isLoaded(layerPos)) {
+                return SteamerStackHeat.LayerState.NOT_STEAMER;
+            }
+            BlockEntity blockEntity = level.getBlockEntity(layerPos);
+            if (!(blockEntity instanceof SteamerBlockEntity layer)) {
+                return SteamerStackHeat.LayerState.NOT_STEAMER;
+            }
+            return layer.hasHeatSource(level)
+                    ? SteamerStackHeat.LayerState.DIRECTLY_HEATED
+                    : SteamerStackHeat.LayerState.UNHEATED;
+        });
     }
 
     private static boolean hasCoveredTop(SteamerBlockEntity steamer, Level level) {

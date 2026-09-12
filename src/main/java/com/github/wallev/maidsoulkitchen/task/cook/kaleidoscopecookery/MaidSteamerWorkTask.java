@@ -13,7 +13,7 @@ import net.minecraft.world.entity.ai.memory.MemoryStatus;
 
 /** Waits while walking, then always invokes the steamer through its real work coordinate. */
 final class MaidSteamerWorkTask extends Behavior<EntityMaid> {
-    private static final double CLOSE_ENOUGH_DISTANCE = 2.5;
+    private static final double CLOSE_ENOUGH_DISTANCE = SteamerAdapter.STACK_INTERACTION_DISTANCE;
 
     MaidSteamerWorkTask() {
         super(ImmutableMap.of(MkMemories.WORK_POS.get(), MemoryStatus.VALUE_PRESENT));

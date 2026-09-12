@@ -45,6 +45,7 @@ class KaleidoscopeCompatibilityResourcesTest {
         assertTrue(api.getAsJsonArray("classes").toString().contains("SteamerBlockEntity"));
         assertTrue(api.getAsJsonArray("methods").toString().contains("#placeFood"));
         assertTrue(api.getAsJsonArray("methods").toString().contains("#takeFood"));
+        assertTrue(api.getAsJsonArray("fields").toString().contains("#MAX_LIT_LEVEL"));
         assertTrue(api.getAsJsonArray("fields").toString().contains("#STEAMER_RECIPE"));
     }
 

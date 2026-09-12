@@ -24,7 +24,7 @@ import java.util.function.Predicate;
 final class MaidSteamerMoveTask extends MaidCheckRateTask {
     private static final float MOVEMENT_SPEED = 0.6F;
     private static final int MAX_DELAY_TICKS = 120;
-    private static final int[] INTERACTION_HEIGHT_OFFSETS = {0, 1, -1, 2, -2};
+    private static final int[] INTERACTION_HEIGHT_OFFSETS = SteamerAdapter.interactionHeightOffsets();
 
     MaidSteamerMoveTask() {
         super(ImmutableMap.of(

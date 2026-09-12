@@ -65,6 +65,7 @@
         "fields": [
           "com.github.ysbbbbbb.kaleidoscopecookery.block.kitchen.SteamerBlock#HALF",
           "com.github.ysbbbbbb.kaleidoscopecookery.block.kitchen.SteamerBlock#HAS_LID",
+          "com.github.ysbbbbbb.kaleidoscopecookery.blockentity.kitchen.SteamerBlockEntity#MAX_LIT_LEVEL",
           "com.github.ysbbbbbb.kaleidoscopecookery.init.ModItems#STEAMER",
           "com.github.ysbbbbbb.kaleidoscopecookery.init.ModRecipes#STEAMER_RECIPE"
         ]
