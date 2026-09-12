@@ -1,6 +1,7 @@
 package com.github.wallev.maidsoulkitchen.network.message;
 
 import com.github.wallev.maidsoulkitchen.entity.data.inner.task.CookData;
+import com.github.wallev.maidsoulkitchen.api.task.v1.cook.ICookTask;
 import com.github.tartaricacid.touhoulittlemaid.api.entity.data.TaskDataKey;
 import com.github.tartaricacid.touhoulittlemaid.entity.data.TaskDataRegister;
 import com.github.tartaricacid.touhoulittlemaid.entity.passive.EntityMaid;
@@ -42,8 +43,12 @@ public record SetCookDataC2SPackage(int entityId, ResourceLocation dataKey, Stri
                     return;
                 }
                 Entity entity = sender.level.getEntity(message.entityId);
-                if (entity instanceof EntityMaid maid && maid.isOwnedBy(sender)) {
+                if (entity instanceof EntityMaid maid && maid.isOwnedBy(sender)
+                        && maid.getTask() instanceof ICookTask<?, ?> cookTask
+                        && CookData.isValidMode(message.mode)
+                        && cookTask.getCookDataKey().getKey().equals(message.dataKey)) {
                     TaskDataKey<CookData> value = TaskDataRegister.getValue(message.dataKey);
+                    if (value == null || value != cookTask.getCookDataKey()) return;
                     CookData cookData = maid.getOrCreateData(value, new CookData());
                     cookData.setMode(message.mode);
                     maid.setAndSyncData(value, cookData);

@@ -10,6 +10,7 @@ import com.github.wallev.maidsoulkitchen.item.ItemCulinaryHub;
 import com.google.common.collect.Lists;
 import com.mojang.datafixers.util.Pair;
 import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -31,7 +32,7 @@ import java.util.*;
 import java.util.function.Predicate;
 
 public class MaidRecipesManager<R extends Recipe<? extends RecipeInput>> {
-    protected final List<R> rec = new ArrayList<>();
+    protected final List<RecipeHolder<R>> rec = new ArrayList<>();
     protected final List<R> currentRecs = new ArrayList<>();
     protected final EntityMaid maid;
     protected final Level level;
@@ -42,6 +43,9 @@ public class MaidRecipesManager<R extends Recipe<? extends RecipeInput>> {
     protected Map<BagType, List<BlockPos>> bindingPoses;
     protected String lastTaskRule;
     protected List<String> recipeIds;
+    private long recipeSetFingerprint = Long.MIN_VALUE;
+    private long bindingInventoryFingerprint = Long.MIN_VALUE;
+    private ItemStack lastCulinaryHub = ItemStack.EMPTY;
     protected int repeatTimes = 0;
     protected List<Pair<List<Integer>, List<List<ItemStack>>>> recipesIngredients = new ArrayList<>();
     protected int tryTime = 0;
@@ -70,15 +74,21 @@ public class MaidRecipesManager<R extends Recipe<? extends RecipeInput>> {
     }
 
     private boolean initInvData() {
-        if (this.cookInv == null || this.bindingPoses == null || (!this.hasCulinaryHub && !this.findCulinaryHub().isEmpty())) {
-            this.hasCulinaryHub = !this.findCulinaryHub().isEmpty();
-            this.bindingPoses = ItemCulinaryHub.getBindPoses(this.findCulinaryHub());
-            //@todo
-            this.cookInv = this.enableHub() ? this.initCookInv() : new MaidInventory(maid);
+        ItemStack currentHub = this.findCulinaryHub();
+        boolean currentHasHub = !currentHub.isEmpty();
+        Map<BagType, List<BlockPos>> currentBindings = ItemCulinaryHub.getBindPoses(currentHub);
+        boolean storageChanged = this.cookInv == null
+                || this.hasCulinaryHub != currentHasHub
+                || this.lastCulinaryHub != currentHub;
+        boolean bindingsChanged = !Objects.equals(this.bindingPoses, currentBindings);
 
-            return true;
+        this.hasCulinaryHub = currentHasHub;
+        this.bindingPoses = currentBindings;
+        this.lastCulinaryHub = currentHub;
+        if (storageChanged) {
+            this.cookInv = this.enableHub() ? this.initCookInv() : new MaidInventory(maid);
         }
-        return false;
+        return storageChanged || bindingsChanged;
     }
 
     private ICookInventory initCookInv() {
@@ -135,7 +145,7 @@ public class MaidRecipesManager<R extends Recipe<? extends RecipeInput>> {
     }
 
     private List<R> getRecs() {
-        List<R> list = this.getFilterRecipes(this.rec);
+        List<R> list = this.getFilterRecipes(this.rec.stream().map(RecipeHolder::value).toList());
         shuffle(list);
         return list;
     }
@@ -148,6 +158,10 @@ public class MaidRecipesManager<R extends Recipe<? extends RecipeInput>> {
         return recipesIngredients;
     }
 
+    public boolean isRecipeEnabled(ResourceLocation recipeId) {
+        return this.rec.stream().anyMatch(holder -> holder.id().equals(recipeId));
+    }
+
     public Pair<List<Integer>, List<List<ItemStack>>> getRecipeIngredient() {
         if (recipesIngredients.isEmpty()) return Pair.of(Collections.emptyList(), Collections.emptyList());
         int size = recipesIngredients.size();
@@ -158,12 +172,6 @@ public class MaidRecipesManager<R extends Recipe<? extends RecipeInput>> {
     }
 
     public boolean checkAndCreateRecipesIngredients() {
-        //预防隙间转移走烹饪中枢
-        if (this.hasCulinaryHub && this.findCulinaryHub().isEmpty() && this.level instanceof ServerLevel serverLevel) {
-            this.recipesIngredients = Collections.emptyList();
-            this.maid.refreshBrain(serverLevel);
-            return false;
-        }
         boolean inited = this.init();
         // 缓存的配方原料没了
         if (!recipesIngredients.isEmpty()) return true;
@@ -177,30 +185,40 @@ public class MaidRecipesManager<R extends Recipe<? extends RecipeInput>> {
 
     @SuppressWarnings("unchecked")
     private boolean initTaskData() {
-        if (lastTaskRule == null || recipeIds == null) {
-            ICookTask<?, R> cookTask = (ICookTask<?, R>) maid.getTask();
-            CookData cookData = cookTask.getTaskData(maid);
-            this.lastTaskRule = cookData.mode();
-            this.recipeIds = cookData.getRecs();
-            this.rec.clear();
+        ICookTask<?, R> cookTask = (ICookTask<?, R>) maid.getTask();
+        CookData cookData = cookTask.getTaskData(maid);
+        String currentRule = CookData.isValidMode(cookData.mode())
+                ? cookData.mode() : CookData.Mode.BLACKLIST.name;
+        List<String> currentRecipeIds = List.copyOf(cookData.recs(currentRule));
+        List<RecipeHolder<R>> allRecipes = cookTask.getRecipeHolders(level);
+        long currentFingerprint = recipeFingerprint(allRecipes);
+        boolean changed = CookPlanInvalidation.recipePlanChanged(
+                lastTaskRule, recipeIds, recipeSetFingerprint,
+                currentRule, currentRecipeIds, currentFingerprint);
+        if (!changed) return false;
 
-            List<R> allRecipesFor = this.getValidRecipesFor();
-            this.rec.addAll(allRecipesFor);
-
-            return true;
-        }
-
-        return false;
+        this.lastTaskRule = currentRule;
+        this.recipeIds = currentRecipeIds;
+        this.recipeSetFingerprint = currentFingerprint;
+        this.rec.clear();
+        this.rec.addAll(filterRecipeHolders(allRecipes));
+        return true;
     }
 
-    private List<R> getValidRecipesFor() {
-        List<R> allRecipesFor;
+    private List<RecipeHolder<R>> filterRecipeHolders(List<RecipeHolder<R>> allRecipes) {
         if (this.lastTaskRule.equals(CookData.Mode.WHITELIST.name)) {
-            allRecipesFor = task.getRecipeHolders(level).stream().filter(r -> recipeIds.contains(r.id().toString())).map(RecipeHolder::value).toList();
-        } else {
-            allRecipesFor = task.getRecipeHolders(level).stream().filter(r -> !recipeIds.contains(r.id().toString())).map(RecipeHolder::value).toList();
+            return allRecipes.stream().filter(r -> recipeIds.contains(r.id().toString())).toList();
         }
-        return allRecipesFor;
+        return allRecipes.stream().filter(r -> !recipeIds.contains(r.id().toString())).toList();
+    }
+
+    private static long recipeFingerprint(List<? extends RecipeHolder<?>> recipes) {
+        long result = 1L;
+        for (RecipeHolder<?> holder : recipes) {
+            result = 31L * result + holder.id().hashCode();
+            result = 31L * result + System.identityHashCode(holder.value());
+        }
+        return result;
     }
 
     private boolean isLastCookInv() {
@@ -216,7 +234,8 @@ public class MaidRecipesManager<R extends Recipe<? extends RecipeInput>> {
             for (int i = 0; i < availableInv1.getSlots(); i++) {
                 ItemStack stackInSlot = availableInv1.getStackInSlot(i);
                 ItemStack cacheStack = lastInvStack.get(i);
-                if (!(stackInSlot.is(cacheStack.getItem()) && stackInSlot.getCount() == cacheStack.getCount())) {
+                if (!(ItemStack.isSameItemSameComponents(stackInSlot, cacheStack)
+                        && stackInSlot.getCount() == cacheStack.getCount())) {
                     return false;
                 }
             }
@@ -226,7 +245,8 @@ public class MaidRecipesManager<R extends Recipe<? extends RecipeInput>> {
             for (int i = 0; i < availableInv.getSlots(); i++) {
                 ItemStack stackInSlot = availableInv.getStackInSlot(i);
                 ItemStack cacheStack = lastInvStack.get(i);
-                if (!(stackInSlot.is(cacheStack.getItem()) && stackInSlot.getCount() == cacheStack.getCount())) {
+                if (!(ItemStack.isSameItemSameComponents(stackInSlot, cacheStack)
+                        && stackInSlot.getCount() == cacheStack.getCount())) {
                     return false;
                 }
             }
@@ -340,12 +360,43 @@ public class MaidRecipesManager<R extends Recipe<? extends RecipeInput>> {
     private boolean init() {
         boolean initTaskData = this.initTaskData();
         boolean initInvData = this.initInvData();
-        if (initTaskData || initInvData) {
+        boolean bindingInventoryChanged = this.updateBindingInventoryFingerprint();
+        if (initTaskData || initInvData || bindingInventoryChanged) {
             this.recipesIngredients = Collections.emptyList();
             return true;
         }
 
         return false;
+    }
+
+    private boolean updateBindingInventoryFingerprint() {
+        long current = 1L;
+        if (this.canHub()) {
+            for (BlockPos pos : getBindingTypePoses(BagType.INGREDIENT)) {
+                current = 31L * current + pos.hashCode();
+                if (!level.isLoaded(pos) || isPosZone(pos)) {
+                    current = 31L * current;
+                    continue;
+                }
+                BlockEntity blockEntity = level.getBlockEntity(pos);
+                IItemHandler handler = blockEntity == null ? null : ItemCulinaryHub.getBeInv(level, blockEntity);
+                if (handler == null) {
+                    current = 31L * current;
+                    continue;
+                }
+                current = 31L * current + handler.getSlots();
+                for (int slot = 0; slot < handler.getSlots(); slot++) {
+                    ItemStack stack = handler.getStackInSlot(slot);
+                    current = 31L * current + stack.getCount();
+                    current = 31L * current + stack.getItem().hashCode();
+                    current = 31L * current + stack.getComponents().hashCode();
+                }
+            }
+        }
+        boolean changed = CookPlanInvalidation.inventoryChanged(
+                this.bindingInventoryFingerprint, current);
+        this.bindingInventoryFingerprint = current;
+        return changed;
     }
 
     private void createRecipesIngredients() {

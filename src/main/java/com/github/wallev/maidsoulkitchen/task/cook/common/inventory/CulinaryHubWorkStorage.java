@@ -53,7 +53,7 @@ public final class CulinaryHubWorkStorage {
     }
 
     public IItemHandlerModifiable ingredients() {
-        return container(BagType.INGREDIENT);
+        return CookBagInventory.logicalInput(containers);
     }
 
     public IItemHandlerModifiable outputs() {

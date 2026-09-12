@@ -53,7 +53,7 @@ public class CookBagInventory implements ICookInventory {
     public void proseLastInvStack(int index, ItemStack invStack) {
         if (index < lastInvStack.size()) {
             ItemStack cacheStack = lastInvStack.get(index);
-            if (cacheStack.is(invStack.getItem()) && cacheStack != invStack) {
+            if (ItemStack.isSameItemSameComponents(cacheStack, invStack) && cacheStack != invStack) {
                 cacheStack.setCount(invStack.getCount());
                 return;
             }
@@ -114,16 +114,20 @@ public class CookBagInventory implements ICookInventory {
         if (bagType == BagType.OUTPUT_VAL) {
             return containers.getOrDefault(BagType.OUTPUT_VAL, new ItemStackHandler(BagType.OUTPUT_VAL.size * 9));
         }
-        return getInputInventory();
+        return logicalInput(containers);
     }
 
-    private IItemHandlerModifiable getInputInventory() {
+    public static IItemHandlerModifiable logicalInput(Map<BagType, ItemStackHandler> containers) {
         ItemStackHandler[] handlers = new ItemStackHandler[BagType.INPUT_VALS.length];
         for (int i = 0; i < BagType.INPUT_VALS.length; i++) {
             BagType type = BagType.INPUT_VALS[i];
             handlers[i] = containers.getOrDefault(type, new ItemStackHandler(type.size * 9));
         }
         return new CombinedInvWrapper(handlers);
+    }
+
+    private IItemHandlerModifiable getInputInventory() {
+        return logicalInput(containers);
     }
 
     @Override

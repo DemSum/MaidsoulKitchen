@@ -49,7 +49,7 @@ public class MaidInventory implements ICookInventory{
     public void proseLastInvStack(int index, ItemStack invStack) {
         if (index < lastInvStack.size()) {
             ItemStack cacheStack = lastInvStack.get(index);
-            if (cacheStack.is(invStack.getItem()) && cacheStack != invStack) {
+            if (ItemStack.isSameItemSameComponents(cacheStack, invStack) && cacheStack != invStack) {
                 cacheStack.setCount(invStack.getCount());
                 return;
             }
