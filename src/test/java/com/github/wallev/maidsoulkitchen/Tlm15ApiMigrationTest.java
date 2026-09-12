@@ -80,6 +80,7 @@ class Tlm15ApiMigrationTest {
         assertTrue(steamerMove.contains("CookTargetCycle"));
         assertTrue(steamerMove.contains("isAvailable"));
         assertTrue(steamerMove.contains("guideBackToWorkArea"));
+        assertTrue(steamerMove.contains("findHeatSourcePosition"));
     }
 
     @Test

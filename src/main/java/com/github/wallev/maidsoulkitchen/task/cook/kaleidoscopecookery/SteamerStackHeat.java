@@ -12,19 +12,26 @@ final class SteamerStackHeat {
             int maxLitLevel,
             IntFunction<LayerState> layerAtDepth
     ) {
+        return findHeatedDepth(maxLitLevel, layerAtDepth) >= 0;
+    }
+
+    static int findHeatedDepth(
+            int maxLitLevel,
+            IntFunction<LayerState> layerAtDepth
+    ) {
         if (maxLitLevel <= 0) {
-            return false;
+            return -1;
         }
         for (int depth = 0; depth < maxLitLevel; depth++) {
             LayerState layer = Objects.requireNonNull(layerAtDepth.apply(depth));
             if (layer == LayerState.NOT_STEAMER) {
-                return false;
+                return -1;
             }
             if (layer == LayerState.DIRECTLY_HEATED) {
-                return true;
+                return depth;
             }
         }
-        return false;
+        return -1;
     }
 
     static int[] interactionHeightOffsets(int maxLitLevel) {

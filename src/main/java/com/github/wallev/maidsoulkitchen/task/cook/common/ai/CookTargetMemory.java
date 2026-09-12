@@ -63,20 +63,22 @@ public final class CookTargetMemory {
      * disconnected from the appliances below or above. A collision ray keeps
      * this fallback limited to vertically separated, physically obstructed areas.
      */
-    public static void guideBackToWorkArea(
+    public static boolean guideBackToWorkArea(
             ServerLevel level,
             EntityMaid maid,
             BlockPos searchCenter,
+            BlockPos floorAnchor,
             float speed
     ) {
-        int deltaY = maid.blockPosition().getY() - searchCenter.getY();
+        int deltaY = maid.blockPosition().getY() - floorAnchor.getY();
         if (!maid.hasRestriction()
                 || !maid.canBrainMoving()
                 || !CookTargetGeometry.isDifferentFloorOffset(deltaY)
                 || !isDirectWorkAreaLineObstructed(level, maid, searchCenter)) {
-            return;
+            return false;
         }
         BehaviorUtils.setWalkAndLookTargetMemories(maid, searchCenter, speed, 3);
+        return true;
     }
 
     private static boolean isDirectWorkAreaLineObstructed(

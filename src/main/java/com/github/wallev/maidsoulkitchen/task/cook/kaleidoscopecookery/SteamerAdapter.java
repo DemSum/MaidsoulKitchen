@@ -238,20 +238,30 @@ public final class SteamerAdapter {
     }
 
     private static boolean hasEffectiveHeatSource(SteamerBlockEntity steamer, Level level) {
+        return findHeatSourcePosition(steamer, level).isPresent();
+    }
+
+    static Optional<BlockPos> findHeatSourcePosition(BlockEntity blockEntity, Level level) {
+        if (!(blockEntity instanceof SteamerBlockEntity steamer)) {
+            return Optional.empty();
+        }
         BlockPos origin = steamer.getBlockPos();
-        return SteamerStackHeat.reaches(MAX_HEATED_LAYERS, depth -> {
+        int heatedDepth = SteamerStackHeat.findHeatedDepth(MAX_HEATED_LAYERS, depth -> {
             BlockPos layerPos = origin.below(depth);
             if (!level.isLoaded(layerPos)) {
                 return SteamerStackHeat.LayerState.NOT_STEAMER;
             }
-            BlockEntity blockEntity = level.getBlockEntity(layerPos);
-            if (!(blockEntity instanceof SteamerBlockEntity layer)) {
+            BlockEntity layerEntity = level.getBlockEntity(layerPos);
+            if (!(layerEntity instanceof SteamerBlockEntity layer)) {
                 return SteamerStackHeat.LayerState.NOT_STEAMER;
             }
             return layer.hasHeatSource(level)
                     ? SteamerStackHeat.LayerState.DIRECTLY_HEATED
                     : SteamerStackHeat.LayerState.UNHEATED;
         });
+        return heatedDepth < 0
+                ? Optional.empty()
+                : Optional.of(origin.below(heatedDepth + 1));
     }
 
     private static boolean hasCoveredTop(SteamerBlockEntity steamer, Level level) {

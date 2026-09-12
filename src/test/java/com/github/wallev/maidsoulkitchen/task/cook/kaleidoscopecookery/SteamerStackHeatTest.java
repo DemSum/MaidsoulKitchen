@@ -6,6 +6,7 @@ import static com.github.wallev.maidsoulkitchen.task.cook.kaleidoscopecookery.St
 import static com.github.wallev.maidsoulkitchen.task.cook.kaleidoscopecookery.SteamerStackHeat.LayerState.NOT_STEAMER;
 import static com.github.wallev.maidsoulkitchen.task.cook.kaleidoscopecookery.SteamerStackHeat.LayerState.UNHEATED;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -30,6 +31,16 @@ class SteamerStackHeatTest {
         assertFalse(SteamerStackHeat.reaches(4,
                 depth -> depth == 1 ? NOT_STEAMER : depth == 2 ? DIRECTLY_HEATED : UNHEATED));
         assertFalse(SteamerStackHeat.reaches(4, depth -> UNHEATED));
+    }
+
+    @Test
+    void reportsTheDirectlyHeatedLayerDepth() {
+        assertEquals(0, SteamerStackHeat.findHeatedDepth(4,
+                depth -> depth == 0 ? DIRECTLY_HEATED : UNHEATED));
+        assertEquals(3, SteamerStackHeat.findHeatedDepth(4,
+                depth -> depth == 3 ? DIRECTLY_HEATED : UNHEATED));
+        assertEquals(-1, SteamerStackHeat.findHeatedDepth(4,
+                depth -> depth == 1 ? NOT_STEAMER : depth == 2 ? DIRECTLY_HEATED : UNHEATED));
     }
 
     @Test
