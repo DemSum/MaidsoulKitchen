@@ -20,29 +20,18 @@ public final class CookWorkLocks {
     private CookWorkLocks() {
     }
 
-    public static synchronized boolean isAvailable(ServerLevel level, BlockPos pos, EntityMaid maid) {
-        Map<Key, Claim> serverClaims = activeClaims(level);
-        Claim claim = serverClaims.get(new Key(level.dimension(), pos.immutable()));
-        return claim == null || claim.maidId().equals(maid.getUUID());
-    }
-
     public static synchronized boolean tryClaim(ServerLevel level, BlockPos pos, EntityMaid maid) {
-        Map<Key, Claim> serverClaims = activeClaims(level);
+        long now = level.getGameTime();
+        Map<Key, Claim> serverClaims = CLAIMS.computeIfAbsent(level.getServer(), server -> new HashMap<>());
+        serverClaims.entrySet().removeIf(entry -> entry.getValue().expiresAt() <= now);
 
         Key key = new Key(level.dimension(), pos.immutable());
         Claim claim = serverClaims.get(key);
         if (claim != null && !claim.maidId().equals(maid.getUUID())) {
             return false;
         }
-        serverClaims.put(key, new Claim(maid.getUUID(), level.getGameTime() + CLAIM_TICKS));
+        serverClaims.put(key, new Claim(maid.getUUID(), now + CLAIM_TICKS));
         return true;
-    }
-
-    private static Map<Key, Claim> activeClaims(ServerLevel level) {
-        long now = level.getGameTime();
-        Map<Key, Claim> serverClaims = CLAIMS.computeIfAbsent(level.getServer(), server -> new HashMap<>());
-        serverClaims.entrySet().removeIf(entry -> entry.getValue().expiresAt() <= now);
-        return serverClaims;
     }
 
     public static synchronized void release(ServerLevel level, BlockPos pos, EntityMaid maid) {

@@ -27,6 +27,16 @@ final class SteamerStackHeat {
         return false;
     }
 
+    static int[] interactionHeightOffsets(int maxLitLevel) {
+        int layers = Math.max(1, maxLitLevel);
+        int[] offsets = new int[layers * 2 - 1];
+        for (int layer = 1; layer < layers; layer++) {
+            offsets[layer * 2 - 1] = layer;
+            offsets[layer * 2] = -layer;
+        }
+        return offsets;
+    }
+
     enum LayerState {
         NOT_STEAMER,
         UNHEATED,

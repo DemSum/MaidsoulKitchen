@@ -233,8 +233,8 @@ public final class SteamerAdapter {
         return !level.getBlockState(above).isFaceSturdy(level, above, Direction.DOWN);
     }
 
-    static int maxHeatedLayers() {
-        return MAX_HEATED_LAYERS;
+    static int[] interactionHeightOffsets() {
+        return SteamerStackHeat.interactionHeightOffsets(MAX_HEATED_LAYERS);
     }
 
     private static boolean hasEffectiveHeatSource(SteamerBlockEntity steamer, Level level) {

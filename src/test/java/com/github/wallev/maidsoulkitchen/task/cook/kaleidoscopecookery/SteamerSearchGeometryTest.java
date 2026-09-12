@@ -13,11 +13,4 @@ class SteamerSearchGeometryTest {
         assertFalse(SteamerSearchGeometry.isSideOffset(0, 0));
         assertFalse(SteamerSearchGeometry.isSideOffset(2, 0));
     }
-
-    @Test
-    void stackedSteamersMustBeWorkedFromTheBottomLevel() {
-        assertTrue(SteamerSearchGeometry.isBottomLevelApproach(64, 67, 3));
-        assertFalse(SteamerSearchGeometry.isBottomLevelApproach(67, 67, 3));
-        assertTrue(SteamerSearchGeometry.isBottomLevelApproach(70, 70, 0));
-    }
 }

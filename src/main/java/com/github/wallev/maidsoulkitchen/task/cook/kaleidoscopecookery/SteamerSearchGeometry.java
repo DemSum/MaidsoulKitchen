@@ -9,8 +9,4 @@ final class SteamerSearchGeometry {
                 && Math.abs(zOffset) <= 1
                 && (xOffset != 0 || zOffset != 0);
     }
-
-    static boolean isBottomLevelApproach(int approachY, int steamerY, int continuousLayersBelow) {
-        return steamerY - continuousLayersBelow == approachY;
-    }
 }

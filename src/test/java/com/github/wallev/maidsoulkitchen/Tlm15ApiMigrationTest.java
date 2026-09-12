@@ -31,8 +31,8 @@ class Tlm15ApiMigrationTest {
     @Test
     void steamerUsesTlmPathFindingApiWithoutLegacyReflection() throws IOException {
         String search = classFileText(
-                "com/github/wallev/maidsoulkitchen/task/cook/common/ai/"
-                        + "ReachableCookDeviceSearch.class"
+                "com/github/wallev/maidsoulkitchen/task/cook/kaleidoscopecookery/"
+                        + "SteamerApproachSearch.class"
         );
         assertTrue(search.contains("MaidPathFindingBFS"));
         assertFalse(search.contains("java/lang/reflect"));
