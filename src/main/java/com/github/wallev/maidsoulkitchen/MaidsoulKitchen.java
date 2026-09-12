@@ -1,6 +1,7 @@
 package com.github.wallev.maidsoulkitchen;
 
 import com.github.wallev.maidsoulkitchen.config.GeneralConfig;
+import com.github.wallev.maidsoulkitchen.event.CookWorkLockEvents;
 import com.github.wallev.maidsoulkitchen.init.MkContainer;
 import com.github.wallev.maidsoulkitchen.init.MkEffects;
 import com.github.wallev.maidsoulkitchen.init.MkItems;
@@ -12,6 +13,7 @@ import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
+import net.neoforged.neoforge.common.NeoForge;
 
 @Mod(MaidsoulKitchen.MOD_ID)
 public final class MaidsoulKitchen implements IModInfo {
@@ -19,6 +21,7 @@ public final class MaidsoulKitchen implements IModInfo {
     public MaidsoulKitchen(IEventBus modEventBus, ModContainer modContainer) {
         initRegister(modEventBus, modContainer);
         initConfigureRegister(modEventBus, modContainer);
+        NeoForge.EVENT_BUS.register(CookWorkLockEvents.class);
     }
 
     private static void initRegister(IEventBus modEventBus, ModContainer modContainer) {

@@ -14,7 +14,8 @@ public class MaidBrain implements IExtraMaidBrain {
         return Lists.newArrayList(
                 MkMemories.DESTROY_POS.get(),
                 MkMemories.WORK_POS.get(),
-                MkMemories.COOK_WALK_POS.get()
+                MkMemories.COOK_WALK_POS.get(),
+                MkMemories.COOK_TASK_UID.get()
         );
     }
 }

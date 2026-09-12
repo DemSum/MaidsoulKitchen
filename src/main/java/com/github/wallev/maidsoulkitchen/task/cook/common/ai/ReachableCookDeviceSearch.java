@@ -5,14 +5,8 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.level.PathNavigationRegion;
-import net.minecraft.world.level.pathfinder.Node;
-import net.minecraft.world.level.pathfinder.NodeEvaluator;
-
-import java.util.ArrayDeque;
 import java.util.HashSet;
 import java.util.Optional;
-import java.util.Queue;
 import java.util.Set;
 import java.util.function.Predicate;
 
@@ -37,18 +31,52 @@ public final class ReachableCookDeviceSearch {
             int verticalSearchRange,
             Predicate<BlockPos> isValidDevice
     ) {
+        try (CookSearchDiagnostics.Scan diagnostics = CookSearchDiagnostics.begin(
+                maid, maid.getTask().getUid())) {
+            return find(level, maid, searchCenter, searchRange, verticalSearchStart,
+                    verticalSearchRange, isValidDevice, diagnostics);
+        }
+    }
+
+    public static Optional<Result> find(
+            ServerLevel level,
+            EntityMaid maid,
+            BlockPos searchCenter,
+            int searchRange,
+            int verticalSearchStart,
+            int verticalSearchRange,
+            Predicate<BlockPos> isValidDevice,
+            CookSearchDiagnostics.Scan diagnostics
+    ) {
+        return find(level, maid, searchCenter, searchRange, verticalSearchStart,
+                verticalSearchRange, isValidDevice, diagnostics, null);
+    }
+
+    public static Optional<Result> find(
+            ServerLevel level,
+            EntityMaid maid,
+            BlockPos searchCenter,
+            int searchRange,
+            int verticalSearchStart,
+            int verticalSearchRange,
+            Predicate<BlockPos> isValidDevice,
+            CookSearchDiagnostics.Scan diagnostics,
+            CookTargetCycle targetCycle
+    ) {
         if (searchRange <= 0) {
             return Optional.empty();
         }
 
         Set<BlockPos> checkedDevices = new HashSet<>();
-        BlockPos[] selectedDevice = new BlockPos[1];
-        Optional<BlockPos> walkPos = findReachableWalkPosition(
+        Selection selection = new Selection(targetCycle);
+        findReachableWalkPosition(
                 level,
                 maid,
                 searchCenter,
                 searchRange,
-                candidateWalkPos -> selectAdjacentDevice(
+                candidateWalkPos -> {
+                    diagnostics.visitedWalkNode();
+                    return selectAdjacentDevice(
                         level,
                         maid,
                         candidateWalkPos,
@@ -57,15 +85,13 @@ public final class ReachableCookDeviceSearch {
                         verticalSearchStart,
                         verticalSearchRange,
                         checkedDevices,
-                        selectedDevice,
-                        isValidDevice
-                )
+                        isValidDevice,
+                        diagnostics,
+                        selection
+                    );
+                }
         );
-
-        if (walkPos.isEmpty() || selectedDevice[0] == null) {
-            return Optional.empty();
-        }
-        return Optional.of(new Result(walkPos.get().immutable(), selectedDevice[0]));
+        return Optional.ofNullable(selection.result());
     }
 
     private static boolean selectAdjacentDevice(
@@ -77,8 +103,9 @@ public final class ReachableCookDeviceSearch {
             int verticalSearchStart,
             int verticalSearchRange,
             Set<BlockPos> checkedDevices,
-            BlockPos[] selectedDevice,
-            Predicate<BlockPos> isValidDevice
+            Predicate<BlockPos> isValidDevice,
+            CookSearchDiagnostics.Scan diagnostics,
+            Selection selection
     ) {
         if (!maid.isWithinRestriction(candidateWalkPos)) {
             return false;
@@ -101,9 +128,10 @@ public final class ReachableCookDeviceSearch {
                     || !checkedDevices.add(devicePos)) {
                 continue;
             }
+            diagnostics.deviceCandidate();
             if (isValidDevice.test(devicePos)) {
-                selectedDevice[0] = devicePos;
-                return true;
+                diagnostics.actionableDevice();
+                if (selection.offer(new Result(candidateWalkPos.immutable(), devicePos))) return true;
             }
         }
         return false;
@@ -121,51 +149,7 @@ public final class ReachableCookDeviceSearch {
             int searchRange,
             Predicate<BlockPos> isWantedWalkPosition
     ) {
-        int verticalNavigationRange = 7;
-        PathNavigationRegion region = new PathNavigationRegion(
-                level,
-                searchCenter.offset(-searchRange, -verticalNavigationRange, -searchRange),
-                searchCenter.offset(searchRange, verticalNavigationRange, searchRange)
-        );
-        NodeEvaluator nodeEvaluator = maid.getNavigation().getNodeEvaluator();
-        Queue<Node> open = new ArrayDeque<>();
-        Set<BlockPos> visited = new HashSet<>();
-        Node[] neighbors = new Node[32];
-
-        nodeEvaluator.prepare(region, maid);
-        try {
-            Node start = nodeEvaluator.getStart();
-            if (start == null) {
-                return Optional.empty();
-            }
-            open.add(start);
-            visited.add(start.asBlockPos());
-
-            while (!open.isEmpty()) {
-                Node current = open.remove();
-                BlockPos currentPos = current.asBlockPos();
-                if (isWantedWalkPosition.test(currentPos)) {
-                    return Optional.of(currentPos);
-                }
-
-                int neighborCount = nodeEvaluator.getNeighbors(neighbors, current);
-                for (int index = 0; index < neighborCount; index++) {
-                    Node neighbor = neighbors[index];
-                    BlockPos neighborPos = neighbor.asBlockPos();
-                    if (isInsideNavigationBounds(
-                            neighborPos,
-                            searchCenter,
-                            searchRange,
-                            verticalNavigationRange
-                    ) && visited.add(neighborPos)) {
-                        open.add(neighbor);
-                    }
-                }
-            }
-            return Optional.empty();
-        } finally {
-            nodeEvaluator.done();
-        }
+        return CookPathSearch.find(level, maid, searchCenter, searchRange, isWantedWalkPosition);
     }
 
     static boolean isInsideNavigationBounds(
@@ -213,5 +197,28 @@ public final class ReachableCookDeviceSearch {
         }
         LivingEntity owner = maid.getOwner();
         return owner != null && pos.closerToCenterThan(owner.position(), 8.0);
+    }
+
+    private static final class Selection {
+        private final CookTargetCycle targetCycle;
+        private Result preferred;
+        private Result fallback;
+
+        private Selection(CookTargetCycle targetCycle) {
+            this.targetCycle = targetCycle;
+        }
+
+        private boolean offer(Result candidate) {
+            if (targetCycle == null || targetCycle.prefers(candidate.workPos().asLong())) {
+                preferred = candidate;
+                return true;
+            }
+            if (fallback == null) fallback = candidate;
+            return false;
+        }
+
+        private Result result() {
+            return preferred != null ? preferred : fallback;
+        }
     }
 }

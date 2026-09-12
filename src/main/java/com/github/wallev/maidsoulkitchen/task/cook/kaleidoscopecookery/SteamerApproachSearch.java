@@ -1,7 +1,7 @@
 package com.github.wallev.maidsoulkitchen.task.cook.kaleidoscopecookery;
 
 import com.github.tartaricacid.touhoulittlemaid.entity.passive.EntityMaid;
-import com.github.tartaricacid.touhoulittlemaid.entity.passive.MaidPathFindingBFS;
+import com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookPathSearch;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 
@@ -21,15 +21,7 @@ final class SteamerApproachSearch {
             EntityMaid maid,
             Predicate<BlockPos> isWantedWalkPosition
     ) {
-        MaidPathFindingBFS pathFinding = new MaidPathFindingBFS(
-                maid.getNavigation().getNodeEvaluator(),
-                level,
-                maid
-        );
-        try {
-            return pathFinding.find(isWantedWalkPosition).map(BlockPos::immutable);
-        } finally {
-            pathFinding.finish();
-        }
+        BlockPos center = maid.hasRestriction() ? maid.getRestrictCenter() : maid.blockPosition();
+        return CookPathSearch.find(level, maid, center, maid.searchRadius(), isWantedWalkPosition);
     }
 }

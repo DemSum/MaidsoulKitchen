@@ -5,6 +5,7 @@ import com.github.tartaricacid.touhoulittlemaid.init.InitEntities;
 import com.github.wallev.maidsoulkitchen.init.MkMemories;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.ai.Brain;
 import net.minecraft.world.entity.ai.behavior.BlockPosTracker;
 import net.minecraft.world.entity.ai.behavior.PositionTracker;
@@ -45,6 +46,7 @@ public final class CookTargetMemory {
         brain.setMemory(MkMemories.DESTROY_POS.get(), new BlockPosTracker(immutableWorkPos));
         brain.setMemory(MkMemories.WORK_POS.get(), new BlockPosTracker(immutableWorkPos));
         brain.setMemory(MkMemories.COOK_WALK_POS.get(), new BlockPosTracker(immutableWalkPos));
+        brain.setMemory(MkMemories.COOK_TASK_UID.get(), maid.getTask().getUid());
     }
 
     public static Optional<PositionTracker> getWorkPos(EntityMaid maid) {
@@ -58,7 +60,7 @@ public final class CookTargetMemory {
     ) {
         Brain<EntityMaid> brain = maid.getBrain();
         Optional<PositionTracker> workTracker = brain.getMemory(MkMemories.WORK_POS.get());
-        if (workTracker.isEmpty()) {
+        if (workTracker.isEmpty() || !isOwnedByCurrentTask(maid)) {
             return false;
         }
 
@@ -68,7 +70,9 @@ public final class CookTargetMemory {
         }
 
         BlockEntity blockEntity = level.getBlockEntity(workPos);
-        return blockEntity != null && isCookBlockEntity.test(blockEntity);
+        return blockEntity != null
+                && isCookBlockEntity.test(blockEntity)
+                && CookWorkLocks.tryClaim(level, workPos, maid);
     }
 
     public static CookTargetState.StartState evaluateStart(
@@ -93,6 +97,20 @@ public final class CookTargetMemory {
         return memoryMatches(brain, InitEntities.TARGET_POS.get(), workPos)
                 && memoryMatches(brain, MkMemories.DESTROY_POS.get(), workPos)
                 && brain.hasMemoryValue(MkMemories.COOK_WALK_POS.get());
+    }
+
+    public static boolean hasCookingAssignment(EntityMaid maid) {
+        Brain<EntityMaid> brain = maid.getBrain();
+        return brain.hasMemoryValue(MkMemories.WORK_POS.get())
+                || brain.hasMemoryValue(MkMemories.COOK_WALK_POS.get())
+                || brain.hasMemoryValue(MkMemories.COOK_TASK_UID.get());
+    }
+
+    public static boolean isOwnedByCurrentTask(EntityMaid maid) {
+        ResourceLocation currentUid = maid.getTask().getUid();
+        return maid.getBrain().getMemory(MkMemories.COOK_TASK_UID.get())
+                .filter(currentUid::equals)
+                .isPresent();
     }
 
     private static boolean hasMatchingWalkTarget(Brain<EntityMaid> brain) {
@@ -121,11 +139,17 @@ public final class CookTargetMemory {
             brain.getMemory(MkMemories.WORK_POS.get()).ifPresent(
                     tracker -> CookWorkLocks.release(level, tracker.currentBlockPosition(), maid));
         }
-        brain.eraseMemory(MemoryModuleType.WALK_TARGET);
-        brain.eraseMemory(MemoryModuleType.LOOK_TARGET);
+        if (hasMatchingWalkTarget(brain)) {
+            brain.eraseMemory(MemoryModuleType.WALK_TARGET);
+        }
+        brain.getMemory(MkMemories.WORK_POS.get()).ifPresent(workPos ->
+                brain.getMemory(MemoryModuleType.LOOK_TARGET)
+                        .filter(look -> look.currentBlockPosition().equals(workPos.currentBlockPosition()))
+                        .ifPresent(ignored -> brain.eraseMemory(MemoryModuleType.LOOK_TARGET)));
         brain.eraseMemory(InitEntities.TARGET_POS.get());
         brain.eraseMemory(MkMemories.DESTROY_POS.get());
         brain.eraseMemory(MkMemories.WORK_POS.get());
         brain.eraseMemory(MkMemories.COOK_WALK_POS.get());
+        brain.eraseMemory(MkMemories.COOK_TASK_UID.get());
     }
 }

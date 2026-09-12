@@ -8,7 +8,6 @@ import com.github.wallev.maidsoulkitchen.task.cook.common.inventory.MaidRecipesM
 import com.google.common.collect.ImmutableMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.entity.ai.memory.MemoryModuleType;
 import net.minecraft.world.entity.ai.memory.MemoryStatus;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeInput;
@@ -20,6 +19,7 @@ public class MaidCookMoveTask<B extends BlockEntity, R extends Recipe<? extends 
     private final int verticalSearchRange;
     private final ICookTask<B, R> task;
     private final MaidRecipesManager<R> maidRecipesManager;
+    private final CookTargetCycle targetCycle = new CookTargetCycle();
     protected int verticalSearchStart;
 
     public MaidCookMoveTask(ICookTask<B, R> task, MaidRecipesManager<R> maidRecipesManager) {
@@ -27,8 +27,7 @@ public class MaidCookMoveTask<B extends BlockEntity, R extends Recipe<? extends 
     }
 
     public MaidCookMoveTask(ICookTask<B, R> task, float movementSpeed, int verticalSearchRange, MaidRecipesManager<R> maidRecipesManager) {
-        super(ImmutableMap.of(MemoryModuleType.WALK_TARGET, MemoryStatus.VALUE_ABSENT,
-                MkMemories.WORK_POS.get(), MemoryStatus.VALUE_ABSENT));
+        super(ImmutableMap.of(MkMemories.WORK_POS.get(), MemoryStatus.VALUE_ABSENT));
         this.task = task;
         this.movementSpeed = movementSpeed;
         this.verticalSearchRange = verticalSearchRange;
@@ -64,33 +63,45 @@ public class MaidCookMoveTask<B extends BlockEntity, R extends Recipe<? extends 
             return false;
         }
         if (this.task.isCookBE(blockEntity)) {
-            boolean processed = this.processRecipeManager();
-            if (!processed) return false;
             return this.task.shouldMoveTo(worldIn, this.maidRecipesManager.getMaid(), (B) blockEntity, maidRecipesManager);
         }
         return false;
     }
 
     protected final void searchForDestination(ServerLevel worldIn, EntityMaid maid) {
+        if (!this.processRecipeManager()) {
+            return;
+        }
         BlockPos centrePos = getSearchPos(maid);
         int searchRange = (int) maid.getRestrictRadius();
-        ReachableCookDeviceSearch.find(
-                worldIn,
-                maid,
-                centrePos,
-                searchRange,
-                this.verticalSearchStart,
-                this.verticalSearchRange,
-                pos -> shouldMoveTo(worldIn, maid, pos)
-        ).ifPresent(result -> {
-            CookTargetMemory.remember(
+        try (CookSearchDiagnostics.Scan diagnostics = CookSearchDiagnostics.begin(maid, task.getUid())) {
+            ReachableCookDeviceSearch.find(
+                    worldIn,
                     maid,
-                    result.walkPos(),
-                    result.workPos(),
-                    this.movementSpeed,
-                    0
-            );
-            this.setNextCheckTickCount(5);
-        });
+                    centrePos,
+                    searchRange,
+                    this.verticalSearchStart,
+                    this.verticalSearchRange,
+                    pos -> CookWorkLocks.isAvailable(worldIn, pos, maid)
+                            && shouldMoveTo(worldIn, maid, pos),
+                    diagnostics,
+                    targetCycle
+            ).ifPresent(result -> {
+                if (!CookWorkLocks.tryClaim(worldIn, result.workPos(), maid)) {
+                    diagnostics.rejectedClaim();
+                    return;
+                }
+                CookTargetMemory.remember(
+                        maid,
+                        result.walkPos(),
+                        result.workPos(),
+                        this.movementSpeed,
+                        0
+                );
+                targetCycle.recordSelection(result.workPos().asLong());
+                diagnostics.selected();
+                this.setNextCheckTickCount(5);
+            });
+        }
     }
 }
