@@ -128,7 +128,7 @@ public class MaidGrillMakeTask extends Behavior<EntityMaid> {
     @Override
     protected void stop(ServerLevel worldIn, EntityMaid maid, long pGameTime) {
         super.stop(worldIn, maid, pGameTime);
-        CookTargetMemory.clear(maid);
+        CookTargetMemory.complete(maid);
         grillStacks.clear();
     }
 }

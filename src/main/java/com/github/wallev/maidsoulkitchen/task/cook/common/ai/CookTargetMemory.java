@@ -138,6 +138,15 @@ public final class CookTargetMemory {
     }
 
     public static void clear(EntityMaid maid) {
+        clear(maid, true);
+    }
+
+    /** Clears the active assignment while retaining its safe side as an idle anchor. */
+    public static void complete(EntityMaid maid) {
+        clear(maid, false);
+    }
+
+    private static void clear(EntityMaid maid, boolean eraseWalkAnchor) {
         Brain<EntityMaid> brain = maid.getBrain();
         if (maid.level() instanceof ServerLevel level) {
             brain.getMemory(MkMemories.WORK_POS.get()).ifPresent(
@@ -148,6 +157,8 @@ public final class CookTargetMemory {
         brain.eraseMemory(InitEntities.TARGET_POS.get());
         brain.eraseMemory(MkMemories.DESTROY_POS.get());
         brain.eraseMemory(MkMemories.WORK_POS.get());
-        brain.eraseMemory(MkMemories.COOK_WALK_POS.get());
+        if (eraseWalkAnchor) {
+            brain.eraseMemory(MkMemories.COOK_WALK_POS.get());
+        }
     }
 }

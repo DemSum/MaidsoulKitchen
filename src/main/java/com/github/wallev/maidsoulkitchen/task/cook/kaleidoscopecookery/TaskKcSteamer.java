@@ -8,6 +8,7 @@ import com.github.wallev.maidsoulkitchen.inventory.container.maid.SteamerRecipeF
 import com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskClassAnalyzer;
 import com.github.wallev.maidsoulkitchen.task.TaskInfo;
 import com.github.wallev.maidsoulkitchen.task.cook.common.ai.MaidCookPathingTask;
+import com.github.wallev.maidsoulkitchen.task.cook.common.ai.MaidCookIdleStrollTask;
 import com.github.ysbbbbbb.kaleidoscopecookery.init.ModItems;
 import com.mojang.datafixers.util.Pair;
 import net.minecraft.core.BlockPos;
@@ -58,7 +59,8 @@ public final class TaskKcSteamer implements ICookTargetTask {
                         SteamerAdapter::supports,
                         SteamerAdapter.STACK_INTERACTION_DISTANCE,
                         0.6F
-                ))
+                )),
+                Pair.of(20, new MaidCookIdleStrollTask(maid))
         ));
     }
 

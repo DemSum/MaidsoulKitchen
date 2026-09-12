@@ -11,6 +11,7 @@ import com.github.wallev.maidsoulkitchen.entity.data.inner.task.CookData;
 import com.github.wallev.maidsoulkitchen.inventory.container.maid.CookConfigContainer;
 import com.github.wallev.maidsoulkitchen.inventory.tooltip.AmountTooltip;
 import com.github.wallev.maidsoulkitchen.task.cook.common.ai.MaidCookMakeTask;
+import com.github.wallev.maidsoulkitchen.task.cook.common.ai.MaidCookIdleStrollTask;
 import com.github.wallev.maidsoulkitchen.task.cook.common.ai.MaidCookMoveTask;
 import com.github.wallev.maidsoulkitchen.task.cook.common.ai.MaidCookPathingTask;
 import com.github.wallev.maidsoulkitchen.task.cook.common.cbaccessor.IRecipeExperinceAward;
@@ -58,7 +59,8 @@ public interface ICookTask<B extends BlockEntity, R extends Recipe<? extends Rec
         return Lists.newArrayList(
                 Pair.of(5, maidCookMoveTask),
                 Pair.of(6, maidCookMakeTask),
-                Pair.of(7, maidCookPathingTask)
+                Pair.of(7, maidCookPathingTask),
+                Pair.of(20, new MaidCookIdleStrollTask(maid))
         );
     }
 

@@ -8,6 +8,7 @@ import com.github.wallev.maidsoulkitchen.init.touhoulittlemaid.DataRegister;
 import com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskClassAnalyzer;
 import com.github.wallev.maidsoulkitchen.task.TaskInfo;
 import com.github.wallev.maidsoulkitchen.task.cook.common.ai.MaidCookMoveTask;
+import com.github.wallev.maidsoulkitchen.task.cook.common.ai.MaidCookIdleStrollTask;
 import com.github.wallev.maidsoulkitchen.task.cook.common.ai.MaidCookPathingTask;
 import com.github.wallev.maidsoulkitchen.task.cook.common.inventory.MaidRecipesManager;
 import com.google.common.collect.Lists;
@@ -91,7 +92,12 @@ public class TaskBdGrill implements ICookTask<GrillBlockEntity, GrillingRecipe<?
         MaidCookMoveTask<GrillBlockEntity, GrillingRecipe<?>> maidCookMoveTask = new MaidCookMoveTask<>(this, cookingPotRecipeMaidRecipesManager);
         MaidGrillMakeTask maidGrillMakeTask = new MaidGrillMakeTask(this, cookingPotRecipeMaidRecipesManager);
         MaidCookPathingTask maidCookPathingTask = new MaidCookPathingTask(this);
-        return Lists.newArrayList(Pair.of(5, maidCookMoveTask), Pair.of(6, maidGrillMakeTask), Pair.of(7, maidCookPathingTask));
+        return Lists.newArrayList(
+                Pair.of(5, maidCookMoveTask),
+                Pair.of(6, maidGrillMakeTask),
+                Pair.of(7, maidCookPathingTask),
+                Pair.of(20, new MaidCookIdleStrollTask(maid))
+        );
     }
 
     @Override

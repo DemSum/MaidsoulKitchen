@@ -52,7 +52,7 @@ public class MaidCookMakeTask<B extends BlockEntity, R extends Recipe<? extends 
                 this.maidRecipesManager.tranOutput2Chest();
                 this.maidRecipesManager.getCookInv().syncInv();
             }
-            CookTargetMemory.clear(maid);
+            CookTargetMemory.complete(maid);
         });
     }
 }

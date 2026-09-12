@@ -216,7 +216,7 @@ public class MaidCuisineMakeTask extends Behavior<EntityMaid> {
     @Override
     protected void stop(ServerLevel worldIn, EntityMaid maid, long pGameTime) {
         super.stop(worldIn, maid, pGameTime);
-        CookTargetMemory.clear(maid);
+        CookTargetMemory.complete(maid);
         this.tickAll = 0;
         this.tickMax = 0;
         this.tickSpace = Integer.MAX_VALUE;

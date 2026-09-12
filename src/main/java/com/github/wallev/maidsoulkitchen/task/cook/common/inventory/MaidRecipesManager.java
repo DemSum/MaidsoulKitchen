@@ -330,11 +330,7 @@ public class MaidRecipesManager<R extends Recipe<? extends RecipeInput>> {
     }
 
     private boolean isPosZone(BlockPos ingredientPo) {
-        float maxDistance = maid.getRestrictRadius() * ItemCulinaryHub.WORK_RANGE;
-        if (maid.distanceToSqr(ingredientPo.getX(), ingredientPo.getY(), ingredientPo.getZ()) > (maxDistance * maxDistance)) {
-            return true;
-        }
-        return false;
+        return !CulinaryHubRange.contains(maid, ingredientPo);
     }
 
     private boolean init() {

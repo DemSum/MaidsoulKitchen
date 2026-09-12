@@ -7,9 +7,8 @@ import com.github.wallev.maidsoulkitchen.api.IMaidsoulKitchenTask;
 public interface ICookTargetTask extends IMaidsoulKitchenTask {
     /**
      * Cooking tasks search the whole work-point area themselves, so TLM's
-     * generic idle stroll is neither needed for discovery nor safe around
-     * machines. In particular, a large kappa-compass radius must not make a
-     * maid leave the cooker while it is processing or between scan attempts.
+     * unanchored idle stroll is disabled. Cooking schedules install their own
+     * low-frequency stroll around the most recent safe cooker approach.
      */
     @Override
     default boolean enableLookAndRandomWalk(EntityMaid maid) {
