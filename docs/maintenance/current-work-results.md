@@ -2,7 +2,7 @@
 
 ## 1. 文档用途
 
-本文记录 `DemSum/MaidsoulKitchen` 的 `brewery/1.21.1-slim` 分支当前已经完成的
+本文记录 `DemSum/MaidsoulKitchen` 的 `1.21.1neo` 分支当前已经完成的
 上游同步、原生功能移植、兼容修复和瘦身成果。它作为后续更新 README、编写提交
 说明、发布说明和继续移植功能时的事实基线。
 
@@ -13,7 +13,7 @@
 
 ## 2. 代码来源与分支边界
 
-- 当前产品分支：`brewery/1.21.1-slim`。
+- 当前产品分支：`1.21.1neo`。
 - 正式上游基线：MaidsoulKitchen 1.21.1 beta 0.1.4 sources，导入提交
   `a22b503a4f49937712118fbb83b83dfc50f92be7`。
 - 官方功能参考：`Wall-ev/MaidsoulKitchen:1.20.1-1.0-dev`，审查检查点

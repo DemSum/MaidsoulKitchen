@@ -16,7 +16,7 @@
 | 项目 | 当前值 |
 | --- | --- |
 | 仓库 | `DemSum/MaidsoulKitchen` |
-| 分支 | `brewery/1.21.1-slim` |
+| 分支 | `1.21.1neo` |
 | 审计 HEAD | `6bb4045e0b247eec013f972ca29c81a12360349f` |
 | 审计日期 | 2026-09-12 |
 | Minecraft | 1.21.1 |
