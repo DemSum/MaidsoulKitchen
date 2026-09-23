@@ -2,13 +2,9 @@
 
 ## 内容介绍/Content
 
-### 中文
-
 此项目是经 MaidsoulKitchen 原作者 Azumic 许可、面向 Minecraft 1.21.1 NeoForge 独立维护和发布的版本。最低需要 Touhou Little Maid 1.5.3。
 
 此次更新参照 MaidsoulKitchen 1.20.1 分支跟进了烹饪寻路与烹饪中枢设计，修复了 DrinkBeer 啤酒桶任务，并加入对 Kaleidoscope Cookery 多层蒸笼及 Farmer's Delight 蘑菇群落耕作的支持。
-
-### English
 
 This project is an independently maintained and distributed Minecraft 1.21.1 NeoForge release, published with permission from the original MaidsoulKitchen author, Azumic. Touhou Little Maid 1.5.3 or newer is required.
 
