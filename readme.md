@@ -1,7 +1,13 @@
 # [农耕与烹饪：车万女仆拓展](./readme.zh.md) | Farm And Cook: Touhou Little Maid Addon
  A [touhoulittlemaid](https://github.com/TartaricAcid/TouhouLittleMaid) addon mod, is designed to teach maids how to use other mods for cooking and farming.
 
-The maintained 1.21.1 slim branch requires Touhou Little Maid 1.5.3 or newer.
+The maintained `1.21.1neo` branch requires Touhou Little Maid 1.5.3 or newer.
+
+## Maintenance and releases
+  - This fork is independently maintained and released by DemSum with permission from the original MaidsoulKitchen author.
+  - Releases from this repository are authorized independent fork releases. They do not mean that these changes have been merged into upstream MaidsoulKitchen, and they should not be presented as official upstream releases.
+  - The project is actively maintained; the previous abandonment and takeover notice no longer applies.
+  - Stable builds and their release notes will be published on this repository's [Releases](https://github.com/DemSum/MaidsoulKitchen/releases) page. Back up worlds before testing development builds.
 
 ## Credits
   - This 1.21.1 fork is synchronized with the official MaidsoulKitchen `1.21.1-beta-v0.1.4` source release. The exact source artifact, checksums, merge boundary, and retained fork changes are recorded in [the upstream sync note](./docs/upstream-sync/0.1.4.md).
@@ -9,12 +15,6 @@ The maintained 1.21.1 slim branch requires Touhou Little Maid 1.5.3 or newer.
   - The native DrinkBeer barrel safeguards and compatibility recipes are adapted from MaidSoul Brewery Public commits `ca84cf4`, `0a0a46b`, and `f5e0fa9`; the restored altar recipes come from `de47e15` and were originally migrated from MaidsoulKitchen 1.20.1 data.
   - Native Kaleidoscope Cookery steamer task, filter UI, Culinary Hub storage support, and the TLM 1.5.3 berry-task reachability correction are adapted from MaidSoul Brewery Public commit `de47e15`. Kaleidoscope Cookery is by ysbbbbbb, tartaric_acid, and Azumic; this integration calls its public API and does not copy its source.
   - Farmer's Delight mushroom-colony farming is adapted from MaidSoul Brewery Public commits `f5e0fa9` and `de47e15`, and is registered through Touhou Little Maid 1.5.3's official `registerSpecialCropHandler` extension API.
-
-## Notice
-  - Due to the author's personal reasons, the development progress will be extremely slow (maybe the pit will be abandoned...)
-  - If you want to play as soon as possible, you can click `Star` and find the latest version of the auto-build on the [Releases](https://github.com/Wall-ev/TouhouLittleMaidAddon/releases) page
-  - If you download the auto-build version ,you need to make backups before playing to avoid losing your property.
-  - This project might be abandoned at any time, so if you're up for it (if you can handle this mess - it's really bad...), you can take over this project.
 
 ## Progress
 - [ ] Cook

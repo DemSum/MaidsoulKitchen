@@ -1,7 +1,13 @@
 # 农耕与烹饪：车万女仆拓展 | [Farm And Cook: Touhou Little Maid Addon](./readme.md)
  这里是一个[车万女仆](https://github.com/TartaricAcid/TouhouLittleMaid)附属模组，旨在让女仆学会使用其他模组的烹饪和作物的耕种
 
-当前维护的 1.21.1 slim 分支要求车万女仆 1.5.3 或更高版本。
+当前维护的 `1.21.1neo` 分支要求车万女仆 1.5.3 或更高版本。
+
+## 维护与发布状态
+  - 本 fork 已取得 MaidsoulKitchen 原作者许可，由 DemSum 独立维护并自行发布。
+  - 本仓库的发布属于经授权的独立 fork 发布，不代表这些更改已合并回 MaidsoulKitchen 上游，也不应描述为上游官方版本。
+  - 项目当前处于持续维护状态，旧 README 中关于弃坑和等待接手的说明不再适用。
+  - 稳定构建和对应发布说明将放在本仓库的 [Releases](https://github.com/DemSum/MaidsoulKitchen/releases) 页面；测试开发构建前仍建议备份存档。
 
 ## 鸣谢
   - 本 1.21.1 fork 已同步官方 MaidsoulKitchen `1.21.1-beta-v0.1.4` 源码发布版；准确的源码包、校验值、合并边界和保留的 fork 改动见[上游同步记录](./docs/upstream-sync/0.1.4.md)。
@@ -9,12 +15,6 @@
   - 原生 DrinkBeer 酒桶保护和兼容配方改编自 MaidSoul Brewery Public 的 `ca84cf4`、`0a0a46b`、`f5e0fa9`；补回的祭坛配方来自 `de47e15`，其原始数据迁移自 MaidsoulKitchen 1.20.1。
   - 原生万花筒之宴蒸笼任务、过滤界面、烹饪中枢仓储支持和 TLM 1.5.3 浆果任务可达性修复改编自 MaidSoul Brewery Public 的 `de47e15`。万花筒之宴作者为 ysbbbbbb、tartaric_acid 和 Azumic；本联动仅调用其公开 API，未复制其源码。
   - 农夫乐事蘑菇群落耕作适配改编自 MaidSoul Brewery Public 的 `f5e0fa9` 和 `de47e15`，并通过车万女仆 1.5.3 官方 `registerSpecialCropHandler` 扩展接口注册。
-
-## 注意
-  - 由于作者个人原因，开发进度会及其缓慢（保不准会弃坑...）
-  - 如果您想尽快游玩，可以点个`Star`，在[Releases](https://github.com/Wall-ev/TouhouLittleMaidAddon/releases)页面找到自动构建好的最新版，
-  - 如果您下载了自动构建的版本，那么在游玩前需要做好备份措施，以免损失财产。
-  - 这个项目随时会弃坑，如果你想（你能接受这个烂摊子——水平极烂的话...），你可以接手这个项目。
 
 ## 当前进度
 - [x] 农耕
