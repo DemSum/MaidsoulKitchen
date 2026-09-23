@@ -14,6 +14,8 @@ This update follows the MaidsoulKitchen 1.20.1 implementation for cooking pathfi
 
 Touhou Little Maid by TartaricAcid.
 
+MaidsoulKitchen by Azumic. https://github.com/Wall-ev/MaidsoulKitchen
+
 Sophisticated Storage and Sophisticated Backpacks by P3pp3rF1y.
 
 Farmer's Delight by vectorwing.
@@ -21,8 +23,6 @@ Farmer's Delight by vectorwing.
 DrinkBeer by Lekavar and MarbleGateKeeper.
 
 Kaleidoscope Cookery by YSBB, TartaricAcid, and Azumic.
-
-MaidsoulKitchen by Azumic, with contributions from TartaricAcid, Pajinyi, and lezizijiang2.
 
 感谢以上模组的作者提供原 mod，并感谢 MaidsoulKitchen 的所有贡献者。
 
