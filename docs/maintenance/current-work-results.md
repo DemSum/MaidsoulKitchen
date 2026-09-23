@@ -32,7 +32,8 @@
 - 导入并保留官方 1.21.1 beta 0.1.4 的源码基线和来源记录。
 - 保留官方 Farmer's Delight 煎锅、祭坛迁移、客户端兼容修复和服务端启动修复。
 - 修复官方源码快照与生成资源之间的重复祭坛配方和伤害类型标签。
-- 项目版本保持为 `1.21.1-beta-v0.1.4`，未移动现有 tag。
+- 官方源码基线仍为 `1.21.1-beta-v0.1.4`；独立维护版首次发布版本前进为
+  `1.21.1-beta-v0.1.5`，不移动或覆盖任何既有 tag。
 
 ### 3.2 通用烹饪双坐标架构
 
@@ -175,19 +176,20 @@
 - **新 API 已实际使用。** 蘑菇群落通过 `registerSpecialCropHandler` 注册，蒸笼使用
   `MaidPathFindingBFS`，中枢和蒸笼仓储直接调用新版女仆物品栏接口。
 
-这次迁移只提升依赖/API 基线，没有更改项目版本号、移动 tag 或修改 CurseForge 实例。
+TLM API 迁移本身没有改动版本号；后续独立发布将版本前进至
+`1.21.1-beta-v0.1.5`。没有移动既有 tag，也没有修改 CurseForge 实例。
 
 ## 5. 当前验证基线
 
 - 最近完整测试：55 tests，0 failures，0 errors，0 skipped。
-- `clean test build`：通过（Gradle 8.12.1，21 秒）。
+- `clean test build`：通过（Gradle 8.12.1，15 秒）。
 - NeoForge 21.1.244 开发服务器：最新启动至 `Done (4.982s)`。
 - 服务端模组清单确认 TLM `1.5.3-neoforge+mc1.21.1`，并记录到官方 special-crop
   回调成功注册 Farmer's Delight 蘑菇群落处理器。
 - 验证组合包含 KC 1.4.1、DrinkBeer 1.4.1、Farmer's Delight 1.2.7 和 TLM 1.5.3。
-- 测试构建：`build/libs/maidsoulkitchen-1.21.1-beta-v0.1.4.jar`。
+- 测试构建：`build/libs/maidsoulkitchen-1.21.1-beta-v0.1.5.jar`。
 - 该检查点构建 SHA-256：
-  `DF5BC3AF82A5996CEAFA573C85C6567184FF237CC132EAEC87E62B5367A2B683`。
+  `5FFD2BCA960F1C5939A99C443D0F3D067DA03BAC54B643C0291C7F7011F10997`。
 
 维护者当前实机已确认：烹饪中枢可从 TLM 饰品栏识别；多工作方块轮换和
 DrinkBeer 酒桶重新正常工作；Farmer's Delight 厨锅与蒸笼恢复基础工作链。
