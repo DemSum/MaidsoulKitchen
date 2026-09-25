@@ -16,8 +16,6 @@ Touhou Little Maid by TartaricAcid.
 
 MaidsoulKitchen by Azumic. https://github.com/Wall-ev/MaidsoulKitchen
 
-Sophisticated Storage and Sophisticated Backpacks by P3pp3rF1y.
-
 Farmer's Delight by vectorwing.
 
 DrinkBeer by Lekavar and MarbleGateKeeper.
