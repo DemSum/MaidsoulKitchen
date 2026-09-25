@@ -12,9 +12,9 @@ This update follows the MaidsoulKitchen 1.20.1 implementation for cooking pathfi
 
 ## 计划功能/Planned Features
 
-计划功能包括 EveryXHotpot 社交火锅兼容：女仆可以与玩家一起吃火锅、自动加水、涮肉、夹菜，甚至互相抢菜；以及“经验隙间”物品，用于让女仆定位兼容的经验存储方块并存入或取出经验。这些功能尚未包含在当前版本中。
+EveryXHotpot 火锅兼容：女仆可以与玩家一起吃火锅、自动加水、涮肉、夹菜，甚至互相抢菜；
 
-Planned features include social EveryXHotpot compatibility, allowing maids to join hotpot meals, automatically add water, cook meat, pick dishes, and compete for food, plus an Experience Gap item that lets maids locate compatible experience-storage blocks and deposit or withdraw experience. These features are not included in the current release yet.
+EveryXHotpot compatibility, allowing maids to join hotpot meals, automatically add water, cook meat, pick dishes, and compete for food.
 
 ## Credits / 鸣谢
 
