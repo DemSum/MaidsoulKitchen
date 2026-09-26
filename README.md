@@ -10,12 +10,6 @@ This project is an independently maintained and distributed Minecraft 1.21.1 Neo
 
 This update follows the MaidsoulKitchen 1.20.1 implementation for cooking pathfinding and Culinary Hub configuration, fixes the DrinkBeer beer-barrel task, and adds support for Kaleidoscope Cookery multi-layer steamers and Farmer's Delight mushroom-colony farming.
 
-## 计划功能/Planned Features
-
-EveryXHotpot 火锅兼容：女仆可以与玩家一起吃火锅、自动加水、涮肉、夹菜，甚至互相抢菜；
-
-EveryXHotpot compatibility, allowing maids to join hotpot meals, automatically add water, cook meat, pick dishes, and compete for food.
-
 ## Credits / 鸣谢
 
 Touhou Little Maid by TartaricAcid.
