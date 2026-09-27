@@ -17,11 +17,13 @@ import java.util.Optional;
 
 public class MaidCookMoveTask<B extends BlockEntity, R extends Recipe<? extends RecipeInput>> extends MaidCheckRateTask {
     private static final int MAX_DELAY_TIME = 120;
+    private static final int WORK_AREA_RECHECK_TICKS = 20;
     private final float movementSpeed;
     private final int verticalSearchRange;
     private final ICookTask<B, R> task;
     private final MaidRecipesManager<R> maidRecipesManager;
     private final CookTargetCycle targetCycle = new CookTargetCycle();
+    private BlockPos pendingWorkAreaFloorAnchor;
     protected int verticalSearchStart;
 
     public MaidCookMoveTask(ICookTask<B, R> task, MaidRecipesManager<R> maidRecipesManager) {
@@ -71,10 +73,15 @@ public class MaidCookMoveTask<B extends BlockEntity, R extends Recipe<? extends 
     }
 
     protected final void searchForDestination(ServerLevel worldIn, EntityMaid maid) {
+        BlockPos centrePos = getSearchPos(maid);
+        if (this.pendingWorkAreaFloorAnchor != null) {
+            if (this.guideBackToWorkArea(
+                    worldIn, maid, centrePos, this.pendingWorkAreaFloorAnchor)) return;
+            this.pendingWorkAreaFloorAnchor = null;
+        }
         if (!this.processRecipeManager()) {
             return;
         }
-        BlockPos centrePos = getSearchPos(maid);
         int searchRange = (int) maid.getRestrictRadius();
         Optional<ReachableCookDeviceSearch.Result> result = ReachableCookDeviceSearch.find(
                 worldIn,
@@ -88,12 +95,12 @@ public class MaidCookMoveTask<B extends BlockEntity, R extends Recipe<? extends 
                 targetCycle
         );
         if (result.isEmpty()) {
-            CookTargetMemory.guideBackToWorkArea(
-                    worldIn, maid, centrePos, centrePos, this.movementSpeed);
+            this.guideBackToWorkArea(worldIn, maid, centrePos, centrePos);
             return;
         }
 
         ReachableCookDeviceSearch.Result target = result.get();
+        if (this.guideBackToWorkArea(worldIn, maid, centrePos, target.walkPos())) return;
         if (!CookWorkLocks.tryClaim(worldIn, target.workPos(), maid)) return;
         CookTargetMemory.remember(
                 maid,
@@ -104,5 +111,18 @@ public class MaidCookMoveTask<B extends BlockEntity, R extends Recipe<? extends 
         );
         targetCycle.recordSelection(target.workPos().asLong());
         this.setNextCheckTickCount(5);
+    }
+
+    private boolean guideBackToWorkArea(
+            ServerLevel level,
+            EntityMaid maid,
+            BlockPos searchCenter,
+            BlockPos floorAnchor
+    ) {
+        if (!CookTargetMemory.guideBackToWorkArea(
+                level, maid, searchCenter, floorAnchor, this.movementSpeed)) return false;
+        this.pendingWorkAreaFloorAnchor = floorAnchor.immutable();
+        this.setNextCheckTickCount(WORK_AREA_RECHECK_TICKS);
+        return true;
     }
 }

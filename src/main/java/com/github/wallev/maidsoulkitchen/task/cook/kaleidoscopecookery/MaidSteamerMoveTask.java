@@ -2,16 +2,17 @@ package com.github.wallev.maidsoulkitchen.task.cook.kaleidoscopecookery;
 
 import com.github.tartaricacid.touhoulittlemaid.entity.ai.brain.task.MaidCheckRateTask;
 import com.github.tartaricacid.touhoulittlemaid.entity.passive.EntityMaid;
+import com.github.wallev.maidsoulkitchen.api.task.v1.cook.ICookTargetTask;
 import com.github.wallev.maidsoulkitchen.entity.data.inner.task.RecipeFilterData;
 import com.github.wallev.maidsoulkitchen.init.MkMemories;
 import com.github.wallev.maidsoulkitchen.init.touhoulittlemaid.DataRegister;
+import com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookPathSearch;
 import com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookTargetCycle;
 import com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookTargetMemory;
 import com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookWorkLocks;
 import com.google.common.collect.ImmutableMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.memory.MemoryStatus;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -50,11 +51,11 @@ final class MaidSteamerMoveTask extends MaidCheckRateTask {
     ) {
         Set<BlockPos> checkedSteamers = new HashSet<>();
         Selection selection = new Selection(targetCycle);
-        SteamerApproachSearch.find(level, maid, pos -> selectAdjacentSteamer(
-                level, maid, pos, storage, recipeFilter, checkedSteamers, selection));
-        Target target = selection.result();
         BlockPos searchCenter = maid.hasRestriction()
                 ? maid.getRestrictCenter() : maid.blockPosition();
+        CookPathSearch.find(level, maid, searchCenter, maid.searchRadius(), pos -> selectAdjacentSteamer(
+                level, maid, pos, storage, recipeFilter, checkedSteamers, selection));
+        Target target = selection.result();
         if (target == null) {
             CookTargetMemory.guideBackToWorkArea(
                     level, maid, searchCenter, searchCenter, MOVEMENT_SPEED);
@@ -94,7 +95,7 @@ final class MaidSteamerMoveTask extends MaidCheckRateTask {
                     }
                     steamerPos.setWithOffset(approachPos, xOffset, yOffset, zOffset);
                     if (!maid.isWithinRestriction(steamerPos)
-                            || !withinOwnerRange(maid, steamerPos)
+                            || !ICookTargetTask.isWithinOwnerRange(maid, steamerPos)
                             || !level.isLoaded(steamerPos)
                             || !SteamerAdapter.supports(level.getBlockState(steamerPos))) {
                         continue;
@@ -142,13 +143,19 @@ final class MaidSteamerMoveTask extends MaidCheckRateTask {
         return maid.getOrCreateData(DataRegister.KC_STEAMER, RecipeFilterData.DEFAULT);
     }
 
-    private static boolean withinOwnerRange(EntityMaid maid, BlockPos pos) {
-        if (maid.isHomeModeEnable()) {
-            return true;
-        }
-        LivingEntity owner = maid.getOwner();
-        return owner != null && pos.closerToCenterThan(owner.position(), 8.0);
-    }
+    /*
+     * Historical steamer-local owner-range check retained for regression
+     * reference only. Runtime code intentionally uses the shared
+     * ICookTargetTask.isWithinOwnerRange above.
+     *
+     * private static boolean withinOwnerRange(EntityMaid maid, BlockPos pos) {
+     *     if (maid.isHomeModeEnable()) {
+     *         return true;
+     *     }
+     *     LivingEntity owner = maid.getOwner();
+     *     return owner != null && pos.closerToCenterThan(owner.position(), 8.0);
+     * }
+     */
 
     private record Target(BlockPos walkPos, BlockPos workPos) {
     }

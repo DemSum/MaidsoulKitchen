@@ -36,16 +36,21 @@ class Tlm15ApiMigrationTest {
         String genericSearch = classFileText(
                 "com/github/wallev/maidsoulkitchen/task/cook/common/ai/ReachableCookDeviceSearch.class"
         );
-        String steamerSearch = classFileText(
+        String steamerMove = classFileText(
                 "com/github/wallev/maidsoulkitchen/task/cook/kaleidoscopecookery/"
-                        + "SteamerApproachSearch.class"
+                        + "MaidSteamerMoveTask.class"
         );
         assertTrue(adapter.contains("MaidPathFindingBFS"));
         assertTrue(adapter.contains("finish"));
         assertFalse(adapter.contains("java/lang/reflect"));
         assertTrue(genericSearch.contains("CookPathSearch"));
         assertFalse(genericSearch.contains("NodeEvaluator"));
-        assertTrue(steamerSearch.contains("CookPathSearch"));
+        assertTrue(steamerMove.contains("CookPathSearch"));
+        assertTrue(steamerMove.contains("ICookTargetTask"));
+        assertNull(getClass().getClassLoader().getResource(
+                "com/github/wallev/maidsoulkitchen/task/cook/kaleidoscopecookery/"
+                        + "SteamerApproachSearch.class"
+        ));
         assertNull(getClass().getClassLoader().getResource(
                 "com/github/wallev/maidsoulkitchen/task/cook/common/ai/"
                         + "CookSearchDiagnostics.class"
@@ -77,6 +82,8 @@ class Tlm15ApiMigrationTest {
         assertTrue(targetTask.contains("enableLookAndRandomWalk"));
         assertTrue(targetTask.contains("enableEating"));
         assertTrue(genericMove.contains("guideBackToWorkArea"));
+        assertTrue(genericMove.contains("pendingWorkAreaFloorAnchor"));
+        assertTrue(genericMove.contains("setNextCheckTickCount"));
         assertTrue(steamerMove.contains("CookTargetCycle"));
         assertTrue(steamerMove.contains("isAvailable"));
         assertTrue(steamerMove.contains("guideBackToWorkArea"));

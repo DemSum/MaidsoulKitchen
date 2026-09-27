@@ -1,10 +1,10 @@
 package com.github.wallev.maidsoulkitchen.task.cook.common.ai;
 
 import com.github.tartaricacid.touhoulittlemaid.entity.passive.EntityMaid;
+import com.github.wallev.maidsoulkitchen.api.task.v1.cook.ICookTargetTask;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.entity.LivingEntity;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -86,7 +86,7 @@ public final class ReachableCookDeviceSearch {
                     continue;
                 }
                 if (!maid.isWithinRestriction(devicePos)
-                        || !isWithinOwnerRange(maid, devicePos)
+                        || !ICookTargetTask.isWithinOwnerRange(maid, devicePos)
                         || !level.isLoaded(devicePos)
                         || !checkedDevices.add(devicePos)) {
                     continue;
@@ -123,14 +123,6 @@ public final class ReachableCookDeviceSearch {
                 devicePos.getY() - walkPos.getY(),
                 devicePos.getZ() - walkPos.getZ()
         );
-    }
-
-    private static boolean isWithinOwnerRange(EntityMaid maid, BlockPos pos) {
-        if (maid.isHomeModeEnable()) {
-            return true;
-        }
-        LivingEntity owner = maid.getOwner();
-        return owner != null && pos.closerToCenterThan(owner.position(), 8.0);
     }
 
     private static final class Selection {
