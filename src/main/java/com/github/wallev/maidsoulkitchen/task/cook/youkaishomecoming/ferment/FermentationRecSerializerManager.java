@@ -34,7 +34,9 @@ import java.util.*;
 /**
  * Source: 58ec08ec task/cook/youkaishomecoming/ferment/FermentationRecSerializerManager.java (MIT).
  * Native registry scan and descriptor are ported; NeoForge item capabilities and Holder retain 1.21 identity.
- * Fluid-container counts use ceiling division: upstream floor division underfilled fractional containers.
+ * Current SimpleFermentationRecipe.matches requires exactly outputFluid.amount (or 1000), rather
+ * than the representative FluidIngredient stack amount. Reserve exact container multiples only;
+ * rounding up produces a native nonmatching tank and rounding down underfills it.
  * P2 replaces the beta fermentation ingredient map/planner when MaidCookManager is wired.
  */
 public class FermentationRecSerializerManager extends FluidRecSerializerManager<FermentationRecipe<?>> {
@@ -146,6 +148,10 @@ public class FermentationRecSerializerManager extends FluidRecSerializerManager<
         for (RecipeHolder<FermentationRecipe<?>> holder : holders) {
             FermentationRecipe<?> recipe = holder.value();
             if (!(recipe instanceof SimpleFermentationRecipe fermentationRecipe)) continue;
+            // YHC 3.0.6's native tank constructor has a fixed 1000mB capacity. Its matcher
+            // requires exactly outputFluid.amount for fluid recipes, so larger recipes cannot
+            // execute on this registered device and must not reserve/partially consume inputs.
+            if (!fermentationRecipe.inputFluid.isEmpty() && fermentationRecipe.outputFluid.getAmount() > 1000) continue;
 
             // 输入的流体
             FluidIngredient fluidIn = fermentationRecipe.inputFluid;
@@ -158,8 +164,9 @@ public class FermentationRecSerializerManager extends FluidRecSerializerManager<
                             for (Pair<ItemStack, Integer> fluidStackPair : itemStacks) {
                                 ItemStack outputFluidItem = fluidStackPair.getFirst().copy();
                                 int amount = fluidStackPair.getSecond();
-                                int amountTotal = fluidStack.getAmount();
-                                outputFluidItem.setCount(Math.max(1, (amountTotal + amount - 1) / amount));
+                                int amountTotal = fermentationRecipe.outputFluid.getAmount() > 0 ? fermentationRecipe.outputFluid.getAmount() : 1000;
+                                if (amountTotal % amount != 0) continue;
+                                outputFluidItem.setCount(amountTotal / amount);
 
                                 if (fluidItems.stream().noneMatch(itemStack -> itemStack.is(outputFluidItem.getItem()) && itemStack.getCount() == outputFluidItem.getCount())) {
                                     fluidItems.add(outputFluidItem);

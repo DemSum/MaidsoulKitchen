@@ -36,6 +36,109 @@ public final class CookingArchitectureGameTests {
     private static ResourceLocation id(String name) { return ResourceLocation.fromNamespaceAndPath(MaidsoulKitchen.MOD_ID, name); }
 
     @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID, batch = "cooking_architecture")
+    public static void nativeFermentationUsesExactHalfTankVolume(GameTestHelper helper) {
+        var level = helper.getLevel(); var original = List.copyOf(level.getRecipeManager().getRecipes());
+        var maid = helper.spawnWithNoFreeWill(InitEntities.MAID.get(), new net.minecraft.core.BlockPos(1, 1, 1)); maid.setNoAi(true);
+        try {
+            var sake = (dev.xkmc.youkaishomecoming.content.item.fluid.SakeFluid) net.minecraft.core.registries.BuiltInRegistries.FLUID.stream()
+                    .filter(fluid -> fluid instanceof dev.xkmc.youkaishomecoming.content.item.fluid.SakeFluid candidate && candidate.getSource() == fluid && candidate.type.amount() == 250).findFirst().orElseThrow();
+            var recipe = new dev.xkmc.youkaishomecoming.content.pot.ferment.SimpleFermentationRecipe();
+            recipe.inputFluid = net.neoforged.neoforge.fluids.crafting.FluidIngredient.of(new net.neoforged.neoforge.fluids.FluidStack(sake, 1000));
+            recipe.outputFluid = new net.neoforged.neoforge.fluids.FluidStack(sake, 500); recipe.time = 2;
+            recipe.results = new java.util.ArrayList<>(List.of(new ItemStack(Items.DRIED_KELP)));
+            var holder = new RecipeHolder<>(id("native_half_fermentation"), recipe);
+            var oversized = new dev.xkmc.youkaishomecoming.content.pot.ferment.SimpleFermentationRecipe();
+            oversized.inputFluid = net.neoforged.neoforge.fluids.crafting.FluidIngredient.of(net.minecraft.world.level.material.Fluids.WATER);
+            oversized.outputFluid = new net.neoforged.neoforge.fluids.FluidStack(sake, 4000);
+            var oversizedHolder = new RecipeHolder<>(id("impossible_native_capacity"), oversized);
+            reloadRecipes(helper, List.of(holder, oversizedHolder));
+            var task = new com.github.wallev.maidsoulkitchen.task.cook.youkaishomecoming.ferment.TaskYhcFermentationTank(); maid.setTask(task);
+            helper.assertTrue(task.getRecSerializerManager().getRecipes(level).stream().noneMatch(description -> description.id().equals(oversizedHolder.id())),
+                    "the registered native 1000mB tank must not plan a physically impossible 4000mB recipe");
+            KitchenData.get(maid).setCookData(task.getUid(), new CookData("whitelist", List.of(holder.id().toString()), List.of()));
+            var input = maid.getAvailableInv(true);
+            for (int slot = 0; slot < input.getSlots(); slot++) input.setStackInSlot(slot, ItemStack.EMPTY);
+            var filled = sake.type.asStack(2); filled.set(DataComponents.CUSTOM_NAME, Component.literal("half-tank fluid components")); input.setStackInSlot(0, filled);
+            var cm = task.getRecipesManager(maid); cm.checkAndCreateRecipesIngredients(); finishPlanning(cm);
+            var rec = cm.peekMaidRec();
+            helper.assertTrue(rec != null && rec.maidItems().size() == 1 && rec.maidItems().getFirst().role() == MaidItem.Role.FLUID && rec.maidItems().getFirst().count() == 2,
+                    "the native exact 500mB requirement must reserve two 250mB bottles, independently of the ingredient's representative 1000mB stack");
+            helper.setBlock(new net.minecraft.core.BlockPos(2, 1, 2), dev.xkmc.youkaishomecoming.init.registrate.YHBlocks.FERMENT.get());
+            var tank = (dev.xkmc.youkaishomecoming.content.pot.ferment.FermentationTankBlockEntity) helper.getBlockEntity(new net.minecraft.core.BlockPos(2, 1, 2));
+            var be = new com.github.wallev.maidsoulkitchen.task.cook.youkaishomecoming.ferment.FermentationCookBe(maid); be.setBe(tank);
+            boolean inserted = be.insertInputs(rec, cm);
+            helper.assertTrue(inserted && be.recMatch() && be.getFluidStack().getAmount() == 500 && cm.commitMaidRec(rec)
+                    && CookInventoryTransactions.count(input, stack -> stack.is(sake.type.getContainer())) == 2,
+                    "native half-tank fluid-only work must accept both physical component-bearing bottles and return both actual containers: inserted=" + inserted
+                            + ", fluid=" + be.getFluidStack() + ", matching=" + be.recMatch() + ", containers=" + CookInventoryTransactions.count(input, stack -> stack.is(sake.type.getContainer()))
+                            + ", pending=" + cm.getMaidRecs().size() + ", source=" + input.getStackInSlot(0)
+                            + ", expected=" + net.minecraft.core.registries.BuiltInRegistries.FLUID.getKey(sake)
+                            + ", predicate=" + recipe.inputFluid.test(be.getFluidStack())
+                            + ", nativeMatch=" + recipe.matches(new dev.xkmc.youkaishomecoming.content.pot.ferment.FermentationDummyContainer(tank.items, tank.fluids), level));
+            for (int i = 0; i < 4; i++) tank.tick();
+            helper.assertTrue(be.hasResult() && be.getFluidStack().getAmount() == 500, "native half-tank processing must preserve volume and create its own actual result");
+        } finally { reloadRecipes(helper, original); maid.discard(); }
+        helper.succeed();
+    }
+
+    @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID, batch = "cooking_architecture")
+    public static void nativeFermentationAcceptsBothInputsAndRealOutputs(GameTestHelper helper) {
+        var level = helper.getLevel(); var original = List.copyOf(level.getRecipeManager().getRecipes());
+        var maid = helper.spawnWithNoFreeWill(InitEntities.MAID.get(), new net.minecraft.core.BlockPos(1, 1, 1)); maid.setNoAi(true);
+        try {
+            var task = new com.github.wallev.maidsoulkitchen.task.cook.youkaishomecoming.ferment.TaskYhcFermentationTank(); maid.setTask(task);
+            var sake = (dev.xkmc.youkaishomecoming.content.item.fluid.SakeFluid) net.minecraft.core.registries.BuiltInRegistries.FLUID.stream()
+                    .filter(fluid -> fluid instanceof dev.xkmc.youkaishomecoming.content.item.fluid.SakeFluid candidate && candidate.getSource() == fluid).findFirst().orElseThrow();
+            var recipe = new dev.xkmc.youkaishomecoming.content.pot.ferment.SimpleFermentationRecipe();
+            recipe.ingredients = new java.util.ArrayList<>(List.of(Ingredient.of(Items.CARROT)));
+            recipe.inputFluid = net.neoforged.neoforge.fluids.crafting.FluidIngredient.of(new net.neoforged.neoforge.fluids.FluidStack(net.minecraft.world.level.material.Fluids.WATER, 1000));
+            recipe.outputFluid = new net.neoforged.neoforge.fluids.FluidStack(sake, 1000);
+            recipe.results = new java.util.ArrayList<>(List.of(new ItemStack(Items.DRIED_KELP), new ItemStack(Items.COOKED_BEEF))); recipe.time = 2;
+            var holder = new RecipeHolder<>(id("native_fermentation"), recipe); reloadRecipes(helper, List.of(holder));
+            KitchenData.get(maid).setCookData(task.getUid(), new CookData("whitelist", List.of(holder.id().toString()), List.of()));
+            maid.getMaidBauble().setStackInSlot(0, com.github.wallev.maidsoulkitchen.init.MkItems.CULINARY_HUB.get().getDefaultInstance());
+            var cm = task.getRecipesManager(maid); cm.checkAndInit();
+            cm.getInputInv().setStackInSlot(0, new ItemStack(Items.WATER_BUCKET)); cm.getInputInv().setStackInSlot(1, new ItemStack(Items.CARROT)); cm.syncInv();
+            cm.checkAndCreateRecipesIngredients(); finishPlanning(cm);
+            helper.setBlock(new net.minecraft.core.BlockPos(2, 1, 2), dev.xkmc.youkaishomecoming.init.registrate.YHBlocks.FERMENT.get());
+            var tank = (dev.xkmc.youkaishomecoming.content.pot.ferment.FermentationTankBlockEntity) helper.getBlockEntity(new net.minecraft.core.BlockPos(2, 1, 2));
+            var be = new com.github.wallev.maidsoulkitchen.task.cook.youkaishomecoming.ferment.FermentationCookBe(maid); be.setBe(tank);
+            var rec = cm.peekMaidRec();
+            helper.assertTrue(rec != null && rec.maidItems().stream().anyMatch(material -> material.role() == MaidItem.Role.FLUID && material.count() == 1), "native fluid work must retain its physical fluid-container requirement");
+            boolean inserted = be.insertInputs(rec, cm);
+            helper.assertTrue(inserted && be.recMatch() && cm.commitMaidRec(rec)
+                    && !tank.getBlockState().getValue(dev.xkmc.youkaishomecoming.content.pot.ferment.FermentationTankBlock.OPEN)
+                    && CookInventoryTransactions.count(cm.getInputInv(), stack -> stack.is(Items.BUCKET)) == 1,
+                    "fermentation may close and commit only after real tank and item acceptance, returning one actual input bucket: inserted=" + inserted
+                            + ", matching=" + be.recMatch() + ", fluid=" + be.getFluidStack() + ", item0=" + tank.items.getItem(0) + ", progress=" + tank.inProgress()
+                            + ", buckets=" + CookInventoryTransactions.count(cm.getInputInv(), stack -> stack.is(Items.BUCKET)) + ", pending=" + cm.getMaidRecs().size());
+            for (int i = 0; i < 6; i++) tank.tick();
+            helper.assertTrue(be.hasResult() && CookInventoryTransactions.count(be.getInv(), stack -> stack.is(Items.DRIED_KELP) || stack.is(Items.COOKED_BEEF)) == 2 && be.getFluidStack().getFluid() == sake,
+                    "native fermentation, not a duplicate processor, must produce both solid and fluid results: items=" + tank.items.getAsList()
+                            + ", fluid=" + be.getFluidStack() + ", progress=" + tank.inProgress() + ", matching=" + be.recMatch() + ", open=" + tank.getBlockState().getValue(dev.xkmc.youkaishomecoming.content.pot.ferment.FermentationTankBlock.OPEN));
+            var output = cm.getOutputInv();
+            for (int slot = 0; slot < output.getSlots(); slot++) output.setStackInSlot(slot, new ItemStack(Items.DIRT, 64));
+            cm.getInputInv().setStackInSlot(2, sake.type.getContainer().getDefaultInstance().copyWithCount(1000 / sake.type.amount())); cm.syncInv();
+            var rule = com.github.wallev.maidsoulkitchen.task.cook.common.rule.cook.FluidPotCookRule2.getInstance(); rule.cookMake(be, cm);
+            helper.assertTrue(CookInventoryTransactions.count(be.getInv(), stack -> stack.is(Items.DRIED_KELP) || stack.is(Items.COOKED_BEEF)) == 2 && be.getFluidStack().getAmount() == 1000, "full output must retain native solid and fluid results in the device");
+            output.setStackInSlot(0, new ItemStack(Items.DRIED_KELP, 63)); rule.cookMake(be, cm);
+            helper.assertTrue(be.getResult().is(Items.COOKED_BEEF) && output.getStackInSlot(0).getCount() == 64,
+                    "partial solid capacity must move only one real result and never redirect the remainder into input");
+            output.setStackInSlot(1, ItemStack.EMPTY); output.setStackInSlot(2, ItemStack.EMPTY); rule.cookMake(be, cm);
+            helper.assertTrue(!be.hasResult() && be.getFluidStack().getAmount() == 1000 - sake.type.amount()
+                    && CookInventoryTransactions.count(output, stack -> ItemStack.isSameItemSameComponents(stack, sake.type.asStack(1))) == 1,
+                    "native Sake output placed in FakePlayer inventory must reach output once without a manufactured fallback");
+            for (int slot = 3; slot < output.getSlots(); slot++) output.setStackInSlot(slot, ItemStack.EMPTY);
+            for (int visit = 0; visit < 32 && be.hasFluid(); visit++) rule.cookMake(be, cm);
+            helper.assertTrue(!be.hasFluid() && CookInventoryTransactions.count(output, stack -> ItemStack.isSameItemSameComponents(stack, sake.type.asStack(1))) == 1000 / sake.type.amount(),
+                    "repeated visits must bottle each remaining native portion once and retain no unclaimed fluid");
+            var fake = ((com.github.wallev.maidsoulkitchen.entity.passive.IAddonMaid) maid).tlmk$getFakePlayer().get();
+            helper.assertTrue(fake.getInventory().isEmpty() && fake.getMainHandItem().isEmpty(), "native temporary player storage must retain no duplicate or unclaimed output");
+        } finally { reloadRecipes(helper, original); maid.discard(); }
+        helper.succeed();
+    }
+
+    @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID, batch = "cooking_architecture")
     public static void nativeKettleReplenishesThroughOwnedTransactions(GameTestHelper helper) {
         var maid = helper.spawnWithNoFreeWill(InitEntities.MAID.get(), new net.minecraft.core.BlockPos(1, 1, 1)); maid.setNoAi(true);
         try {

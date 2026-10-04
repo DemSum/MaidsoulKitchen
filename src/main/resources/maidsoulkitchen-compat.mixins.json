@@ -18,6 +18,7 @@
     "touhoulittlemaid.EntityMaidMixin",
     "touhoulittlemaid.MaidRunOneMixin",
     "youkaishomecoming.BasePotBlockEntityMixin",
-    "youkaishomecoming.KettleBlockMixin"
+    "youkaishomecoming.KettleBlockMixin",
+    "youkaishomecoming.FermentationDummyContainerMixin"
   ]
 }

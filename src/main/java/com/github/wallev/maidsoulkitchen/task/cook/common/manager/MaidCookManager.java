@@ -417,8 +417,15 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
      * plan; device leftovers remain visible for the Rule's next cleanup. No shadow work state survives.
      */
     public boolean insertInputs(MaidRec rec, IItemHandlerModifiable device, int start, int size) {
+        return insertInputs(rec, device, start, size, false);
+    }
+
+    /** Source CookBeBase.insertFluidItems -> insertInputs ordering. The native fluid Be confirms
+     * its tank before excluding already accepted FLUID materials from the item-slot transaction;
+     * ordinary device callers cannot silently skip a planned fluid requirement. */
+    public boolean insertInputs(MaidRec rec, IItemHandlerModifiable device, int start, int size, boolean fluidPrepared) {
         List<MaidItem> materials = rec == null ? List.of() : rec.maidItems().stream()
-                .filter(material -> material.role() != MaidItem.Role.TOOL).toList();
+                .filter(material -> material.role() != MaidItem.Role.TOOL && !(fluidPrepared && material.role() == MaidItem.Role.FLUID)).toList();
         if (!checkAndInit() || rec == null || !maidRecs.contains(rec) || runState != 0
                 || rec.resolve(level.getRecipeManager(), task.getUid(), generation).isEmpty()
                 || materials.size() > size) return false;
@@ -488,7 +495,16 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
      * (including containers or partial failure), not a speculative refund of the original input.
      * A consuming interaction is not itself recipe acceptance; the device verifies its native state. */
     public boolean useItem(GatherResult source, BlockPos pos) {
+        return useItem(source, pos, getInputInv(), null);
+    }
+
+    /** Source fluid insert/useItem output-container path. A pending work identity acknowledges
+     * only its own physical transfers until Be confirms all inputs. Native fermentation can put
+     * filled bottles in FakePlayer inventory rather than its hand; transfer those actual stacks
+     * instead of manufacturing a replacement bottle as the beta fallback did. */
+    public boolean useItem(GatherResult source, BlockPos pos, IItemHandler destination, MaidRec work) {
         if (source.isFail() || !level.isLoaded(pos)) return false;
+        if (work != null && peekMaidRec() != work) return false;
         var fakePlayer = ((com.github.wallev.maidsoulkitchen.entity.passive.IAddonMaid) maid).tlmk$getFakePlayer();
         if (fakePlayer == null || fakePlayer.get() == null) return false;
         ItemStack preview = source.getItemHandler().extractItem(source.getSlot(), 1, true);
@@ -499,8 +515,14 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
             syncInv(); invalidate(); return false;
         }
         var outcome = com.github.wallev.maidsoulkitchen.entity.passive.IAddonMaid.tryInteractUseOnBlockWithItem(maid, pos, extracted);
-        CookInventoryTransactions.returnOrDrop(getInputInv(), source.backItemStack(outcome.remainder()), maid);
-        syncInv();
+        if (ItemStack.isSameItemSameComponents(extracted, outcome.remainder()))
+            CookInventoryTransactions.returnOrDrop(getInputInv(), source.backItemStack(outcome.remainder()), maid);
+        else CookInventoryTransactions.returnOrDrop(destination, outcome.remainder(), maid);
+        var nativeInventory = fakePlayer.get().getInventory();
+        for (int slot = 0; slot < nativeInventory.getContainerSize(); slot++)
+            CookInventoryTransactions.returnOrDrop(destination, nativeInventory.removeItemNoUpdate(slot), maid);
+        if (work == null) syncInv();
+        else { cookInv.syncInv(); cookInv.refreshInv(); }
         return outcome.result().consumesAction();
     }
 
