@@ -2,7 +2,7 @@ package com.github.wallev.maidsoulkitchen.api.task.v2;
 
 import com.github.wallev.maidsoulkitchen.task.cook.common.cbaccessor.IFdCbeAccessor;
 import com.github.wallev.maidsoulkitchen.task.cook.common.action.IMaidAction;
-import com.github.wallev.maidsoulkitchen.task.cook.common.inventory.MaidRecipesManager;
+import com.github.wallev.maidsoulkitchen.task.cook.common.manager.MaidCookManager;
 import com.github.tartaricacid.touhoulittlemaid.entity.passive.EntityMaid;
 import com.mojang.datafixers.util.Pair;
 import net.minecraft.world.item.ItemStack;
@@ -43,11 +43,11 @@ public interface IBaseCook<B extends BlockEntity, R extends Recipe<? extends Rec
      * 女仆移动至厨具的条件:
      * 厨具内最可以去除最终物品
      */
-    default <T extends IBeInv<B>> boolean outputCanMoveTo(T inventoryHandler, EntityMaid maid, B be, MaidRecipesManager<R> maidRecManager){
+    default <T extends IBeInv<B>> boolean outputCanMoveTo(T inventoryHandler, EntityMaid maid, B be, MaidCookManager<R> maidRecManager){
         return !getStackInBeSlot(be, getOutputSlot()).isEmpty();
     }
 
-    default <T extends IBeInv<B>> boolean outputCanMoveTo(EntityMaid maid, B be, MaidRecipesManager<R> maidRecManager){
+    default <T extends IBeInv<B>> boolean outputCanMoveTo(EntityMaid maid, B be, MaidCookManager<R> maidRecManager){
         return !getStackInBeSlot(be, getOutputSlot()).isEmpty();
     }
 
@@ -55,27 +55,27 @@ public interface IBaseCook<B extends BlockEntity, R extends Recipe<? extends Rec
      * 女仆移动至厨具的条件:
      * 厨具内的原料不符很配方和女仆身上有对应配方的原料
      */
-    default <T extends IBeInv<B>> boolean beCookCanMoveTo(T inventoryHandler, EntityMaid maid, B be, MaidRecipesManager<R> maidRecManager){
-        return !beInnerCanCook(be, inventoryHandler) && !maidRecManager.getRecipesIngredients().isEmpty();
+    default <T extends IBeInv<B>> boolean beCookCanMoveTo(T inventoryHandler, EntityMaid maid, B be, MaidCookManager<R> maidRecManager){
+        return !beInnerCanCook(be, inventoryHandler) && !maidRecManager.getMaidRecs().isEmpty();
     }
 
     /**
      * 女仆移动至厨具的条件:
      * 厨具内的原料不符很配方和女仆身上有对应配方的原料
      */
-    default boolean beCookCanMoveTo(boolean innerBeCanCook, EntityMaid maid, B be, MaidRecipesManager<R> maidRecManager){
-        return !innerBeCanCook && !maidRecManager.getRecipesIngredients().isEmpty();
+    default boolean beCookCanMoveTo(boolean innerBeCanCook, EntityMaid maid, B be, MaidCookManager<R> maidRecManager){
+        return !innerBeCanCook && !maidRecManager.getMaidRecs().isEmpty();
     }
 
-//    default boolean beCookCanMoveTo(EntityMaid maid, B be, MaidRecipesManager<R> maidRecManager){
-//        return !beInnerCanCook(be, inventoryHandler) && !maidRecManager.getRecipesIngredients().isEmpty();
+//    default boolean beCookCanMoveTo(EntityMaid maid, B be, MaidCookManager<R> maidRecManager){
+//        return !beInnerCanCook(be, inventoryHandler) && !maidRecManager.getMaidRecs().isEmpty();
 //    }
 
     /**
      * 女仆移动至厨具的条件:
      * 厨具内有原料但不符合配方
      */
-    default <T extends IBeInv<B>> boolean beInputCanMoveTo(T inventoryHandler, EntityMaid maid, B be, MaidRecipesManager<R> maidRecManager){
+    default <T extends IBeInv<B>> boolean beInputCanMoveTo(T inventoryHandler, EntityMaid maid, B be, MaidCookManager<R> maidRecManager){
         return hasInput(be) && !beInnerCanCook(be, inventoryHandler);
     }
 
@@ -83,7 +83,7 @@ public interface IBaseCook<B extends BlockEntity, R extends Recipe<? extends Rec
      * 女仆移动至厨具的条件:
      * 厨具内有原料但不符合配方
      */
-    default boolean beInputCanMoveTo(boolean innerBeCanCook, EntityMaid maid, B be, MaidRecipesManager<R> maidRecManager){
+    default boolean beInputCanMoveTo(boolean innerBeCanCook, EntityMaid maid, B be, MaidCookManager<R> maidRecManager){
         return hasInput(be) && !innerBeCanCook;
     }
 
@@ -117,7 +117,7 @@ public interface IBaseCook<B extends BlockEntity, R extends Recipe<? extends Rec
      * 女仆操作厨具:
      * 取出最终物品
      */
-    default <T extends IBeInv<B>> void extractOutputMake(T inventoryHandler, EntityMaid maid, CombinedInvWrapper availableInv, B be, MaidRecipesManager<R> maidRecManager) {
+    default <T extends IBeInv<B>> void extractOutputMake(T inventoryHandler, EntityMaid maid, CombinedInvWrapper availableInv, B be, MaidCookManager<R> maidRecManager) {
         if (outputCanMoveTo(inventoryHandler, maid, be, maidRecManager)) {
             extractOutputStack(availableInv, be);
         }
@@ -128,7 +128,7 @@ public interface IBaseCook<B extends BlockEntity, R extends Recipe<? extends Rec
      * 厨具内份原料不符合配方时，取出原料
      * 身上有符合配方的原料时，放入原料
      */
-    default <T extends IBeInv<B>> void extractAndInsertInputMake(T inventoryHandler, EntityMaid maid, CombinedInvWrapper availableInv, B be, MaidRecipesManager<R> maidRecManager) {
+    default <T extends IBeInv<B>> void extractAndInsertInputMake(T inventoryHandler, EntityMaid maid, CombinedInvWrapper availableInv, B be, MaidCookManager<R> maidRecManager) {
         if (!beInputCanMoveTo(inventoryHandler, maid, be, maidRecManager)) return;
         extractInputsStack(availableInv, be);
 

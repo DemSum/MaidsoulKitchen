@@ -1,7 +1,7 @@
 package com.github.wallev.maidsoulkitchen.task.cook.common.ai;
 
 import com.github.wallev.maidsoulkitchen.api.task.v1.cook.ICookTask;
-import com.github.wallev.maidsoulkitchen.task.cook.common.inventory.MaidRecipesManager;
+import com.github.wallev.maidsoulkitchen.task.cook.common.manager.MaidCookManager;
 import com.github.tartaricacid.touhoulittlemaid.entity.passive.EntityMaid;
 import com.github.wallev.maidsoulkitchen.init.MkMemories;
 import com.google.common.collect.ImmutableMap;
@@ -15,9 +15,9 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 
 public class MaidCookMakeTask<B extends BlockEntity, R extends Recipe<? extends RecipeInput>> extends Behavior<EntityMaid> {
     private final ICookTask<B, R> task;
-    private final MaidRecipesManager<R> maidRecipesManager;
+    private final MaidCookManager<R> maidRecipesManager;
 
-    public MaidCookMakeTask(ICookTask<B, R> task,MaidRecipesManager<R> maidRecipesManager) {
+    public MaidCookMakeTask(ICookTask<B, R> task,MaidCookManager<R> maidRecipesManager) {
         super(ImmutableMap.of(MkMemories.WORK_POS.get(), MemoryStatus.VALUE_PRESENT));
         this.task = task;
         this.maidRecipesManager = maidRecipesManager;

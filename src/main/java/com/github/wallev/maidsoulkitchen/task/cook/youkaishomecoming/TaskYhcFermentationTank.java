@@ -6,7 +6,7 @@ import com.github.wallev.maidsoulkitchen.entity.passive.IAddonMaid;
 import com.github.wallev.maidsoulkitchen.init.touhoulittlemaid.DataRegister;
 import com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskClassAnalyzer;
 import com.github.wallev.maidsoulkitchen.task.TaskInfo;
-import com.github.wallev.maidsoulkitchen.task.cook.common.inventory.MaidRecipesManager;
+import com.github.wallev.maidsoulkitchen.task.cook.common.manager.MaidCookManager;
 import com.github.wallev.maidsoulkitchen.task.cook.common.inventory.CookInventoryTransactions;
 import com.github.tartaricacid.touhoulittlemaid.api.entity.data.TaskDataKey;
 import com.github.tartaricacid.touhoulittlemaid.entity.passive.EntityMaid;
@@ -54,12 +54,7 @@ import static dev.xkmc.youkaishomecoming.content.pot.ferment.FermentationTankBlo
 @TaskClassAnalyzer(com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskInfo.YHC_FERMENTATION_TANK)
 public class TaskYhcFermentationTank implements ICookTask<FermentationTankBlockEntity, FermentationRecipe<?>> {
     // 配方所需的流体对应的itemStacks和原材料
-    protected static final Map<SimpleFermentationRecipe, MaidFermentationRecipe> FERMENTATION_RECIPE_INGREDIENTS = new HashMap<>();
     // 流体容器
-    protected static final Map<Fluid, List<ItemStack>> FLUID_CONTAINERS = new HashMap<>();
-
-    protected static final List<RecipeHolder<FermentationRecipe<?>>> FERMENTATION_RECIPES = new ArrayList<>();
-    private static long fermentationRecipeFingerprint = Long.MIN_VALUE;
 
     @Override
     public TaskDataKey<CookData> getCookDataKey() {
@@ -77,106 +72,13 @@ public class TaskYhcFermentationTank implements ICookTask<FermentationTankBlockE
     }
 
     @Override
-    public MaidRecipesManager<FermentationRecipe<?>> getRecipesManager(EntityMaid maid) {
-        return new MaidRecipesManager<>(maid, this, true) {
-            @Override
-            protected Pair<List<Integer>, List<Item>> getAmountIngredient(FermentationRecipe<?> recipe, Map<Item, Integer> available) {
-                MaidFermentationRecipe maidKettleRecipe = FERMENTATION_RECIPE_INGREDIENTS.get((SimpleFermentationRecipe) recipe);
-                List<Item> invIngredient = new ArrayList<>();
-                Map<Item, Integer> itemTimes = new HashMap<>();
-
-                if (maidKettleRecipe == null) {
-                    int a = 1;
-                    return Pair.of(new ArrayList<>(), new ArrayList<>());
-                }
-
-                // 流体
-                boolean hasFluidItem = false;
-                int fluidItemAmount = 0;
-                Item fluidItem = ItemStack.EMPTY.getItem();
-                for (ItemStack ingredient : maidKettleRecipe.inFluids()) {
-                    boolean hasIngredient = false;
-                    for (Item item : available.keySet()) {
-                        if (ingredient.is(item) && available.get(item) >= ingredient.getCount()) {
-                            invIngredient.add(item);
-                            hasIngredient = true;
-
-                            if (item.getMaxStackSize(item.getDefaultInstance()) == 1) {
-                                itemTimes.put(item, 1);
-                            } else {
-                                itemTimes.merge(item, 1, Integer::sum);
-                            }
-
-                            fluidItemAmount = ingredient.getCount();
-                            fluidItem = item;
-
-                            break;
-                        }
-                    }
-
-                    if (hasIngredient) {
-                        hasFluidItem = true;
-                        break;
-                    }
-                }
-                if (!maidKettleRecipe.inFluids().isEmpty() && !hasFluidItem) {
-                    return Pair.of(Collections.emptyList(), Collections.emptyList());
-                }
-
-                // 原材料
-                for (Ingredient ingredient : maidKettleRecipe.inItems()) {
-                    boolean hasIngredient = false;
-                    for (Item item : available.keySet()) {
-                        ItemStack stack = item.getDefaultInstance();
-                        if (ingredient.test(stack)) {
-                            invIngredient.add(item);
-                            hasIngredient = true;
-
-                            if (stack.getMaxStackSize() == 1) {
-                                itemTimes.put(item, 1);
-                            } else {
-                                itemTimes.merge(item, 1, Integer::sum);
-                            }
-
-                            break;
-                        }
-                    }
-
-                    if (!hasIngredient) {
-                        return Pair.of(Collections.emptyList(), Collections.emptyList());
-                    }
-                }
-
-                // 检查是否缺少材料
-                if (itemTimes.entrySet().stream().anyMatch(entry -> available.get(entry.getKey()) < entry.getValue())) {
-                    return Pair.of(Collections.emptyList(), Collections.emptyList());
-                }
-
-                // 计算最大合成次数
-                int maxCount = 1;
-
-                // 计算每个物品的数量
-                List<Integer> countList = new ArrayList<>();
-                if (!maidKettleRecipe.inFluids().isEmpty()) {
-                    countList.add(0, fluidItemAmount);
-                    available.put(fluidItem, available.get(fluidItem) - fluidItemAmount);
-                } else {
-                    countList.add(0, 0);
-                    invIngredient.add(0, ItemStack.EMPTY.getItem());
-                }
-                for (Item item : invIngredient.stream().skip(1).toList()) {
-                    countList.add(maxCount);
-                    available.put(item, available.get(item) - maxCount);
-                }
-
-                return Pair.of(countList, invIngredient);
-            }
-        };
+    public com.github.wallev.maidsoulkitchen.task.cook.common.rule.rec.RecSerializerManager<FermentationRecipe<?>> getRecSerializerManager() {
+        return com.github.wallev.maidsoulkitchen.task.cook.youkaishomecoming.ferment.FermentationRecSerializerManager.getInstance();
     }
 
     @SuppressWarnings("all")
     @Override
-    public boolean shouldMoveTo(ServerLevel serverLevel, EntityMaid maid, FermentationTankBlockEntity blockEntity, MaidRecipesManager<FermentationRecipe<?>> recManager) {
+    public boolean shouldMoveTo(ServerLevel serverLevel, EntityMaid maid, FermentationTankBlockEntity blockEntity, MaidCookManager<FermentationRecipe<?>> recManager) {
         // 发酵桶是否在发酵
         FermentationDummyContainer cont = new FermentationDummyContainer(blockEntity.items, blockEntity.fluids);
         Optional<FermentationRecipe<?>> beRecipe = maid.level.getRecipeManager().getRecipeFor((RecipeType) YHBlocks.FERMENT_RT.get(), cont, maid.level);
@@ -191,7 +93,7 @@ public class TaskYhcFermentationTank implements ICookTask<FermentationTankBlockE
                 ItemStack outputFluidContainers = sakeFluid.type.getContainer().getDefaultInstance();
                 hasFluidContainer = recManager.hasOutputAdditionItem(itemStack -> itemStack.is(outputFluidContainers.getItem()));
             } else {
-                List<ItemStack> outputFluidContainers = FLUID_CONTAINERS.getOrDefault(fluid, Collections.emptyList());
+                List<ItemStack> outputFluidContainers = com.github.wallev.maidsoulkitchen.task.cook.youkaishomecoming.ferment.FermentationRecSerializerManager.getInstance().fluidContainer(fluid);
                 hasFluidContainer = recManager.hasOutputAdditionItem(itemStack -> outputFluidContainers.stream().anyMatch(stack -> stack.is(itemStack.getItem())));
             }
 
@@ -207,7 +109,7 @@ public class TaskYhcFermentationTank implements ICookTask<FermentationTankBlockE
 
         // 发酵桶没有在发酵并且有配方原材料
         if (fluidInTank.isEmpty() && blockEntity.items.isEmpty() && beRecipe.isEmpty() && blockEntity.inProgress() == 0) {
-            if (!recManager.getRecipesIngredients().isEmpty()) {
+            if (!recManager.getMaidRecs().isEmpty()) {
                 return true;
             }
         }
@@ -217,7 +119,7 @@ public class TaskYhcFermentationTank implements ICookTask<FermentationTankBlockE
 
     @SuppressWarnings("all")
     @Override
-    public void processCookMake(ServerLevel serverLevel, EntityMaid maid, FermentationTankBlockEntity blockEntity, MaidRecipesManager<FermentationRecipe<?>> recManager) {
+    public void processCookMake(ServerLevel serverLevel, EntityMaid maid, FermentationTankBlockEntity blockEntity, MaidCookManager<FermentationRecipe<?>> recManager) {
         IItemHandlerModifiable inputInv = recManager.getInputInv();
         IItemHandlerModifiable outputAdditionInv = recManager.getOutputAdditionInv();
         IItemHandlerModifiable outputInv = recManager.getOutputInv();
@@ -239,7 +141,7 @@ public class TaskYhcFermentationTank implements ICookTask<FermentationTankBlockE
                 ItemStack outputFluidContainers = sakeFluid.type.getContainer().getDefaultInstance();
                 fluidContainer = recManager.findOutputAdditionItem(itemStack -> itemStack.is(outputFluidContainers.getItem()));
             } else {
-                List<ItemStack> outputFluidContainers = FLUID_CONTAINERS.getOrDefault(fluid, Collections.emptyList());
+                List<ItemStack> outputFluidContainers = com.github.wallev.maidsoulkitchen.task.cook.youkaishomecoming.ferment.FermentationRecSerializerManager.getInstance().fluidContainer(fluid);
                 fluidContainer = recManager.findOutputAdditionItem(itemStack -> outputFluidContainers.stream().anyMatch(stack -> stack.is(itemStack.getItem())));
             }
 
@@ -296,7 +198,7 @@ public class TaskYhcFermentationTank implements ICookTask<FermentationTankBlockE
 
         // 发酵桶没有在发酵并且有配方原材料
         if (fluidInTank.isEmpty() && blockEntity.items.isEmpty() && beRecipe.isEmpty() && blockEntity.inProgress() == 0) {
-            if (!recManager.getRecipesIngredients().isEmpty()) {
+            if (!recManager.getMaidRecs().isEmpty()) {
                 Pair<List<Integer>, List<List<ItemStack>>> recipeIngredient = recManager.getRecipeIngredient();
 
                 if (recipeIngredient.getFirst().isEmpty()) {
@@ -368,158 +270,17 @@ public class TaskYhcFermentationTank implements ICookTask<FermentationTankBlockE
 
     @Override
     public List<RecipeHolder<FermentationRecipe<?>>> getRecipeHolders(Level level) {
-        List<RecipeHolder<FermentationRecipe<?>>> recipeHolders = ICookTask.super.getRecipeHolders(level);
-        long currentFingerprint = 1L;
-        for (RecipeHolder<FermentationRecipe<?>> holder : recipeHolders) {
-            currentFingerprint = 31L * currentFingerprint + holder.id().hashCode();
-            currentFingerprint = 31L * currentFingerprint + System.identityHashCode(holder.value());
-        }
-        if (currentFingerprint != fermentationRecipeFingerprint) {
-            FERMENTATION_RECIPES.clear();
-            FLUID_CONTAINERS.clear();
-            FERMENTATION_RECIPE_INGREDIENTS.clear();
-
-            List<? extends FermentationRecipe<?>> recipes = recipeHolders.stream().map(RecipeHolder::value).toList();
-
-            Map<Fluid, List<Pair<ItemStack, Integer>>> fluidItems1 = new HashMap<>();
-            Map<Fluid, List<ItemStack>> fluidContainers1 = new HashMap<>();
-
-            for (Fluid fluid : BuiltInRegistries.FLUID) {
-                if (fluid instanceof EmptyFluid) continue;
-
-                ItemStack container = fluid.getBucket().getDefaultInstance().getCraftingRemainingItem();
-                if (!container.isEmpty()) {
-                    if (fluidContainers1.containsKey(fluid)) {
-                        List<ItemStack> itemStacks = fluidContainers1.getOrDefault(fluid, Collections.emptyList());
-                        if (itemStacks.stream().noneMatch(itemStack1 -> itemStack1.is(container.getItem()))) {
-                            itemStacks.add(container);
-                        }
-                    } else {
-                        fluidContainers1.put(fluid, Lists.newArrayList(container));
-                    }
-                }
-            }
-            for (Item item : BuiltInRegistries.ITEM) {
-                if (item instanceof SakeBottleItem sakeBottleItem) {
-                    SakeFluid sakeFluid = sakeBottleItem.getFluid();
-                    IYHSake iyhSake = sakeFluid.type;
-                    Fluid rawFluid = sakeFluid.getSource();
-
-                    if (fluidItems1.containsKey(rawFluid)) {
-                        List<Pair<ItemStack, Integer>> fluidItems2 = fluidItems1.getOrDefault(rawFluid, Collections.emptyList());
-                        if (fluidItems2.stream().noneMatch(pair1 -> pair1.getFirst().is(item))) {
-                            fluidItems1.get(rawFluid).add(Pair.of(item.getDefaultInstance(), iyhSake.amount()));
-                        }
-                    } else {
-                        fluidItems1.put(rawFluid, Lists.newArrayList(Pair.of(item.getDefaultInstance(), iyhSake.amount())));
-                    }
-
-                    ItemStack container = iyhSake.getContainer().getDefaultInstance();
-                    if (!container.isEmpty()) {
-                        if (fluidContainers1.containsKey(rawFluid)) {
-                            List<ItemStack> itemStacks = fluidContainers1.getOrDefault(rawFluid, Collections.emptyList());
-                            if (itemStacks.stream().noneMatch(itemStack1 -> itemStack1.is(container.getItem()))) {
-                                itemStacks.add(container);
-                            }
-                        } else {
-                            fluidContainers1.put(rawFluid, Lists.newArrayList(container));
-                        }
-                    }
-                    continue;
-                }
-
-                ItemStack defaultInstance = item.getDefaultInstance().copy();
-                IFluidHandlerItem iFluidHandlerItem = defaultInstance.getCapability(Capabilities.FluidHandler.ITEM);
-                if (iFluidHandlerItem != null && iFluidHandlerItem instanceof FluidBucketWrapper fluidBucketWrapper) {
-                    FluidStack fluidStack = fluidBucketWrapper.getFluid();
-                    Fluid rawFluid = fluidStack.getFluid();
-
-                    if (!fluidStack.isEmpty() && !(rawFluid instanceof EmptyFluid)) {
-
-                        if (fluidItems1.containsKey(rawFluid)) {
-                            List<Pair<ItemStack, Integer>> fluidItems2 = fluidItems1.getOrDefault(rawFluid, Collections.emptyList());
-                            if (fluidItems2.stream().noneMatch(pair1 -> pair1.getFirst().is(defaultInstance.getItem()))) {
-                                fluidItems1.get(rawFluid).add(Pair.of(defaultInstance, fluidStack.getAmount()));
-                            }
-                        } else {
-                            fluidItems1.put(rawFluid, Lists.newArrayList(Pair.of(defaultInstance, fluidStack.getAmount())));
-                        }
-
-                        ItemStack container = fluidBucketWrapper.getContainer().getCraftingRemainingItem();
-                        if (!container.isEmpty()) {
-                            if (fluidContainers1.containsKey(rawFluid)) {
-                                List<ItemStack> itemStacks = fluidContainers1.getOrDefault(rawFluid, Collections.emptyList());
-                                if (itemStacks.stream().noneMatch(itemStack1 -> itemStack1.is(container.getItem()))) {
-                                    itemStacks.add(container);
-                                }
-                            } else {
-                                fluidContainers1.put(rawFluid, Lists.newArrayList(container));
-                            }
-                        }
-                    }
-                }
-            }
-
-            FLUID_CONTAINERS.putAll(fluidContainers1);
-
-            for (FermentationRecipe<?> recipe : recipes) {
-                SimpleFermentationRecipe fermentationRecipe = (SimpleFermentationRecipe) recipe;
-                // 输入的流体
-                FluidIngredient fluidIn = fermentationRecipe.inputFluid;
-
-                if (fluidIn != null && !fluidIn.isEmpty()) {
-                    List<ItemStack> fluidItems = new ArrayList<>();
-
-                    fluidItems1.forEach((fluid, itemStacks) -> {
-                        for (FluidStack stack : fluidIn.getStacks()) {
-                            if (fluid.isSame(stack.getFluid())) {
-                                for (Pair<ItemStack, Integer> fluidStackPair : itemStacks) {
-                                    ItemStack outputFluidItem = fluidStackPair.getFirst().copy();
-                                    int amount = fluidStackPair.getSecond();
-                                    int amountTotal = stack.getAmount();
-                                    outputFluidItem.setCount(Math.max(1, amountTotal / amount));
-
-                                    if (fluidItems.stream().noneMatch(itemStack -> itemStack.is(outputFluidItem.getItem()) && itemStack.getCount() == outputFluidItem.getCount())) {
-                                        fluidItems.add(outputFluidItem);
-                                    }
-                                }
-                            }
-                        }
-                    });
-
-                    MaidFermentationRecipe maidKegFermentingRecipe = new MaidFermentationRecipe(fluidItems, fermentationRecipe.ingredients);
-                    FERMENTATION_RECIPE_INGREDIENTS.put(fermentationRecipe, maidKegFermentingRecipe);
-                } else {
-                    MaidFermentationRecipe maidKegFermentingRecipe = new MaidFermentationRecipe(Collections.emptyList(), fermentationRecipe.ingredients);
-                    FERMENTATION_RECIPE_INGREDIENTS.put(fermentationRecipe, maidKegFermentingRecipe);
-                }
-            }
-
-            FERMENTATION_RECIPES.addAll(recipeHolders);
-            fermentationRecipeFingerprint = currentFingerprint;
-        }
-
-        return FERMENTATION_RECIPES;
+        return com.github.wallev.maidsoulkitchen.task.cook.youkaishomecoming.ferment.FermentationRecSerializerManager.getInstance().getRecipes(level).stream().map(description -> description.holder()).toList();
     }
 
     @Override
     public NonNullList<Ingredient> getIngredients(Recipe<?> recipe) {
-        SimpleFermentationRecipe fermentationRecipe = (SimpleFermentationRecipe) recipe;
-        NonNullList<Ingredient> ingredinetNonNullList = NonNullList.create();
-
-        MaidFermentationRecipe maidKegRecipe = FERMENTATION_RECIPE_INGREDIENTS.get(fermentationRecipe);
-        if (maidKegRecipe == null) {
-            int a = 1;
-            return ingredinetNonNullList;
-        }
-        if (!maidKegRecipe.inFluids.isEmpty()) {
-            ingredinetNonNullList.add(Ingredient.of(maidKegRecipe.inFluids.stream()));
-        } else {
-            ingredinetNonNullList.add(Ingredient.EMPTY);
-        }
-        ingredinetNonNullList.addAll(maidKegRecipe.inItems());
-
-        return ingredinetNonNullList;
+        NonNullList<Ingredient> ingredients = NonNullList.create();
+        getRecSerializerManager().getRecipeDescription(recipe).ifPresent(description -> {
+            ingredients.add(description.inFluids().isEmpty() ? Ingredient.EMPTY : Ingredient.of(description.inFluids().stream()));
+            description.inItems().forEach(ingredient -> ingredients.add(ingredient.ingredient));
+        });
+        return ingredients;
     }
 
     @Override
@@ -530,8 +291,5 @@ public class TaskYhcFermentationTank implements ICookTask<FermentationTankBlockE
             return sakeFluid.type.asStack(1);
         }
         return Items.AIR.getDefaultInstance();
-    }
-
-    public record MaidFermentationRecipe(List<ItemStack> inFluids, List<Ingredient> inItems) {
     }
 }

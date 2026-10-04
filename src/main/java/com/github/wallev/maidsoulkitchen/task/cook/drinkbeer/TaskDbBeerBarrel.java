@@ -5,7 +5,7 @@ import com.github.wallev.maidsoulkitchen.init.touhoulittlemaid.DataRegister;
 import com.github.wallev.maidsoulkitchen.inventory.tooltip.AmountTooltip;
 import com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskClassAnalyzer;
 import com.github.wallev.maidsoulkitchen.task.TaskInfo;
-import com.github.wallev.maidsoulkitchen.task.cook.common.inventory.MaidRecipesManager;
+import com.github.wallev.maidsoulkitchen.task.cook.common.manager.MaidCookManager;
 import com.github.wallev.maidsoulkitchen.task.cook.common.TaskBaseContainerCook;
 import com.github.tartaricacid.touhoulittlemaid.api.entity.data.TaskDataKey;
 import com.github.tartaricacid.touhoulittlemaid.entity.passive.EntityMaid;
@@ -78,110 +78,12 @@ public class TaskDbBeerBarrel extends TaskBaseContainerCook<BeerBarrelBlockEntit
     }
 
     @Override
-    public MaidRecipesManager<BrewingRecipe> getRecipesManager(EntityMaid maid) {
-        return new MaidRecipesManager<>(maid, this, false){
-            @Override
-            protected Pair<List<Integer>, List<Item>> getAmountIngredient(BrewingRecipe recipe, Map<Item, Integer> available) {
-                List<Ingredient> ingredients = recipe.getIngredients();
-                List<Item> invIngredient = new ArrayList<>();
-                Map<Item, Integer> itemTimes = new HashMap<>();
-                boolean[] canMake = {true};
-                boolean[] single = {false};
-
-                for (Ingredient ingredient : ingredients) {
-                    boolean hasIngredient = false;
-                    for (Item item : available.keySet()) {
-                        ItemStack stack = item.getDefaultInstance();
-                        if (ingredient.test(stack)) {
-                            invIngredient.add(item);
-                            hasIngredient = true;
-
-                            if (stack.getMaxStackSize() == 1) {
-                                single[0] = true;
-                                itemTimes.put(item, 1);
-                            } else {
-                                itemTimes.merge(item, 1, Integer::sum);
-                            }
-
-                            break;
-                        }
-                    }
-
-                    if (!hasIngredient) {
-                        canMake[0] = false;
-                        itemTimes.clear();
-                        invIngredient.clear();
-                        break;
-                    }
-                }
-
-                ItemStack beerCup = recipe.getBeerCup();
-                {
-                    boolean hasIngredient = false;
-                    for (Item item : available.keySet()) {
-                        ItemStack stack = item.getDefaultInstance();
-                        if (beerCup.is(stack.getItem()) && available.getOrDefault(item, 0) >= beerCup.getCount()) {
-                            invIngredient.add(item);
-                            hasIngredient = true;
-
-                            if (stack.getMaxStackSize() == 1) {
-                                single[0] = true;
-                                itemTimes.put(item, 1);
-                            } else {
-                                itemTimes.merge(item, beerCup.getCount(), Integer::sum);
-                            }
-
-                            break;
-                        }
-                    }
-
-                    if (!hasIngredient) {
-                        canMake[0] = false;
-                        itemTimes.clear();
-                        invIngredient.clear();
-                    }
-                }
-
-
-                if (!canMake[0] || invIngredient.stream().anyMatch(item -> available.get(item) <= 0)) {
-                    return Pair.of(Collections.emptyList(), Collections.emptyList());
-                }
-
-                int maxCount = 64;
-                if (single[0] || this.isSingle()) {
-                    maxCount = 1;
-                } else {
-                    for (Item item : itemTimes.keySet()) {
-                        maxCount = Math.min(maxCount, item.getDefaultInstance().getMaxStackSize());
-                        maxCount = Math.min(maxCount, available.get(item) / itemTimes.get(item));
-                    }
-                }
-
-                List<Integer> countList = new ArrayList<>();
-                for (int i = 0; i < invIngredient.size() - 1; i++) {
-                    countList.add(maxCount);
-                    Item item = invIngredient.get(i);
-                    available.put(item, available.get(item) - maxCount);
-                }
-                {
-                    countList.add(beerCup.getCount());
-                    Item item = invIngredient.get(invIngredient.size() - 1);
-                    available.put(item, available.get(item) - maxCount);
-                }
-
-                return Pair.of(countList, invIngredient);
-            }
-
-            @Override
-            protected List<Pair<List<Integer>, List<List<ItemStack>>>> transform(List<Pair<List<Integer>, List<Item>>> oriList, Map<Item, Integer> available ) {
-//                repeat(oriList, available);
-                return super.transform(oriList, available);
-            }
-        };
+    public com.github.wallev.maidsoulkitchen.task.cook.common.rule.rec.RecSerializerManager<BrewingRecipe> getRecSerializerManager() {
+        return com.github.wallev.maidsoulkitchen.task.cook.drinkbeer.beerbarrel.BeerBarrelRecSerializerManager.getInstance();
     }
 
     @Override
-    public boolean maidShouldMoveTo(ServerLevel serverLevel, EntityMaid entityMaid, BeerBarrelBlockEntity blockEntity, MaidRecipesManager<BrewingRecipe> maidRecipesManager) {
+    public boolean maidShouldMoveTo(ServerLevel serverLevel, EntityMaid entityMaid, BeerBarrelBlockEntity blockEntity, MaidCookManager<BrewingRecipe> maidRecipesManager) {
         Container inventory = getContainer(blockEntity);
         if (canTakeOutput(inventory, blockEntity)) {
             return true;
@@ -197,7 +99,7 @@ public class TaskDbBeerBarrel extends TaskBaseContainerCook<BeerBarrelBlockEntit
 
         // 啤酒桶正在酿造时无需重复投料。
         boolean b = DrinkBeerBarrelAdapter.isBrewing(blockEntity);
-        List<Pair<List<Integer>, List<List<ItemStack>>>> recipesIngredients = maidRecipesManager.getRecipesIngredients();
+        var recipesIngredients = maidRecipesManager.getMaidRecs();
         // 空闲或等待取出成品时仍需靠近设备处理库存。
         if (!b && !recipesIngredients.isEmpty()) {
             return true;
@@ -208,7 +110,7 @@ public class TaskDbBeerBarrel extends TaskBaseContainerCook<BeerBarrelBlockEntit
     }
 
     @Override
-    public void maidCookMake(ServerLevel serverLevel, EntityMaid entityMaid, BeerBarrelBlockEntity blockEntity, MaidRecipesManager<BrewingRecipe> maidRecipesManager) {
+    public void maidCookMake(ServerLevel serverLevel, EntityMaid entityMaid, BeerBarrelBlockEntity blockEntity, MaidCookManager<BrewingRecipe> maidRecipesManager) {
         extractOutputStack(getContainer(blockEntity), maidRecipesManager.getOutputInv(), blockEntity);
         extractInputStack(getContainer(blockEntity), maidRecipesManager.getInputInv(), blockEntity);
         tryInsertItem(serverLevel, entityMaid, blockEntity, maidRecipesManager);
@@ -237,7 +139,7 @@ public class TaskDbBeerBarrel extends TaskBaseContainerCook<BeerBarrelBlockEntit
     }
 
     @Override
-    public void tryInsertItem(ServerLevel serverLevel, EntityMaid entityMaid, BeerBarrelBlockEntity blockEntity, MaidRecipesManager<BrewingRecipe> maidRecipesManager) {
+    public void tryInsertItem(ServerLevel serverLevel, EntityMaid entityMaid, BeerBarrelBlockEntity blockEntity, MaidCookManager<BrewingRecipe> maidRecipesManager) {
         if (!DrinkBeerBarrelAdapter.canModifyInputs(blockEntity)) return;
 
         Container inventory = getContainer(blockEntity);

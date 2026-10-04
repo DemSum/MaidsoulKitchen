@@ -4,7 +4,7 @@ import com.github.wallev.maidsoulkitchen.entity.data.inner.task.CookData;
 import com.github.wallev.maidsoulkitchen.init.touhoulittlemaid.DataRegister;
 import com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskClassAnalyzer;
 import com.github.wallev.maidsoulkitchen.task.TaskInfo;
-import com.github.wallev.maidsoulkitchen.task.cook.common.inventory.MaidRecipesManager;
+import com.github.wallev.maidsoulkitchen.task.cook.common.manager.MaidCookManager;
 import com.github.wallev.maidsoulkitchen.task.cook.common.inventory.CookInventoryTransactions;
 import com.github.wallev.maidsoulkitchen.task.cook.common.TaskBaseContainerCook;
 import com.github.tartaricacid.touhoulittlemaid.api.entity.data.TaskDataKey;
@@ -85,7 +85,7 @@ return true;
     // 就直接实时获取配方原料了，而且也因为就一个输入口（燃料不算），运算起来也还行
     // 之前写的，先这样把，找个时间再看看...
     @Override
-    public boolean maidShouldMoveTo(ServerLevel serverLevel, EntityMaid entityMaid, AbstractFurnaceBlockEntity blockEntity, MaidRecipesManager<AbstractCookingRecipe> maidRecipesManager) {
+    public boolean maidShouldMoveTo(ServerLevel serverLevel, EntityMaid entityMaid, AbstractFurnaceBlockEntity blockEntity, MaidCookManager<AbstractCookingRecipe> maidRecipesManager) {
         IItemHandlerModifiable availableInv = maidRecipesManager.getInputInv();
         IItemHandlerModifiable outputInv = maidRecipesManager.getOutputInv();
 
@@ -136,7 +136,7 @@ return true;
 
     private Optional<ItemStack> getAnyCookableItem(EntityMaid maid, IItemHandlerModifiable availableInv,
                                                    RecipeType<? extends AbstractCookingRecipe> recipeType,
-                                                   MaidRecipesManager<AbstractCookingRecipe> recipeManager,
+                                                   MaidCookManager<AbstractCookingRecipe> recipeManager,
                                                    Predicate<ItemStack> predicate) {
         for (int i = 0; i < availableInv.getSlots(); ++i) {
             ItemStack slotStack = availableInv.getStackInSlot(i);
@@ -157,7 +157,7 @@ return true;
     }
 
     @Override
-    public void maidCookMake(ServerLevel serverLevel, EntityMaid entityMaid, AbstractFurnaceBlockEntity blockEntity, MaidRecipesManager<AbstractCookingRecipe> maidRecipesManager) {
+    public void maidCookMake(ServerLevel serverLevel, EntityMaid entityMaid, AbstractFurnaceBlockEntity blockEntity, MaidCookManager<AbstractCookingRecipe> maidRecipesManager) {
         IItemHandlerModifiable availableInv = maidRecipesManager.getInputInv();
         tryExtractItem(blockEntity, entityMaid, maidRecipesManager.getOutputInv());
 
@@ -218,7 +218,7 @@ return true;
 
     private void tryInsertCookable(EntityMaid maid, IItemHandlerModifiable availableInv,
                                    AbstractFurnaceBlockEntity furnace,
-                                   MaidRecipesManager<AbstractCookingRecipe> recipeManager) {
+                                   MaidCookManager<AbstractCookingRecipe> recipeManager) {
         int[] materialSlots = furnace.getSlotsForFace(Direction.UP);
         for (int materialSlot : materialSlots) {
             ItemStack materialSlotStack = furnace.getItem(materialSlot);
@@ -245,7 +245,7 @@ return true;
 
     private Optional<ItemStack> getCookable(EntityMaid maid, IItemHandlerModifiable availableInv,
                                             RecipeType<? extends AbstractCookingRecipe> recipeType,
-                                            MaidRecipesManager<AbstractCookingRecipe> recipeManager) {
+                                            MaidCookManager<AbstractCookingRecipe> recipeManager) {
         for (int i = 0; i < availableInv.getSlots(); ++i) {
             ItemStack slotStack = availableInv.getStackInSlot(i);
             if (getRecipe(maid, slotStack, recipeType)

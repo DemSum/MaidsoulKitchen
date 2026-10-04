@@ -9,7 +9,7 @@ import com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskClassAnalyz
 import com.github.wallev.maidsoulkitchen.task.TaskInfo;
 import com.github.wallev.maidsoulkitchen.task.cook.common.ai.MaidCookMoveTask;
 import com.github.wallev.maidsoulkitchen.task.cook.common.ai.MaidCookPathingTask;
-import com.github.wallev.maidsoulkitchen.task.cook.common.inventory.MaidRecipesManager;
+import com.github.wallev.maidsoulkitchen.task.cook.common.manager.MaidCookManager;
 import com.google.common.collect.Lists;
 import com.mao.barbequesdelight.content.block.GrillBlockEntity;
 import com.mao.barbequesdelight.content.recipe.GrillingRecipe;
@@ -45,7 +45,7 @@ public class TaskBdGrill implements ICookTask<GrillBlockEntity, GrillingRecipe<?
     }
 
     @Override
-    public boolean shouldMoveTo(ServerLevel serverLevel, EntityMaid maid, GrillBlockEntity blockEntity, MaidRecipesManager<GrillingRecipe<?>> recManager) {
+    public boolean shouldMoveTo(ServerLevel serverLevel, EntityMaid maid, GrillBlockEntity blockEntity, MaidCookManager<GrillingRecipe<?>> recManager) {
         boolean innerCanCook = false;
 
         // 取出烤焦的食物
@@ -69,7 +69,7 @@ public class TaskBdGrill implements ICookTask<GrillBlockEntity, GrillingRecipe<?
         }
 
         // 烧烤架没有在烤东西，并且女仆身上有待烧烤的食物
-        if (blockEntity.isHeated() && !innerCanCook && !recManager.getRecipesIngredients().isEmpty()) {
+        if (blockEntity.isHeated() && !innerCanCook && !recManager.getMaidRecs().isEmpty()) {
             return true;
         }
 
@@ -77,7 +77,7 @@ public class TaskBdGrill implements ICookTask<GrillBlockEntity, GrillingRecipe<?
     }
 
     @Override
-    public void processCookMake(ServerLevel serverLevel, EntityMaid maid, GrillBlockEntity blockEntity, MaidRecipesManager<GrillingRecipe<?>> recManager) {
+    public void processCookMake(ServerLevel serverLevel, EntityMaid maid, GrillBlockEntity blockEntity, MaidCookManager<GrillingRecipe<?>> recManager) {
 
     }
 
@@ -87,11 +87,13 @@ public class TaskBdGrill implements ICookTask<GrillBlockEntity, GrillingRecipe<?
             return Collections.emptyList();
         }
 
-        MaidRecipesManager<GrillingRecipe<?>> cookingPotRecipeMaidRecipesManager = getRecipesManager(maid);
-        MaidCookMoveTask<GrillBlockEntity, GrillingRecipe<?>> maidCookMoveTask = new MaidCookMoveTask<>(this, cookingPotRecipeMaidRecipesManager);
-        MaidGrillMakeTask maidGrillMakeTask = new MaidGrillMakeTask(this, cookingPotRecipeMaidRecipesManager);
+        MaidCookManager<GrillingRecipe<?>> cookingPotRecipeMaidCookManager = getRecipesManager(maid);
+        MaidCookMoveTask<GrillBlockEntity, GrillingRecipe<?>> maidCookMoveTask = new MaidCookMoveTask<>(this, cookingPotRecipeMaidCookManager);
+        MaidGrillMakeTask maidGrillMakeTask = new MaidGrillMakeTask(this, cookingPotRecipeMaidCookManager);
         MaidCookPathingTask<GrillBlockEntity, GrillingRecipe<?>> maidCookPathingTask = new MaidCookPathingTask<>(this);
-        return Lists.newArrayList(Pair.of(5, maidCookMoveTask), Pair.of(6, maidGrillMakeTask), Pair.of(7, maidCookPathingTask));
+        return Lists.newArrayList(Pair.of(3, new com.github.wallev.maidsoulkitchen.task.cook.common.ai.CollectChestIngredientsTask<>(cookingPotRecipeMaidCookManager)),
+                Pair.of(4, new com.github.wallev.maidsoulkitchen.task.cook.common.ai.GenerateRecsTask<>(cookingPotRecipeMaidCookManager)),
+                Pair.of(5, maidCookMoveTask), Pair.of(6, maidGrillMakeTask), Pair.of(7, maidCookPathingTask));
     }
 
     @Override

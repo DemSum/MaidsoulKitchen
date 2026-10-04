@@ -14,7 +14,7 @@ import com.github.wallev.maidsoulkitchen.task.cook.common.ai.MaidCookMakeTask;
 import com.github.wallev.maidsoulkitchen.task.cook.common.ai.MaidCookMoveTask;
 import com.github.wallev.maidsoulkitchen.task.cook.common.ai.MaidCookPathingTask;
 import com.github.wallev.maidsoulkitchen.task.cook.common.cbaccessor.IRecipeExperinceAward;
-import com.github.wallev.maidsoulkitchen.task.cook.common.inventory.MaidRecipesManager;
+import com.github.wallev.maidsoulkitchen.task.cook.common.manager.MaidCookManager;
 import com.google.common.collect.Lists;
 import com.mojang.datafixers.util.Pair;
 import net.minecraft.client.Minecraft;
@@ -51,19 +51,39 @@ public interface ICookTask<B extends BlockEntity, R extends Recipe<? extends Rec
             return Collections.emptyList();
         }
 
-        MaidRecipesManager<R> cookingPotRecipeMaidRecipesManager = getRecipesManager(maid);
-        MaidCookMoveTask<B, R> maidCookMoveTask = new MaidCookMoveTask<>(this, cookingPotRecipeMaidRecipesManager);
-        MaidCookMakeTask<B, R> maidCookMakeTask = new MaidCookMakeTask<>(this, cookingPotRecipeMaidRecipesManager);
+        MaidCookManager<R> cookingPotRecipeMaidCookManager = getRecipesManager(maid);
+        MaidCookMoveTask<B, R> maidCookMoveTask = new MaidCookMoveTask<>(this, cookingPotRecipeMaidCookManager);
+        MaidCookMakeTask<B, R> maidCookMakeTask = new MaidCookMakeTask<>(this, cookingPotRecipeMaidCookManager);
         MaidCookPathingTask<B, R> maidCookPathingTask = new MaidCookPathingTask<>(this);
         return Lists.newArrayList(
+                Pair.of(3, new com.github.wallev.maidsoulkitchen.task.cook.common.ai.CollectChestIngredientsTask<>(cookingPotRecipeMaidCookManager)),
+                Pair.of(4, new com.github.wallev.maidsoulkitchen.task.cook.common.ai.GenerateRecsTask<>(cookingPotRecipeMaidCookManager)),
                 Pair.of(5, maidCookMoveTask),
                 Pair.of(6, maidCookMakeTask),
                 Pair.of(7, maidCookPathingTask)
         );
     }
 
-    default MaidRecipesManager<R> getRecipesManager(EntityMaid maid) {
-        return new MaidRecipesManager<>(maid, this, false);
+    default MaidCookManager<R> getRecipesManager(EntityMaid maid) {
+        return new MaidCookManager<>(getRecSerializerManager(), maid, this);
+    }
+
+    /**
+     * Temporary recipe descriptor boundary for v1 devices awaiting their upstream Be/RSM port.
+     * Adapt task-specific ingredient/result access to the upstream converter; no plan/state is owned.
+     */
+    default com.github.wallev.maidsoulkitchen.task.cook.common.rule.rec.RecSerializerManager<R> getRecSerializerManager() {
+        ICookTask<B, R> task = this;
+        return new com.github.wallev.maidsoulkitchen.task.cook.common.rule.rec.RecSerializerManager<>(getRecipeType()) {
+            @Override protected List<RecipeHolder<R>> getRecsFromRm(Level level) {
+                return task.getRecipeHolders(level);
+            }
+            @Override protected com.github.wallev.maidsoulkitchen.task.cook.common.rule.rec.mkrec.MKRecipe<R> createMKRecipe(RecipeHolder<R> holder) {
+                return new com.github.wallev.maidsoulkitchen.task.cook.common.rule.rec.mkrec.MKRecipe<>(holder, false,
+                        com.github.wallev.maidsoulkitchen.task.cook.common.inv.ingredient.RecIngredient.from(task.getIngredients(holder.value())),
+                        task.getResultItem(holder.value(), registryAccess));
+            }
+        };
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
@@ -136,9 +156,9 @@ public interface ICookTask<B extends BlockEntity, R extends Recipe<? extends Rec
 
     RecipeType<R> getRecipeType();
 
-    boolean shouldMoveTo(ServerLevel serverLevel, EntityMaid maid, B blockEntity, MaidRecipesManager<R> recManager);
+    boolean shouldMoveTo(ServerLevel serverLevel, EntityMaid maid, B blockEntity, MaidCookManager<R> recManager);
 
-    void processCookMake(ServerLevel serverLevel, EntityMaid maid, B blockEntity, MaidRecipesManager<R> recManager);
+    void processCookMake(ServerLevel serverLevel, EntityMaid maid, B blockEntity, MaidCookManager<R> recManager);
 
     @Override
     default TaskBookEntryType getBookEntryType() {

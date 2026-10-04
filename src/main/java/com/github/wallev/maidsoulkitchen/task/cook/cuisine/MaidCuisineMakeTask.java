@@ -8,7 +8,7 @@ import com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskClassAnalyz
 import com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskInfo;
 import com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookTargetMemory;
 import com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookTargetState;
-import com.github.wallev.maidsoulkitchen.task.cook.common.inventory.MaidRecipesManager;
+import com.github.wallev.maidsoulkitchen.task.cook.common.manager.MaidCookManager;
 import com.github.wallev.maidsoulkitchen.task.cook.common.inventory.CookInventoryTransactions;
 import com.google.common.collect.ImmutableMap;
 import com.mojang.datafixers.util.Pair;
@@ -49,7 +49,7 @@ import java.util.List;
 @TaskClassAnalyzer(TaskInfo.CD_CUISINE_SKILLET)
 public class MaidCuisineMakeTask extends Behavior<EntityMaid> {
     private final TaskCdCuisineSkillet task;
-    private final MaidRecipesManager<BaseCuisineRecipe<?>> maidRecipesManager;
+    private final MaidCookManager<BaseCuisineRecipe<?>> maidRecipesManager;
     private int tickAll = 0;
     private int tickMax = 0;
     private int tickSpace = Integer.MAX_VALUE;
@@ -57,7 +57,7 @@ public class MaidCuisineMakeTask extends Behavior<EntityMaid> {
     private ItemStack plateItem = ItemStack.EMPTY;
     private boolean end = false;
 
-    public MaidCuisineMakeTask(TaskCdCuisineSkillet task, MaidRecipesManager<BaseCuisineRecipe<?>> maidRecipesManager) {
+    public MaidCuisineMakeTask(TaskCdCuisineSkillet task, MaidCookManager<BaseCuisineRecipe<?>> maidRecipesManager) {
         super(ImmutableMap.of(MkMemories.WORK_POS.get(), MemoryStatus.VALUE_PRESENT), 1200);
         this.task = task;
         this.maidRecipesManager = maidRecipesManager;
@@ -131,7 +131,7 @@ public class MaidCuisineMakeTask extends Behavior<EntityMaid> {
 
                 WeakReference<FakePlayer> fakePlayerRef = ((IAddonMaid) maid).tlmk$getFakePlayer();
                 FakePlayer fakePlayer = fakePlayerRef.get();
-                if (fakePlayer == null || maidRecipesManager.getRecipesIngredients().isEmpty()) return;
+                if (fakePlayer == null || maidRecipesManager.getMaidRecs().isEmpty()) return;
 
                 Pair<List<Integer>, List<List<ItemStack>>> recipeIngredient = this.maidRecipesManager.getRecipeIngredient();
                 for (List<ItemStack> itemStacks : recipeIngredient.getSecond()) {

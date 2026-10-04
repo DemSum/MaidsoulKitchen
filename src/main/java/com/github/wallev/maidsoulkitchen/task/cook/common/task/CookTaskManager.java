@@ -30,6 +30,10 @@ import com.github.wallev.maidsoulkitchen.task.cook.youkaishomecoming.TaskYhcTeaK
  */
 public final class CookTaskManager {
     private static Map<ResourceLocation, ICookTargetTask> taskMap = Map.of();
+    private static long recipeGeneration;
+    /** NeoForge reload boundary for the shared recipe catalog, not per-maid work state. */
+    public static void recipesReloaded() { recipeGeneration++; }
+    public static long getRecipeGeneration() { return recipeGeneration; }
     private CookTaskManager() { }
     public static void init() {
         Map<ResourceLocation, ICookTargetTask> tasks = new LinkedHashMap<>();

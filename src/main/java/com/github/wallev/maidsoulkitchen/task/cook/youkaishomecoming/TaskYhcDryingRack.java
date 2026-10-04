@@ -5,7 +5,7 @@ import com.github.wallev.maidsoulkitchen.entity.data.inner.task.CookData;
 import com.github.wallev.maidsoulkitchen.init.touhoulittlemaid.DataRegister;
 import com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskClassAnalyzer;
 import com.github.wallev.maidsoulkitchen.task.TaskInfo;
-import com.github.wallev.maidsoulkitchen.task.cook.common.inventory.MaidRecipesManager;
+import com.github.wallev.maidsoulkitchen.task.cook.common.manager.MaidCookManager;
 import com.github.wallev.maidsoulkitchen.task.cook.common.action.IMaidAction;
 import com.github.tartaricacid.touhoulittlemaid.api.entity.data.TaskDataKey;
 import com.github.tartaricacid.touhoulittlemaid.entity.passive.EntityMaid;
@@ -41,18 +41,18 @@ public class TaskYhcDryingRack implements ICookTask<DryingRackBlockEntity, Dryin
     }
 
     @Override
-    public boolean shouldMoveTo(ServerLevel serverLevel, EntityMaid maid, DryingRackBlockEntity blockEntity, MaidRecipesManager<DryingRackRecipe> recManager) {
+    public boolean shouldMoveTo(ServerLevel serverLevel, EntityMaid maid, DryingRackBlockEntity blockEntity, MaidCookManager<DryingRackRecipe> recManager) {
         if (!serverLevel.canSeeSky(blockEntity.getBlockPos()) || !serverLevel.isDay() || serverLevel.isRainingAt(blockEntity.getBlockPos())) {
             return false;
         }
-        if (blockEntity.getItems().stream().allMatch(ItemStack::isEmpty) && !recManager.getRecipesIngredients().isEmpty()) {
+        if (blockEntity.getItems().stream().allMatch(ItemStack::isEmpty) && !recManager.getMaidRecs().isEmpty()) {
             return true;
         }
         return false;
     }
 
     @Override
-    public void processCookMake(ServerLevel serverLevel, EntityMaid maid, DryingRackBlockEntity blockEntity, MaidRecipesManager<DryingRackRecipe> recManager) {
+    public void processCookMake(ServerLevel serverLevel, EntityMaid maid, DryingRackBlockEntity blockEntity, MaidCookManager<DryingRackRecipe> recManager) {
         if (!serverLevel.canSeeSky(blockEntity.getBlockPos()) || !serverLevel.isDay() || serverLevel.isRainingAt(blockEntity.getBlockPos())) {
             return;
         }

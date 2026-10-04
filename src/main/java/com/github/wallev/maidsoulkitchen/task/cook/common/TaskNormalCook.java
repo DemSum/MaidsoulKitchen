@@ -2,7 +2,7 @@ package com.github.wallev.maidsoulkitchen.task.cook.common;
 
 import com.github.wallev.maidsoulkitchen.api.task.v1.cook.INormalCook;
 import com.github.wallev.maidsoulkitchen.api.task.v1.cook.ICookTask;
-import com.github.wallev.maidsoulkitchen.task.cook.common.inventory.MaidRecipesManager;
+import com.github.wallev.maidsoulkitchen.task.cook.common.manager.MaidCookManager;
 import com.github.tartaricacid.touhoulittlemaid.entity.passive.EntityMaid;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.crafting.Recipe;
@@ -11,12 +11,12 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 
 public abstract class TaskNormalCook<B extends BlockEntity, R extends Recipe<? extends RecipeInput>> implements ICookTask<B, R>, INormalCook<B, R> {
     @Override
-    public boolean shouldMoveTo(ServerLevel serverLevel, EntityMaid maid, B blockEntity, MaidRecipesManager<R> recManager) {
+    public boolean shouldMoveTo(ServerLevel serverLevel, EntityMaid maid, B blockEntity, MaidCookManager<R> recManager) {
         return maidShouldMoveTo(serverLevel, maid, blockEntity, recManager);
     }
 
     @Override
-    public void processCookMake(ServerLevel serverLevel, EntityMaid maid, B blockEntity, MaidRecipesManager<R> recManager) {
+    public void processCookMake(ServerLevel serverLevel, EntityMaid maid, B blockEntity, MaidCookManager<R> recManager) {
         maidCookMake(serverLevel, maid, blockEntity, recManager);
     }
 }

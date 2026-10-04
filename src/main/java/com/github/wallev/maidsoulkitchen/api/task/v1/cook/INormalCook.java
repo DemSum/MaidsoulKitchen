@@ -1,7 +1,7 @@
 package com.github.wallev.maidsoulkitchen.api.task.v1.cook;
 
 import com.github.wallev.maidsoulkitchen.task.cook.common.bestate.IBaseCookItemHandlerBe;
-import com.github.wallev.maidsoulkitchen.task.cook.common.inventory.MaidRecipesManager;
+import com.github.wallev.maidsoulkitchen.task.cook.common.manager.MaidCookManager;
 import com.github.tartaricacid.touhoulittlemaid.entity.passive.EntityMaid;
 import com.mojang.datafixers.util.Pair;
 import net.minecraft.server.level.ServerLevel;
@@ -18,7 +18,7 @@ import java.util.Optional;
 
 public interface INormalCook<B extends BlockEntity, R extends Recipe<? extends RecipeInput>> extends IBaseCookItemHandlerBe<B, R>, IHandlerCookBe<B>, IItemHandlerCook<B, R> {
 
-    default boolean maidShouldMoveTo(ServerLevel serverLevel, EntityMaid entityMaid, B blockEntity, MaidRecipesManager<R> maidRecipesManager) {
+    default boolean maidShouldMoveTo(ServerLevel serverLevel, EntityMaid entityMaid, B blockEntity, MaidCookManager<R> maidRecipesManager) {
         ItemStackHandler inventory = getItemStackHandler(blockEntity);
         ItemStack outputStack = inventory.getStackInSlot(getOutputSlot());
         // 有最终物品
@@ -30,7 +30,7 @@ public interface INormalCook<B extends BlockEntity, R extends Recipe<? extends R
         Optional<R> recipe = getMatchingRecipe(blockEntity, new RecipeWrapper(inventory));
         // 现在是否可以做饭（厨锅有没有正在做饭）
         boolean b = recipe.isPresent() && canCook(blockEntity, recipe.get());
-        List<Pair<List<Integer>, List<List<ItemStack>>>> recipesIngredients = maidRecipesManager.getRecipesIngredients();
+        var recipesIngredients = maidRecipesManager.getMaidRecs();
 //        LOGGER.info("recipe: {} {} {} ", recipe, b, recipesIngredients);
         if (!b && !recipesIngredients.isEmpty()) {
             return true;
@@ -45,14 +45,14 @@ public interface INormalCook<B extends BlockEntity, R extends Recipe<? extends R
         return false;
     }
 
-    default void maidCookMake(ServerLevel serverLevel, EntityMaid entityMaid, B blockEntity, MaidRecipesManager<R> maidRecipesManager) {
+    default void maidCookMake(ServerLevel serverLevel, EntityMaid entityMaid, B blockEntity, MaidCookManager<R> maidRecipesManager) {
         tryExtractItem(serverLevel, entityMaid, blockEntity, maidRecipesManager);
         tryInsertItem(serverLevel, entityMaid, blockEntity, maidRecipesManager);
 
         maidRecipesManager.getCookInv().syncInv();
     }
 
-    default void tryInsertItem(ServerLevel serverLevel, EntityMaid entityMaid, B blockEntity, MaidRecipesManager<R> maidRecipesManager) {
+    default void tryInsertItem(ServerLevel serverLevel, EntityMaid entityMaid, B blockEntity, MaidCookManager<R> maidRecipesManager) {
         ItemStackHandler inventory = getItemStackHandler(blockEntity);
         if (hasInput(inventory)) return;
 
@@ -65,7 +65,7 @@ public interface INormalCook<B extends BlockEntity, R extends Recipe<? extends R
         pickupAction(entityMaid);
     }
 
-    default void tryExtractItem(ServerLevel serverLevel, EntityMaid entityMaid, B blockEntity, MaidRecipesManager<R> maidRecipesManager) {
+    default void tryExtractItem(ServerLevel serverLevel, EntityMaid entityMaid, B blockEntity, MaidCookManager<R> maidRecipesManager) {
         ItemStackHandler inventory = getItemStackHandler(blockEntity);
 
         // 取出最终物品

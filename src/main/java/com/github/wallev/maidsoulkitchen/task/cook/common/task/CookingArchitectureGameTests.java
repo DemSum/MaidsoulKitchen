@@ -35,7 +35,130 @@ import java.util.Map;
 public final class CookingArchitectureGameTests {
     private static ResourceLocation id(String name) { return ResourceLocation.fromNamespaceAndPath(MaidsoulKitchen.MOD_ID, name); }
 
-    @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID)
+    @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID, batch = "cooking_architecture")
+    public static void managerOwnsQueueAndInvalidation(GameTestHelper helper) {
+        var recipes = helper.getLevel().getRecipeManager();
+        var original = List.copyOf(recipes.getRecipes());
+        var maid = helper.spawnWithNoFreeWill(InitEntities.MAID.get(), new net.minecraft.core.BlockPos(1, 1, 1));
+        maid.setNoAi(true);
+        try {
+            var task = new com.github.wallev.maidsoulkitchen.task.cook.minecraft.TaskFurnace(); maid.setTask(task);
+            ItemStack named = new ItemStack(Items.WATER_BUCKET);
+            named.set(DataComponents.CUSTOM_NAME, Component.literal("managed material"));
+            var holder = new RecipeHolder<>(id("managed_fixture"), new SmokingRecipe("", CookingBookCategory.MISC,
+                    DataComponentIngredient.of(true, named), new ItemStack(Items.BAKED_POTATO), 0, 20));
+            reloadRecipes(helper, List.of(holder));
+            KitchenData.get(maid).setCookData(task.getUid(), new CookData("whitelist", List.of(holder.id().toString()), List.of()));
+            var input = maid.getAvailableInv(true);
+            for (int slot = 0; slot < input.getSlots(); slot++) input.setStackInSlot(slot, ItemStack.EMPTY);
+            input.setStackInSlot(0, named.copy()); input.setStackInSlot(1, named.copy());
+            var manager = task.getRecipesManager(maid);
+            manager.checkAndCreateRecipesIngredients();
+            helper.assertTrue(manager.getRunState() == 2 && manager.getMaidRecs().isEmpty(),
+                    "candidates must not be exposed as executable work while generation is active");
+            finishPlanning(manager);
+            helper.assertTrue(manager.getMaidRecs().size() == 2
+                    && manager.getMaidRecs().get(0) != manager.getMaidRecs().get(1),
+                    "repeated work units must have distinct identities for safe acknowledgments");
+            MaidRec first = manager.peekMaidRec();
+            manager.getRecipeIngredient(); manager.getRecipeIngredient();
+            helper.assertTrue(manager.peekMaidRec() == first && manager.getMaidRecs().size() == 2,
+                    "reading materials must not consume the plan before device acceptance");
+            var device = new ItemStackHandler(1);
+            var accepted = CookInventoryTransactions.transfer(manager.getInputInv(), 0, device, 1, first.maidItems().getFirst().item()::is);
+            helper.assertTrue(accepted.inserted() == 1 && manager.commitMaidRec(first)
+                    && !manager.commitMaidRec(first) && manager.getMaidRecs().size() == 1,
+                    "one accepted work unit may commit once; an old acknowledgment cannot consume the next unit");
+            manager.getInputInv().setStackInSlot(1, new ItemStack(Items.WATER_BUCKET));
+            long generation = manager.getGeneration(); manager.checkAndInit();
+            helper.assertTrue(manager.getMaidRecs().isEmpty() && manager.getGeneration() > generation,
+                    "component changes in live inputs must invalidate pending work");
+            manager.getInputInv().setStackInSlot(1, named.copy()); manager.checkAndCreateRecipesIngredients(); finishPlanning(manager);
+            MaidRec beforeReload = manager.peekMaidRec();
+            reloadRecipes(helper, List.of(new RecipeHolder<>(holder.id(), new SmokingRecipe("", CookingBookCategory.MISC,
+                    DataComponentIngredient.of(true, named), new ItemStack(Items.BAKED_POTATO), 0, 20))));
+            manager.checkAndInit();
+            helper.assertTrue(beforeReload != null && manager.getMaidRecs().isEmpty() && !manager.commitMaidRec(beforeReload),
+                    "same-ID recipe reload must discard the old work identity");
+            manager.checkAndCreateRecipesIngredients(); finishPlanning(manager);
+            if (com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskInfo.FD_COOK_POT.canLoad()) {
+                maid.setTask(new com.github.wallev.maidsoulkitchen.task.cook.farmersdelight.TaskFdCookPot());
+                helper.assertTrue(!manager.checkAndInit() && manager.getMaidRecs().isEmpty(),
+                        "switching tasks must revoke the previous manager's work");
+                maid.setTask(task);
+            }
+            manager.checkAndCreateRecipesIngredients(); finishPlanning(manager);
+            maid.discard();
+            helper.assertTrue(!manager.checkAndInit() && manager.getMaidRecs().isEmpty(), "death/removal must revoke pending work");
+        } finally { reloadRecipes(helper, original); maid.discard(); }
+        helper.succeed();
+    }
+
+    @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID, batch = "cooking_architecture")
+    public static void managerPartialChestExtraction(GameTestHelper helper) {
+        var recipes = helper.getLevel().getRecipeManager();
+        var original = List.copyOf(recipes.getRecipes());
+        var maid = helper.spawnWithNoFreeWill(InitEntities.MAID.get(), new net.minecraft.core.BlockPos(1, 1, 1));
+        maid.setNoAi(true);
+        try {
+            var task = new com.github.wallev.maidsoulkitchen.task.cook.minecraft.TaskFurnace(); maid.setTask(task);
+            var holder = new RecipeHolder<>(id("partial_fixture"), new SmokingRecipe("", CookingBookCategory.MISC,
+                    Ingredient.of(Items.CARROT), new ItemStack(Items.BAKED_POTATO), 0, 20));
+            reloadRecipes(helper, List.of(holder));
+            KitchenData.get(maid).setCookData(task.getUid(), new CookData("whitelist", List.of(holder.id().toString()), List.of()));
+            for (int slot = 0; slot < maid.getAvailableInv(true).getSlots(); slot++) maid.getAvailableInv(true).setStackInSlot(slot, ItemStack.EMPTY);
+            ItemStack hub = com.github.wallev.maidsoulkitchen.init.MkItems.CULINARY_HUB.get().getDefaultInstance();
+            maid.getMaidBauble().setStackInSlot(0, hub);
+            var source = new ItemStackHandler(1) {
+                @Override public ItemStack extractItem(int slot, int amount, boolean simulate) {
+                    return super.extractItem(slot, simulate ? amount : Math.min(2, amount), simulate);
+                }
+            };
+            source.setStackInSlot(0, new ItemStack(Items.CARROT, 5));
+            var manager = new com.github.wallev.maidsoulkitchen.task.cook.common.manager.MaidCookManager<>(task.getRecSerializerManager(), maid, task) {
+                @Override protected List<net.minecraft.world.level.block.entity.BlockEntity> initChestData() {
+                    getChestInputInventory().init(new com.github.wallev.maidsoulkitchen.task.cook.common.inv.chest.ChestInvsData(
+                            List.of(), List.of(), List.of(source), 1));
+                    return List.of();
+                }
+            };
+            manager.checkAndCreateRecipesIngredients(); finishPlanning(manager);
+            helper.assertTrue(manager.getMaidRecs().isEmpty() && source.getStackInSlot(0).getCount() == 3
+                    && CookInventoryTransactions.count(manager.getInputInv(), stack -> stack.is(Items.CARROT)) == 2,
+                    "partial extraction must keep actual buffered material and expose no unfulfilled work");
+            manager.checkAndCreateRecipesIngredients(); finishPlanning(manager);
+            helper.assertTrue(manager.getMaidRecs().isEmpty() && source.getStackInSlot(0).getCount() == 1
+                    && CookInventoryTransactions.count(manager.getInputInv(), stack -> stack.is(Items.CARROT)) == 4,
+                    "replanning must count buffered input once and request only the remaining deficit");
+            manager.checkAndCreateRecipesIngredients(); finishPlanning(manager);
+            helper.assertTrue(manager.getMaidRecs().size() == 1 && manager.peekMaidRec().amount() == 5
+                    && source.getStackInSlot(0).isEmpty()
+                    && CookInventoryTransactions.count(manager.getInputInv(), stack -> stack.is(Items.CARROT)) == 5,
+                    "only a fully prepared plan may enter the executable queue without item loss or duplication");
+        } finally { reloadRecipes(helper, original); maid.discard(); }
+        helper.succeed();
+    }
+
+    private static void finishPlanning(com.github.wallev.maidsoulkitchen.task.cook.common.manager.MaidCookManager<?> manager) {
+        for (int ticks = 0; ticks < 100 && manager.getRunState() > 0; ticks++) {
+            if (manager.getRunState() == 1) {
+                manager.getChestInputInventory().tickScan();
+                if (manager.getChestInputInventory().done()) manager.startGenerateRecs();
+            } else if (manager.getRunState() == 2) {
+                if (!manager.recsGenerateDone()) manager.tickGenerateRecs();
+                if (manager.recsGenerateDone()) manager.recsGenDoneAndUpdate();
+            }
+        }
+        if (manager.getRunState() != 0) throw new IllegalStateException("bounded planning did not finish");
+    }
+
+    private static void reloadRecipes(GameTestHelper helper, List<? extends RecipeHolder<?>> recipes) {
+        helper.getLevel().getRecipeManager().replaceRecipes(new java.util.ArrayList<RecipeHolder<?>>(recipes));
+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.OnDatapackSyncEvent(
+                helper.getLevel().getServer().getPlayerList(), null));
+    }
+
+    @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID, batch = "cooking_architecture")
     public static void nativeRecipeDescriptors(GameTestHelper helper) {
         var level = helper.getLevel();
         if (com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskInfo.FD_COOK_POT.canLoad()) {
@@ -69,7 +192,7 @@ public final class CookingArchitectureGameTests {
         helper.succeed();
     }
 
-    @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID)
+    @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID, batch = "cooking_architecture")
     public static void reusableToolsAndFluidAccounting(GameTestHelper helper) {
         var holder = new RecipeHolder<>(id("fluid_tool_plan"), new SmokingRecipe("", CookingBookCategory.MISC,
                 Ingredient.of(Items.CARROT), new ItemStack(Items.BAKED_POTATO), 0, 20));
@@ -137,7 +260,7 @@ public final class CookingArchitectureGameTests {
         helper.succeed();
     }
 
-    @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID)
+    @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID, batch = "cooking_architecture")
     public static void incrementalScanAndFilteredGeneration(GameTestHelper helper) {
         var handler = new ItemStackHandler(23);
         for (int i = 0; i < 23; i++) handler.setStackInSlot(i, new ItemStack(Items.CARROT, 1));
@@ -175,7 +298,7 @@ public final class CookingArchitectureGameTests {
         helper.succeed();
     }
 
-    @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID)
+    @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID, batch = "cooking_architecture")
     public static void inventoryViewsPreserveComponentsAndTransfers(GameTestHelper helper) {
         var maid = helper.spawnWithNoFreeWill(InitEntities.MAID.get(), new net.minecraft.core.BlockPos(1, 1, 1));
         maid.setNoAi(true);
@@ -219,7 +342,7 @@ public final class CookingArchitectureGameTests {
         helper.succeed();
     }
 
-    @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID)
+    @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID, batch = "cooking_architecture")
     public static void refusedAndPartialHandlers(GameTestHelper helper) {
         var refusedSource = new ItemStackHandler(1) {
             @Override public ItemStack extractItem(int slot, int amount, boolean simulate) {
@@ -266,7 +389,7 @@ public final class CookingArchitectureGameTests {
         helper.succeed();
     }
 
-    @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID)
+    @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID, batch = "cooking_architecture")
     public static void conversionAndRejectedReservation(GameTestHelper helper) {
         ItemStack named = new ItemStack(Items.CARROT, 8);
         named.set(DataComponents.CUSTOM_NAME, Component.literal("recipe component"));
@@ -300,7 +423,7 @@ public final class CookingArchitectureGameTests {
         helper.succeed();
     }
 
-    @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID)
+    @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID, batch = "cooking_architecture")
     public static void settingsMigration(GameTestHelper helper) {
         var maid = InitEntities.MAID.get().create(helper.getLevel());
         helper.assertTrue(maid != null, "TLM maid must be constructible");
@@ -328,7 +451,7 @@ public final class CookingArchitectureGameTests {
         } finally { maid.discard(); }
     }
 
-    @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID)
+    @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID, batch = "cooking_architecture")
     public static void componentValuesAndReload(GameTestHelper helper) {
         var manager = helper.getLevel().getRecipeManager();
         var original = List.copyOf(manager.getRecipes());
@@ -357,7 +480,7 @@ public final class CookingArchitectureGameTests {
             helper.assertTrue(work.resolve(manager, TaskInfo.FURNACE.uid, 7).isEmpty(), "same-ID reload must invalidate cached Holder value");
             manager.replaceRecipes(List.of());
             helper.assertTrue(work.resolve(manager, TaskInfo.FURNACE.uid, 7).isEmpty(), "removed recipes must never execute");
-            helper.succeed();
         } finally { manager.replaceRecipes(original); }
+        helper.succeed();
     }
 }

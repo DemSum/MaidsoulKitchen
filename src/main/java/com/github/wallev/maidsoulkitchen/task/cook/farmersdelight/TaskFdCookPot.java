@@ -83,4 +83,9 @@ public class TaskFdCookPot extends TaskFdPot<CookingPotBlockEntity, CookingPotRe
         return DataRegister.FD_COOK_POT;
     }
 
+
+    @Override
+    public com.github.wallev.maidsoulkitchen.task.cook.common.rule.rec.RecSerializerManager<CookingPotRecipe> getRecSerializerManager() {
+        return com.github.wallev.maidsoulkitchen.task.cook.farmersdelight.cookingpot.CookingPotRecSerializerManager.getInstance();
+    }
 }

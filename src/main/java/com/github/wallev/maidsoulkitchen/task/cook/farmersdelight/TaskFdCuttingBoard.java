@@ -9,7 +9,7 @@ import com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskClassAnalyz
 import com.github.wallev.maidsoulkitchen.task.TaskInfo;
 import com.github.wallev.maidsoulkitchen.task.cook.common.ai.MaidCookMoveTask;
 import com.github.wallev.maidsoulkitchen.task.cook.common.ai.MaidCookPathingTask;
-import com.github.wallev.maidsoulkitchen.task.cook.common.inventory.MaidRecipesManager;
+import com.github.wallev.maidsoulkitchen.task.cook.common.manager.MaidCookManager;
 import com.google.common.collect.Lists;
 import com.mojang.datafixers.util.Pair;
 import net.minecraft.core.NonNullList;
@@ -52,27 +52,29 @@ public class TaskFdCuttingBoard implements ICookTask<CuttingBoardBlockEntity, Cu
             return Collections.emptyList();
         }
 
-        MaidRecipesManager<CuttingBoardRecipe> cookingPotRecipeMaidRecipesManager = getRecipesManager(maid);
-        MaidCookMoveTask<CuttingBoardBlockEntity, CuttingBoardRecipe> maidCookMoveTask = new MaidCookMoveTask<>(this, cookingPotRecipeMaidRecipesManager);
-        MaidCuttingMakeTask maidCookMakeTask = new MaidCuttingMakeTask(this, cookingPotRecipeMaidRecipesManager);
+        MaidCookManager<CuttingBoardRecipe> cookingPotRecipeMaidCookManager = getRecipesManager(maid);
+        MaidCookMoveTask<CuttingBoardBlockEntity, CuttingBoardRecipe> maidCookMoveTask = new MaidCookMoveTask<>(this, cookingPotRecipeMaidCookManager);
+        MaidCuttingMakeTask maidCookMakeTask = new MaidCuttingMakeTask(this, cookingPotRecipeMaidCookManager);
         MaidCookPathingTask<CuttingBoardBlockEntity, CuttingBoardRecipe> maidCookPathingTask = new MaidCookPathingTask<>(this);
-        return Lists.newArrayList(Pair.of(5, maidCookMoveTask), Pair.of(6, maidCookMakeTask), Pair.of(7, maidCookPathingTask));
+        return Lists.newArrayList(Pair.of(3, new com.github.wallev.maidsoulkitchen.task.cook.common.ai.CollectChestIngredientsTask<>(cookingPotRecipeMaidCookManager)),
+                Pair.of(4, new com.github.wallev.maidsoulkitchen.task.cook.common.ai.GenerateRecsTask<>(cookingPotRecipeMaidCookManager)),
+                Pair.of(5, maidCookMoveTask), Pair.of(6, maidCookMakeTask), Pair.of(7, maidCookPathingTask));
     }
 
     @Override
-    public boolean shouldMoveTo(ServerLevel serverLevel, EntityMaid maid, CuttingBoardBlockEntity blockEntity, MaidRecipesManager<CuttingBoardRecipe> recManager) {
-        if (blockEntity.getStoredItem().isEmpty() && !recManager.getRecipesIngredients().isEmpty()) {
+    public boolean shouldMoveTo(ServerLevel serverLevel, EntityMaid maid, CuttingBoardBlockEntity blockEntity, MaidCookManager<CuttingBoardRecipe> recManager) {
+        if (blockEntity.getStoredItem().isEmpty() && !recManager.getMaidRecs().isEmpty()) {
             return true;
         }
         return findStoredRecipe(serverLevel, maid, blockEntity, recManager).isPresent();
     }
 
     @Override
-    public void processCookMake(ServerLevel serverLevel, EntityMaid maid, CuttingBoardBlockEntity blockEntity, MaidRecipesManager<CuttingBoardRecipe> recManager) {
+    public void processCookMake(ServerLevel serverLevel, EntityMaid maid, CuttingBoardBlockEntity blockEntity, MaidCookManager<CuttingBoardRecipe> recManager) {
 
     }
 
-    public void processCookMake(ServerLevel serverLevel, EntityMaid maid, CuttingBoardBlockEntity blockEntity, MaidRecipesManager<CuttingBoardRecipe> recManager, Consumer<Item> item) {
+    public void processCookMake(ServerLevel serverLevel, EntityMaid maid, CuttingBoardBlockEntity blockEntity, MaidCookManager<CuttingBoardRecipe> recManager, Consumer<Item> item) {
         if (!blockEntity.getStoredItem().isEmpty()) {
             findStoredRecipe(serverLevel, maid, blockEntity, recManager).ifPresent(recipe -> {
                 if (equipTool(maid, recManager.getInputInv(), recipe.getTool())) {
@@ -81,7 +83,7 @@ public class TaskFdCuttingBoard implements ICookTask<CuttingBoardBlockEntity, Cu
             });
             return;
         }
-        if (blockEntity.getStoredItem().isEmpty() && !recManager.getRecipesIngredients().isEmpty()) {
+        if (blockEntity.getStoredItem().isEmpty() && !recManager.getMaidRecs().isEmpty()) {
             Pair<List<Integer>, List<List<ItemStack>>> recipeIngredient = recManager.getRecipeIngredient();
             if (recipeIngredient.getFirst().isEmpty()) return;
 
@@ -123,7 +125,7 @@ public class TaskFdCuttingBoard implements ICookTask<CuttingBoardBlockEntity, Cu
             ServerLevel level,
             EntityMaid maid,
             CuttingBoardBlockEntity board,
-            MaidRecipesManager<CuttingBoardRecipe> recipeManager
+            MaidCookManager<CuttingBoardRecipe> recipeManager
     ) {
         return level.getRecipeManager().getAllRecipesFor(getRecipeType()).stream()
                 .filter(holder -> recipeManager.isRecipeEnabled(holder.id()))
@@ -192,4 +194,9 @@ public class TaskFdCuttingBoard implements ICookTask<CuttingBoardBlockEntity, Cu
         return ingredients;
     }
 
+
+    @Override
+    public com.github.wallev.maidsoulkitchen.task.cook.common.rule.rec.RecSerializerManager<CuttingBoardRecipe> getRecSerializerManager() {
+        return com.github.wallev.maidsoulkitchen.task.cook.farmersdelight.cuttingboard.CuttingBoardRecSerializerManager.getInstance();
+    }
 }

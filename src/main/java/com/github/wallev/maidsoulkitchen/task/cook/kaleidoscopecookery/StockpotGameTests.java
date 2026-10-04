@@ -299,7 +299,7 @@ public final class StockpotGameTests {
             supply(maid, hub, new ItemStack(Items.CARROT, 3), ModItems.STOCKPOT_LID.get().getDefaultInstance());
             var fdTask = new com.github.wallev.maidsoulkitchen.task.cook.farmersdelight.TaskFdCookPot();
             maid.setTask(fdTask);
-            var fdInventory = new com.github.wallev.maidsoulkitchen.task.cook.common.inventory.MaidRecipesManager<>(maid, fdTask, false);
+            var fdInventory = new com.github.wallev.maidsoulkitchen.task.cook.common.manager.MaidCookManager<>(fdTask.getRecSerializerManager(), maid, fdTask);
             fdInventory.checkAndCreateRecipesIngredients();
             h.assertTrue(wrongChest.getItem(1).isEmpty() && sameChest.getItem(0).getCount() == 4,
                     "FD common manager must return unused input to a same-material chest");

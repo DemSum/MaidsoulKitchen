@@ -10,7 +10,7 @@ import com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskClassAnalyz
 import com.github.wallev.maidsoulkitchen.task.TaskInfo;
 import com.github.wallev.maidsoulkitchen.task.cook.common.ai.MaidCookMoveTask;
 import com.github.wallev.maidsoulkitchen.task.cook.common.ai.MaidCookPathingTask;
-import com.github.wallev.maidsoulkitchen.task.cook.common.inventory.MaidRecipesManager;
+import com.github.wallev.maidsoulkitchen.task.cook.common.manager.MaidCookManager;
 import com.google.common.collect.Lists;
 import com.mojang.datafixers.util.Pair;
 import dev.xkmc.cuisinedelight.content.block.CuisineSkilletBlockEntity;
@@ -46,18 +46,18 @@ public class TaskCdCuisineSkillet implements ICookTask<CuisineSkilletBlockEntity
     }
 
     @Override
-    public boolean shouldMoveTo(ServerLevel serverLevel, EntityMaid maid, CuisineSkilletBlockEntity blockEntity, MaidRecipesManager<BaseCuisineRecipe<?>> recManager) {
+    public boolean shouldMoveTo(ServerLevel serverLevel, EntityMaid maid, CuisineSkilletBlockEntity blockEntity, MaidCookManager<BaseCuisineRecipe<?>> recManager) {
         IItemHandlerModifiable inputInv = recManager.getInputInv();
         boolean hasSpatula = maid.getMainHandItem().is(CDItems.SPATULA.get())
                 || ItemsUtil.findStackSlot(inputInv, stack -> stack.is(CDItems.SPATULA.get())) > -1;
         return !blockEntity.isCooking() && blockEntity.canCook()
                 && hasSpatula
                 && ItemsUtil.findStackSlot(inputInv, stack -> stack.is(CDItems.PLATE.get())) > -1
-                && !recManager.getRecipesIngredients().isEmpty();
+                && !recManager.getMaidRecs().isEmpty();
     }
 
     @Override
-    public void processCookMake(ServerLevel serverLevel, EntityMaid maid, CuisineSkilletBlockEntity blockEntity, MaidRecipesManager<BaseCuisineRecipe<?>> recManager) {
+    public void processCookMake(ServerLevel serverLevel, EntityMaid maid, CuisineSkilletBlockEntity blockEntity, MaidCookManager<BaseCuisineRecipe<?>> recManager) {
 
     }
 
@@ -90,10 +90,12 @@ public class TaskCdCuisineSkillet implements ICookTask<CuisineSkilletBlockEntity
             return Collections.emptyList();
         }
 
-        MaidRecipesManager<BaseCuisineRecipe<?>> cookingPotRecipeMaidRecipesManager = getRecipesManager(maid);
-        MaidCookMoveTask<CuisineSkilletBlockEntity, BaseCuisineRecipe<?>> maidCookMoveTask = new MaidCookMoveTask<>(this, cookingPotRecipeMaidRecipesManager);
-        MaidCuisineMakeTask maidCookMakeTask = new MaidCuisineMakeTask(this, cookingPotRecipeMaidRecipesManager);
+        MaidCookManager<BaseCuisineRecipe<?>> cookingPotRecipeMaidCookManager = getRecipesManager(maid);
+        MaidCookMoveTask<CuisineSkilletBlockEntity, BaseCuisineRecipe<?>> maidCookMoveTask = new MaidCookMoveTask<>(this, cookingPotRecipeMaidCookManager);
+        MaidCuisineMakeTask maidCookMakeTask = new MaidCuisineMakeTask(this, cookingPotRecipeMaidCookManager);
         MaidCookPathingTask<CuisineSkilletBlockEntity, BaseCuisineRecipe<?>> maidCookPathingTask = new MaidCookPathingTask<>(this);
-        return Lists.newArrayList(Pair.of(5, maidCookMoveTask), Pair.of(6, maidCookMakeTask), Pair.of(7, maidCookPathingTask));
+        return Lists.newArrayList(Pair.of(3, new com.github.wallev.maidsoulkitchen.task.cook.common.ai.CollectChestIngredientsTask<>(cookingPotRecipeMaidCookManager)),
+                Pair.of(4, new com.github.wallev.maidsoulkitchen.task.cook.common.ai.GenerateRecsTask<>(cookingPotRecipeMaidCookManager)),
+                Pair.of(5, maidCookMoveTask), Pair.of(6, maidCookMakeTask), Pair.of(7, maidCookPathingTask));
     }
 }

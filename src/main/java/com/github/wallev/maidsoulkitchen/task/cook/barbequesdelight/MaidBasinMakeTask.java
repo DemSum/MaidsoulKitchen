@@ -6,7 +6,7 @@ import com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskClassAnalyz
 import com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskInfo;
 import com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookTargetMemory;
 import com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookTargetState;
-import com.github.wallev.maidsoulkitchen.task.cook.common.inventory.MaidRecipesManager;
+import com.github.wallev.maidsoulkitchen.task.cook.common.manager.MaidCookManager;
 import com.github.wallev.maidsoulkitchen.task.cook.common.inventory.CookInventoryTransactions;
 import com.google.common.collect.ImmutableMap;
 import com.mao.barbequesdelight.content.block.BasinBlockEntity;
@@ -28,7 +28,7 @@ import java.util.List;
 @TaskClassAnalyzer(TaskInfo.BD_BASIN)
 public class MaidBasinMakeTask extends Behavior<EntityMaid> {
     private final TaskBdBasin task;
-    private final MaidRecipesManager<SkeweringRecipe<?>> maidRecipesManager;
+    private final MaidCookManager<SkeweringRecipe<?>> maidRecipesManager;
     private int tick;
 
     private ItemStack container = ItemStack.EMPTY;
@@ -36,7 +36,7 @@ public class MaidBasinMakeTask extends Behavior<EntityMaid> {
     private ItemStack side = ItemStack.EMPTY;
     private boolean completed;
 
-    public MaidBasinMakeTask(TaskBdBasin task, MaidRecipesManager<SkeweringRecipe<?>> maidRecipesManager) {
+    public MaidBasinMakeTask(TaskBdBasin task, MaidCookManager<SkeweringRecipe<?>> maidRecipesManager) {
         super(ImmutableMap.of(MkMemories.WORK_POS.get(), MemoryStatus.VALUE_PRESENT), 1200);
         this.task = task;
         this.maidRecipesManager = maidRecipesManager;
@@ -76,7 +76,7 @@ public class MaidBasinMakeTask extends Behavior<EntityMaid> {
                     return;
                 }
 
-                if (!maidRecipesManager.getRecipesIngredients().isEmpty()) {
+                if (!maidRecipesManager.getMaidRecs().isEmpty()) {
                     Pair<List<Integer>, List<List<ItemStack>>> recipeIngredient = maidRecipesManager.getRecipeIngredient();
 
 

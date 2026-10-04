@@ -5,7 +5,7 @@ import com.github.wallev.maidsoulkitchen.entity.passive.IAddonMaid;
 import com.github.wallev.maidsoulkitchen.init.touhoulittlemaid.DataRegister;
 import com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskClassAnalyzer;
 import com.github.wallev.maidsoulkitchen.task.TaskInfo;
-import com.github.wallev.maidsoulkitchen.task.cook.common.inventory.MaidRecipesManager;
+import com.github.wallev.maidsoulkitchen.task.cook.common.manager.MaidCookManager;
 import com.github.wallev.maidsoulkitchen.task.cook.common.inventory.CookInventoryTransactions;
 import com.github.wallev.maidsoulkitchen.task.cook.common.TaskFdPot;
 import com.github.wallev.maidsoulkitchen.util.FakePlayerUtil;
@@ -113,23 +113,23 @@ public class TaskYhcTeaKettle extends TaskFdPot<KettleBlockEntity, KettleRecipe>
     }
 
     @Override
-    public boolean shouldMoveTo(ServerLevel level, EntityMaid maid, KettleBlockEntity be, MaidRecipesManager<KettleRecipe> manager) {
+    public boolean shouldMoveTo(ServerLevel level, EntityMaid maid, KettleBlockEntity be, MaidCookManager<KettleRecipe> manager) {
         return super.shouldMoveTo(level, maid, be, manager);
     }
 
     @Override
-    public void processCookMake(ServerLevel level, EntityMaid maid, KettleBlockEntity be, MaidRecipesManager<KettleRecipe> manager) {
+    public void processCookMake(ServerLevel level, EntityMaid maid, KettleBlockEntity be, MaidCookManager<KettleRecipe> manager) {
         super.processCookMake(level, maid, be, manager);
     }
 
     @Override
-    public void tryInsertItem(ServerLevel serverLevel, EntityMaid entityMaid, KettleBlockEntity blockEntity, MaidRecipesManager<KettleRecipe> maidRecipesManager) {
+    public void tryInsertItem(ServerLevel serverLevel, EntityMaid entityMaid, KettleBlockEntity blockEntity, MaidCookManager<KettleRecipe> maidRecipesManager) {
         if(this.needWater(blockEntity)) return;
         super.tryInsertItem(serverLevel, entityMaid, blockEntity, maidRecipesManager);
     }
 
     @Override
-    public boolean maidShouldMoveTo(ServerLevel level, EntityMaid maid, KettleBlockEntity kettleBlockEntity, MaidRecipesManager<KettleRecipe> manager) {
+    public boolean maidShouldMoveTo(ServerLevel level, EntityMaid maid, KettleBlockEntity kettleBlockEntity, MaidCookManager<KettleRecipe> manager) {
         ItemStackHandler inventory = getItemStackHandler(kettleBlockEntity);
         ItemStack outputStack = inventory.getStackInSlot(getOutputSlot());
         // 有最终物品
@@ -149,7 +149,7 @@ public class TaskYhcTeaKettle extends TaskFdPot<KettleBlockEntity, KettleRecipe>
         Optional<KettleRecipe> recipe = getMatchingRecipe(kettleBlockEntity, new RecipeWrapper(inventory));
         // 现在是否可以做饭（厨锅有没有正在做饭）
         boolean b = recipe.isPresent() && canCook(kettleBlockEntity, recipe.get());
-        List<Pair<List<Integer>, List<List<ItemStack>>>> recipesIngredients = manager.getRecipesIngredients();
+        var recipesIngredients = manager.getMaidRecs();
         if (!b && !recipesIngredients.isEmpty() && heated && (!needWater(kettleBlockEntity) || findWaterResource(manager.getInputInv(), kettleBlockEntity) != -1) && mealStack.isEmpty()) {
             return true;
         }
@@ -173,12 +173,12 @@ public class TaskYhcTeaKettle extends TaskFdPot<KettleBlockEntity, KettleRecipe>
     }
 
     @Override
-    public void tryExtractItem(ServerLevel serverLevel, EntityMaid entityMaid, KettleBlockEntity blockEntity, MaidRecipesManager<KettleRecipe> maidRecipesManager) {
+    public void tryExtractItem(ServerLevel serverLevel, EntityMaid entityMaid, KettleBlockEntity blockEntity, MaidCookManager<KettleRecipe> maidRecipesManager) {
         this.replenishWater(entityMaid, blockEntity, maidRecipesManager);
         super.tryExtractItem(serverLevel, entityMaid, blockEntity, maidRecipesManager);
     }
 
-    private boolean replenishWater(EntityMaid entityMaid, KettleBlockEntity blockEntity, MaidRecipesManager<KettleRecipe> manager) {
+    private boolean replenishWater(EntityMaid entityMaid, KettleBlockEntity blockEntity, MaidCookManager<KettleRecipe> manager) {
         if (this.needWater(blockEntity)) {
             IItemHandlerModifiable inputInv = manager.getInputInv();
             int stackSlot = findWaterResource(inputInv, blockEntity);

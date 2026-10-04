@@ -1,7 +1,7 @@
 package com.github.wallev.maidsoulkitchen.api.task.v1.cook;
 
 import com.github.tartaricacid.touhoulittlemaid.entity.passive.EntityMaid;
-import com.github.wallev.maidsoulkitchen.task.cook.common.inventory.MaidRecipesManager;
+import com.github.wallev.maidsoulkitchen.task.cook.common.manager.MaidCookManager;
 import com.github.wallev.maidsoulkitchen.task.cook.common.action.IMaidAction;
 import com.mojang.datafixers.util.Pair;
 import net.minecraft.world.item.ItemStack;
@@ -29,18 +29,18 @@ public interface IItemHandlerCook<B extends BlockEntity, R extends Recipe<? exte
     default ItemStackHandler getBeOutputInv(B be) {
         return getBeInv(be);
     }
-    default IItemHandlerModifiable getIngreInv(MaidRecipesManager<R> manager) {
+    default IItemHandlerModifiable getIngreInv(MaidCookManager<R> manager) {
         return manager.getIngredientInv();
     }
-    default IItemHandlerModifiable getIngreInputsInv(MaidRecipesManager<R> manager) {
+    default IItemHandlerModifiable getIngreInputsInv(MaidCookManager<R> manager) {
         return manager.getInputInv();
     }
-    default IItemHandlerModifiable getIngreOutputInv(MaidRecipesManager<R> manager) {
+    default IItemHandlerModifiable getIngreOutputInv(MaidCookManager<R> manager) {
         return manager.getOutputInv();
     }
 
 
-    default void extractOutputStack(EntityMaid maid, B be, MaidRecipesManager<R> manager) {
+    default void extractOutputStack(EntityMaid maid, B be, MaidCookManager<R> manager) {
         this.extractInputsStack(this.getBeOutputInv(be), this.getIngreInputsInv(manager), be);
     }
     default void extractOutputStack(ItemStackHandler beInv, IItemHandlerModifiable ingreOutputInv, B be) {
@@ -51,7 +51,7 @@ public interface IItemHandlerCook<B extends BlockEntity, R extends Recipe<? exte
         this.makeChange(be);
     }
 
-    default void extractInputsStack(EntityMaid maid, B be, MaidRecipesManager<R> manager) {
+    default void extractInputsStack(EntityMaid maid, B be, MaidCookManager<R> manager) {
         this.extractInputsStack(this.getBeInputInv(be), this.getIngreInputsInv(manager), be);
     }
     default void extractInputsStack(ItemStackHandler beInv, IItemHandlerModifiable ingreInputInv, B be) {

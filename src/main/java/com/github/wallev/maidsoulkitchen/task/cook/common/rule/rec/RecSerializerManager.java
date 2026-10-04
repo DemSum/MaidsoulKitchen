@@ -198,7 +198,9 @@ public class RecSerializerManager<R extends Recipe<? extends RecipeInput>> {
     protected List<MaidRec> generateRecs(MaidRec maidRec, int count) {
         List<MaidRec> maidRecList = new ArrayList<>(count);
         for (int i = 0; i < count; i++) {
-            maidRecList.add(maidRec);
+            // Upstream repeated the same object: a late acknowledgment could then consume the next unit.
+            maidRecList.add(new MaidRec(maidRec.recipe(), maidRec.taskId(), maidRec.generation(), maidRec.time(),
+                    maidRec.amount(), maidRec.results(), maidRec.maidItems(), maidRec.parameters()));
         }
         return maidRecList;
     }
@@ -240,8 +242,8 @@ public class RecSerializerManager<R extends Recipe<? extends RecipeInput>> {
     @SuppressWarnings({"unchecked", "rawtypes"})
     public final List<MKRecipe<R>> getRecipes(Level level) {
         // A recipe family can contain several RecipeInput implementations; retain the cast at this API boundary.
-        List<RecipeHolder<R>> holders = level.getRecipeManager().getAllRecipesFor((RecipeType) recipeType);
-        if (this.recipes == null || !holders.equals(loadedHolders)) {
+        List<RecipeHolder<R>> holders = getRecsFromRm(level);
+        if (this.recipes == null || !sameHolderValues(holders, loadedHolders)) {
             this.registryAccess = level.registryAccess();
             this.loadedHolders = List.copyOf(holders);
             this.initRecs(level, holders);
@@ -249,9 +251,30 @@ public class RecSerializerManager<R extends Recipe<? extends RecipeInput>> {
         return this.recipes;
     }
 
+    /** Holder equality in 1.21 is not a reload revision; compare the actual recipe value identities. */
+    private static boolean sameHolderValues(List<? extends RecipeHolder<?>> current, List<? extends RecipeHolder<?>> previous) {
+        if (current.size() != previous.size()) return false;
+        for (int index = 0; index < current.size(); index++) {
+            if (!current.get(index).id().equals(previous.get(index).id())
+                    || current.get(index).value() != previous.get(index).value()) return false;
+        }
+        return true;
+    }
+
     /** Upstream initRecs, with Holder snapshots instead of bare 1.20 recipes. */
     protected void initRecs(Level level, List<RecipeHolder<R>> holders) {
         this.recipes = holders.stream().map(this::createMKRecipe).toList();
+    }
+
+    /** Upstream getRecsFromRm; keep the RecipeInput wildcard cast at this platform boundary. */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    protected List<RecipeHolder<R>> getRecsFromRm(Level level) {
+        return level.getRecipeManager().getAllRecipesFor((RecipeType) recipeType);
+    }
+
+    /** 1.21 has no Recipe#getId; GUI adapters resolve the one loaded descriptor catalog by value identity. */
+    public Optional<MKRecipe<R>> getRecipeDescription(Recipe<?> recipe) {
+        return recipes == null ? Optional.empty() : recipes.stream().filter(description -> description.rec() == recipe).findFirst();
     }
 
     protected MKRecipe<R> createMKRecipe(RecipeHolder<R> holder) {

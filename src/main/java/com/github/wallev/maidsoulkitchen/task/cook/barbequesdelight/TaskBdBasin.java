@@ -9,7 +9,7 @@ import com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskClassAnalyz
 import com.github.wallev.maidsoulkitchen.task.TaskInfo;
 import com.github.wallev.maidsoulkitchen.task.cook.common.ai.MaidCookMoveTask;
 import com.github.wallev.maidsoulkitchen.task.cook.common.ai.MaidCookPathingTask;
-import com.github.wallev.maidsoulkitchen.task.cook.common.inventory.MaidRecipesManager;
+import com.github.wallev.maidsoulkitchen.task.cook.common.manager.MaidCookManager;
 import com.google.common.collect.Lists;
 import com.mao.barbequesdelight.content.block.BasinBlockEntity;
 import com.mao.barbequesdelight.content.recipe.SimpleSkeweringRecipe;
@@ -44,12 +44,12 @@ public class TaskBdBasin implements ICookTask<BasinBlockEntity, SkeweringRecipe<
     }
 
     @Override
-    public boolean shouldMoveTo(ServerLevel serverLevel, EntityMaid maid, BasinBlockEntity blockEntity, MaidRecipesManager<SkeweringRecipe<?>> recManager) {
+    public boolean shouldMoveTo(ServerLevel serverLevel, EntityMaid maid, BasinBlockEntity blockEntity, MaidCookManager<SkeweringRecipe<?>> recManager) {
         if (!blockEntity.items.isEmpty()) {
             return true;
         }
 
-        if (!recManager.getRecipesIngredients().isEmpty()) {
+        if (!recManager.getMaidRecs().isEmpty()) {
             return true;
         }
 
@@ -57,7 +57,7 @@ public class TaskBdBasin implements ICookTask<BasinBlockEntity, SkeweringRecipe<
     }
 
     @Override
-    public void processCookMake(ServerLevel serverLevel, EntityMaid maid, BasinBlockEntity blockEntity, MaidRecipesManager<SkeweringRecipe<?>> recManager) {
+    public void processCookMake(ServerLevel serverLevel, EntityMaid maid, BasinBlockEntity blockEntity, MaidCookManager<SkeweringRecipe<?>> recManager) {
 
     }
 
@@ -67,11 +67,13 @@ public class TaskBdBasin implements ICookTask<BasinBlockEntity, SkeweringRecipe<
             return Collections.emptyList();
         }
 
-        MaidRecipesManager<SkeweringRecipe<?>> cookingPotRecipeMaidRecipesManager = getRecipesManager(maid);
-        MaidCookMoveTask<BasinBlockEntity, SkeweringRecipe<?>> maidCookMoveTask = new MaidCookMoveTask<>(this, cookingPotRecipeMaidRecipesManager);
-        MaidBasinMakeTask maidBasinMakeTask = new MaidBasinMakeTask(this, cookingPotRecipeMaidRecipesManager);
+        MaidCookManager<SkeweringRecipe<?>> cookingPotRecipeMaidCookManager = getRecipesManager(maid);
+        MaidCookMoveTask<BasinBlockEntity, SkeweringRecipe<?>> maidCookMoveTask = new MaidCookMoveTask<>(this, cookingPotRecipeMaidCookManager);
+        MaidBasinMakeTask maidBasinMakeTask = new MaidBasinMakeTask(this, cookingPotRecipeMaidCookManager);
         MaidCookPathingTask<BasinBlockEntity, SkeweringRecipe<?>> maidCookPathingTask = new MaidCookPathingTask<>(this);
-        return Lists.newArrayList(Pair.of(5, maidCookMoveTask), Pair.of(6, maidBasinMakeTask), Pair.of(7, maidCookPathingTask));
+        return Lists.newArrayList(Pair.of(3, new com.github.wallev.maidsoulkitchen.task.cook.common.ai.CollectChestIngredientsTask<>(cookingPotRecipeMaidCookManager)),
+                Pair.of(4, new com.github.wallev.maidsoulkitchen.task.cook.common.ai.GenerateRecsTask<>(cookingPotRecipeMaidCookManager)),
+                Pair.of(5, maidCookMoveTask), Pair.of(6, maidBasinMakeTask), Pair.of(7, maidCookPathingTask));
     }
 
     @Override

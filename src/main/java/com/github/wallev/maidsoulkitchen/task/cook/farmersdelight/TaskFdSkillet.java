@@ -9,7 +9,7 @@ import com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskClassAnalyz
 import com.github.wallev.maidsoulkitchen.task.TaskInfo;
 import com.github.wallev.maidsoulkitchen.task.cook.common.ai.MaidCookMoveTask;
 import com.github.wallev.maidsoulkitchen.task.cook.common.ai.MaidCookPathingTask;
-import com.github.wallev.maidsoulkitchen.task.cook.common.inventory.MaidRecipesManager;
+import com.github.wallev.maidsoulkitchen.task.cook.common.manager.MaidCookManager;
 import com.google.common.collect.Lists;
 import com.mojang.datafixers.util.Pair;
 import net.minecraft.core.NonNullList;
@@ -44,13 +44,13 @@ public class TaskFdSkillet implements ICookTask<SkilletBlockEntity, CampfireCook
     }
 
     @Override
-    public boolean shouldMoveTo(ServerLevel serverLevel, EntityMaid maid, SkilletBlockEntity blockEntity, MaidRecipesManager<CampfireCookingRecipe> recManager) {
+    public boolean shouldMoveTo(ServerLevel serverLevel, EntityMaid maid, SkilletBlockEntity blockEntity, MaidCookManager<CampfireCookingRecipe> recManager) {
         return !blockEntity.hasStoredStack() && blockEntity.isHeated()
-                && !recManager.getRecipesIngredients().isEmpty();
+                && !recManager.getMaidRecs().isEmpty();
     }
 
     @Override
-    public void processCookMake(ServerLevel serverLevel, EntityMaid maid, SkilletBlockEntity blockEntity, MaidRecipesManager<CampfireCookingRecipe> recManager) {
+    public void processCookMake(ServerLevel serverLevel, EntityMaid maid, SkilletBlockEntity blockEntity, MaidCookManager<CampfireCookingRecipe> recManager) {
         // 空实现，实际逻辑在MaidSkilletMakeTask中
     }
 
@@ -84,11 +84,13 @@ public class TaskFdSkillet implements ICookTask<SkilletBlockEntity, CampfireCook
             return Collections.emptyList();
         }
 
-        MaidRecipesManager<CampfireCookingRecipe> skilletRecipeMaidRecipesManager = getRecipesManager(maid);
-        MaidCookMoveTask<SkilletBlockEntity, CampfireCookingRecipe> maidCookMoveTask = new MaidCookMoveTask<>(this, skilletRecipeMaidRecipesManager);
-        MaidSkilletMakeTask maidCookMakeTask = new MaidSkilletMakeTask(this, skilletRecipeMaidRecipesManager);
+        MaidCookManager<CampfireCookingRecipe> skilletRecipeMaidCookManager = getRecipesManager(maid);
+        MaidCookMoveTask<SkilletBlockEntity, CampfireCookingRecipe> maidCookMoveTask = new MaidCookMoveTask<>(this, skilletRecipeMaidCookManager);
+        MaidSkilletMakeTask maidCookMakeTask = new MaidSkilletMakeTask(this, skilletRecipeMaidCookManager);
         MaidCookPathingTask<SkilletBlockEntity, CampfireCookingRecipe> maidCookPathingTask = new MaidCookPathingTask<>(this);
-        return Lists.newArrayList(Pair.of(5, maidCookMoveTask), Pair.of(6, maidCookMakeTask), Pair.of(7, maidCookPathingTask));
+        return Lists.newArrayList(Pair.of(3, new com.github.wallev.maidsoulkitchen.task.cook.common.ai.CollectChestIngredientsTask<>(skilletRecipeMaidCookManager)),
+                Pair.of(4, new com.github.wallev.maidsoulkitchen.task.cook.common.ai.GenerateRecsTask<>(skilletRecipeMaidCookManager)),
+                Pair.of(5, maidCookMoveTask), Pair.of(6, maidCookMakeTask), Pair.of(7, maidCookPathingTask));
     }
     
     @Override

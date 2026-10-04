@@ -8,7 +8,7 @@ import com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskInfo;
 import com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookTargetMemory;
 import com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookTargetState;
 import com.github.wallev.maidsoulkitchen.task.cook.common.cbaccessor.IRecipeExperinceAward;
-import com.github.wallev.maidsoulkitchen.task.cook.common.inventory.MaidRecipesManager;
+import com.github.wallev.maidsoulkitchen.task.cook.common.manager.MaidCookManager;
 import com.google.common.collect.ImmutableMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -38,10 +38,10 @@ import java.util.Collections;
 public class MaidSkilletMakeTask extends Behavior<EntityMaid> {
     private final TaskFdSkillet task;
     private int cookCount = 0;
-    private final MaidRecipesManager<CampfireCookingRecipe> maidRecipesManager;
+    private final MaidCookManager<CampfireCookingRecipe> maidRecipesManager;
     private int tickCounter = 0;
 
-    public MaidSkilletMakeTask(TaskFdSkillet task, MaidRecipesManager<CampfireCookingRecipe> maidRecipesManager) {
+    public MaidSkilletMakeTask(TaskFdSkillet task, MaidCookManager<CampfireCookingRecipe> maidRecipesManager) {
         super(ImmutableMap.of(MkMemories.WORK_POS.get(), MemoryStatus.VALUE_PRESENT), 1200);
         this.task = task;
         this.maidRecipesManager = maidRecipesManager;
@@ -112,7 +112,7 @@ public class MaidSkilletMakeTask extends Behavior<EntityMaid> {
         IItemHandlerModifiable inputInv = maidRecipesManager.getInputInv();
         
         // 首先尝试使用女仆的配方管理器中的配方
-        if (!maidRecipesManager.getRecipesIngredients().isEmpty()) {
+        if (!maidRecipesManager.getMaidRecs().isEmpty()) {
             var recipeIngredient = maidRecipesManager.getRecipeIngredient();
             if (!recipeIngredient.getFirst().isEmpty() && !recipeIngredient.getSecond().isEmpty()) {
                 var itemStacks = recipeIngredient.getSecond().get(0);

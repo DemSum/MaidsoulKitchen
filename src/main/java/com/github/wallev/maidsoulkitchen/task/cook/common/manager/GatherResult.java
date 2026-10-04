@@ -38,6 +38,8 @@ public class GatherResult {
         return result;
     }
 
+    public int getSlot() { return slot; }
+
     public ItemStack queryItemStack() {
         return queryItemStack(this.amount);
     }

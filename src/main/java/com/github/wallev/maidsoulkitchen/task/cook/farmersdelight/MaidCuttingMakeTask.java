@@ -6,7 +6,7 @@ import com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskClassAnalyz
 import com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskInfo;
 import com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookTargetMemory;
 import com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookTargetState;
-import com.github.wallev.maidsoulkitchen.task.cook.common.inventory.MaidRecipesManager;
+import com.github.wallev.maidsoulkitchen.task.cook.common.manager.MaidCookManager;
 import com.google.common.collect.ImmutableMap;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.InteractionHand;
@@ -24,12 +24,12 @@ import java.util.Optional;
 @TaskClassAnalyzer(TaskInfo.FD_CUTTING_BOARD)
 public class MaidCuttingMakeTask extends Behavior<EntityMaid> {
     private final TaskFdCuttingBoard task;
-    private final MaidRecipesManager<CuttingBoardRecipe> maidRecipesManager;
+    private final MaidCookManager<CuttingBoardRecipe> maidRecipesManager;
     private boolean maidHand = false;
     private int tick = 0;
     private Item processItem = null;
 
-    public MaidCuttingMakeTask(TaskFdCuttingBoard task, MaidRecipesManager<CuttingBoardRecipe> maidRecipesManager) {
+    public MaidCuttingMakeTask(TaskFdCuttingBoard task, MaidCookManager<CuttingBoardRecipe> maidRecipesManager) {
         super(ImmutableMap.of(MkMemories.WORK_POS.get(), MemoryStatus.VALUE_PRESENT), 1200);
         this.task = task;
         this.maidRecipesManager = maidRecipesManager;

@@ -5,7 +5,7 @@ import com.github.wallev.maidsoulkitchen.init.MkMemories;
 import com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskClassAnalyzer;
 import com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookTargetMemory;
 import com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookTargetState;
-import com.github.wallev.maidsoulkitchen.task.cook.common.inventory.MaidRecipesManager;
+import com.github.wallev.maidsoulkitchen.task.cook.common.manager.MaidCookManager;
 import com.google.common.collect.ImmutableMap;
 import com.mao.barbequesdelight.content.block.GrillBlockEntity;
 import com.mao.barbequesdelight.content.recipe.GrillingRecipe;
@@ -26,10 +26,10 @@ import java.util.List;
 @TaskClassAnalyzer(com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskInfo.BD_GRILL)
 public class MaidGrillMakeTask extends Behavior<EntityMaid> {
     private final TaskBdGrill task;
-    private final MaidRecipesManager<GrillingRecipe<?>> maidRecipesManager;
+    private final MaidCookManager<GrillingRecipe<?>> maidRecipesManager;
     private final List<ItemStack> grillStacks = new ArrayList<>();
 
-    public MaidGrillMakeTask(TaskBdGrill task, MaidRecipesManager<GrillingRecipe<?>> maidRecipesManager) {
+    public MaidGrillMakeTask(TaskBdGrill task, MaidCookManager<GrillingRecipe<?>> maidRecipesManager) {
         super(ImmutableMap.of(MkMemories.WORK_POS.get(), MemoryStatus.VALUE_PRESENT), 1200);
         this.task = task;
         this.maidRecipesManager = maidRecipesManager;
@@ -56,7 +56,7 @@ public class MaidGrillMakeTask extends Behavior<EntityMaid> {
         CookTargetMemory.getWorkPos(maid).ifPresent(posWrapper -> {
             BlockEntity blockEntity = worldIn.getBlockEntity(posWrapper.currentBlockPosition());
             if (blockEntity instanceof GrillBlockEntity grillBlockEntity) {
-                if (!maidRecipesManager.getRecipesIngredients().isEmpty()) {
+                if (!maidRecipesManager.getMaidRecs().isEmpty()) {
                     Pair<List<Integer>, List<List<ItemStack>>> recipeIngredient = maidRecipesManager.getRecipeIngredient();
                     grillStacks.addAll(recipeIngredient.getSecond().get(0));
                 }

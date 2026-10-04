@@ -4,7 +4,7 @@ import com.github.tartaricacid.touhoulittlemaid.entity.ai.brain.task.MaidCheckRa
 import com.github.tartaricacid.touhoulittlemaid.entity.passive.EntityMaid;
 import com.github.wallev.maidsoulkitchen.api.task.v1.cook.ICookTask;
 import com.github.wallev.maidsoulkitchen.init.MkMemories;
-import com.github.wallev.maidsoulkitchen.task.cook.common.inventory.MaidRecipesManager;
+import com.github.wallev.maidsoulkitchen.task.cook.common.manager.MaidCookManager;
 import com.google.common.collect.ImmutableMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -21,16 +21,16 @@ public class MaidCookMoveTask<B extends BlockEntity, R extends Recipe<? extends 
     private final float movementSpeed;
     private final int verticalSearchRange;
     private final ICookTask<B, R> task;
-    private final MaidRecipesManager<R> maidRecipesManager;
+    private final MaidCookManager<R> maidRecipesManager;
     private final CookTargetCycle targetCycle = new CookTargetCycle();
     private BlockPos pendingWorkAreaFloorAnchor;
     protected int verticalSearchStart;
 
-    public MaidCookMoveTask(ICookTask<B, R> task, MaidRecipesManager<R> maidRecipesManager) {
+    public MaidCookMoveTask(ICookTask<B, R> task, MaidCookManager<R> maidRecipesManager) {
         this(task, 0.5f, 2, maidRecipesManager);
     }
 
-    public MaidCookMoveTask(ICookTask<B, R> task, float movementSpeed, int verticalSearchRange, MaidRecipesManager<R> maidRecipesManager) {
+    public MaidCookMoveTask(ICookTask<B, R> task, float movementSpeed, int verticalSearchRange, MaidCookManager<R> maidRecipesManager) {
         super(ImmutableMap.of(MkMemories.WORK_POS.get(), MemoryStatus.VALUE_ABSENT));
         this.task = task;
         this.movementSpeed = movementSpeed;
@@ -44,7 +44,7 @@ public class MaidCookMoveTask<B extends BlockEntity, R extends Recipe<? extends 
         return maid.hasRestriction() ? maid.getRestrictCenter() : maid.blockPosition().below();
     }
 
-    public MaidRecipesManager<R> getMaidRecipesManager() {
+    public MaidCookManager<R> getMaidCookManager() {
         return maidRecipesManager;
     }
 
