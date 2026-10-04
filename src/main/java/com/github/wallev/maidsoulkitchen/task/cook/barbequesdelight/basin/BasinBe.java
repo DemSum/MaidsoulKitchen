@@ -34,8 +34,14 @@ public class BasinBe extends CookBeBase<BasinBlockEntity> {
         return cm.useItems(work, materials -> {
             if (materials.size() < 2 || materials.size() > 3) return ItemStack.EMPTY;
             var ingredient = materials.get(1);
-            var remainder = be.items.addItem(ingredient.copy());
-            ingredient.setCount(remainder.getCount()); markChanged();
+            int requested = ingredient.getCount();
+            var definition = com.github.wallev.maidsoulkitchen.task.cook.common.inv.item.ItemDefinition.of(ingredient);
+            try { be.items.addItem(ingredient.copy()); }
+            finally {
+                int accepted = com.github.wallev.maidsoulkitchen.task.cook.common.inventory.CookInventoryTransactions.count(getInv(), definition::is);
+                ingredient.setCount(Math.max(0, requested - accepted));
+            }
+            markChanged();
             var input = new SkeweringInput(materials.getFirst(), be.items.getItem(0), materials.size() == 3 ? materials.get(2) : ItemStack.EMPTY);
             if (!recipe.matches(input, serverLevel)) return ItemStack.EMPTY;
             var result = recipe.assemble(input, serverLevel.registryAccess()); markChanged(); return result;

@@ -36,6 +36,43 @@ public final class CookingArchitectureGameTests {
     private static ResourceLocation id(String name) { return ResourceLocation.fromNamespaceAndPath(MaidsoulKitchen.MOD_ID, name); }
 
     @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID, batch = "cooking_architecture")
+    public static void nativeFdSkilletAcceptsBoundedBatchAndSelectedRecipe(GameTestHelper helper) {
+        var level = helper.getLevel(); var original = List.copyOf(level.getRecipeManager().getRecipes());
+        var maid = helper.spawnWithNoFreeWill(InitEntities.MAID.get(), new net.minecraft.core.BlockPos(1, 1, 1)); maid.setNoAi(true);
+        try {
+            var holder = new RecipeHolder<>(id("native_skillet_batch"), new CampfireCookingRecipe("", CookingBookCategory.MISC,
+                    Ingredient.of(Items.CARROT), new ItemStack(Items.BAKED_POTATO), 0, 20));
+            var excluded = new RecipeHolder<>(id("excluded_skillet_recipe"), new CampfireCookingRecipe("", CookingBookCategory.MISC,
+                    Ingredient.of(Items.BEEF), new ItemStack(Items.COOKED_BEEF), 0, 20)); reloadRecipes(helper, List.of(holder, excluded));
+            var task = new com.github.wallev.maidsoulkitchen.task.cook.farmersdelight.skillet.TaskFdSkillet(); maid.setTask(task);
+            KitchenData.get(maid).setCookData(task.getUid(), new CookData("whitelist", List.of(holder.id().toString()), List.of()));
+            var input = maid.getAvailableInv(true); for (int slot = 0; slot < input.getSlots(); slot++) input.setStackInSlot(slot, ItemStack.EMPTY);
+            var material = new ItemStack(Items.CARROT, 2); material.set(DataComponents.CUSTOM_NAME, Component.literal("native skillet components"));
+            input.setStackInSlot(0, material.copy()); input.setStackInSlot(2, new ItemStack(Items.BEEF));
+            var cm = task.getRecipesManager(maid); cm.checkAndCreateRecipesIngredients(); finishPlanning(cm); var work = cm.peekMaidRec();
+            helper.setBlock(new net.minecraft.core.BlockPos(2, 0, 2), net.minecraft.world.level.block.Blocks.CAMPFIRE);
+            helper.setBlock(new net.minecraft.core.BlockPos(2, 1, 2), vectorwing.farmersdelight.common.registry.ModBlocks.SKILLET.get().defaultBlockState()
+                    .setValue(vectorwing.farmersdelight.common.block.SkilletBlock.WATERLOGGED, true));
+            var skillet = (vectorwing.farmersdelight.common.block.entity.SkilletBlockEntity) helper.getBlockEntity(new net.minecraft.core.BlockPos(2, 1, 2));
+            var be = new com.github.wallev.maidsoulkitchen.task.cook.farmersdelight.skillet.SkilletBe(maid); be.setBe(skillet);
+            helper.assertTrue(work != null && work.amount() == 2 && work.maidItems().getFirst().count() == 2 && !be.insertInputs(work, cm)
+                    && input.getStackInSlot(0).getCount() == 2 && !skillet.hasStoredStack(), "a waterlogged native skillet cannot consume its bounded component-bearing plan");
+            level.setBlockAndUpdate(skillet.getBlockPos(), skillet.getBlockState().setValue(vectorwing.farmersdelight.common.block.SkilletBlock.WATERLOGGED, false));
+            var rule = com.github.wallev.maidsoulkitchen.task.cook.common.rule.cook.NormalCookRule.<vectorwing.farmersdelight.common.block.entity.SkilletBlockEntity, CampfireCookingRecipe>getInstance();
+            rule.cookMake(be, cm);
+            helper.assertTrue(cm.getMaidRecs().isEmpty() && skillet.getStoredStack().getCount() == 2 && ItemStack.isSameItemSameComponents(skillet.getStoredStack(), material)
+                    && input.getStackInSlot(0).isEmpty() && input.getStackInSlot(2).is(Items.BEEF), "native whole-stack acceptance must preserve components and leave excluded recipe materials untouched");
+            for (int i = 0; i < 100; i++) vectorwing.farmersdelight.common.block.entity.SkilletBlockEntity.cookingTick(level, skillet.getBlockPos(), skillet.getBlockState(), skillet);
+            int actual = level.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class, new net.minecraft.world.phys.AABB(skillet.getBlockPos()).inflate(3)).stream()
+                    .filter(entity -> entity.getItem().is(Items.BAKED_POTATO)).mapToInt(entity -> entity.getItem().getCount()).sum();
+            cm.checkAndCreateRecipesIngredients(); finishPlanning(cm); rule.cookMake(be, cm);
+            helper.assertTrue(actual == 2 && !skillet.hasStoredStack() && cm.getMaidRecs().isEmpty() && input.getStackInSlot(2).getCount() == 1,
+                    "native timing must emit exactly two real results; no fallback loop may cook an excluded recipe");
+        } finally { reloadRecipes(helper, original); maid.discard(); }
+        helper.succeed();
+    }
+
+    @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID, batch = "cooking_architecture")
     public static void nativeBasinConsumesCompleteCountedUnitOnce(GameTestHelper helper) {
         var level = helper.getLevel(); var original = List.copyOf(level.getRecipeManager().getRecipes());
         var maid = helper.spawnWithNoFreeWill(InitEntities.MAID.get(), new net.minecraft.core.BlockPos(1, 1, 1)); maid.setNoAi(true);

@@ -506,6 +506,30 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
      * manager owns receipts/output placement. No material queue or result cache is introduced. */
     public boolean useItems(MaidRec work, java.util.function.Function<List<ItemStack>, ItemStack> nativeUse) {
         if (work == null || peekMaidRec() != work || !canTakeResult(work.result())) return false;
+        return withPhysicalInputs(work, detached -> {
+            var result = nativeUse.apply(detached);
+            if (result.isEmpty()) return false;
+            CookInventoryTransactions.returnOrDrop(getOutputInv(), result, maid);
+            return true;
+        });
+    }
+
+    /** Native FD skillet boundary, no 1.20 task existed. Reuses the source manager's physical
+     * input ownership and receipt extraction from Basin useItems. addItemToCook accepts a whole
+     * stack and returns a remainder; retain the verified native batch behavior without beta's
+     * live split or fallback bypassing the selected recipe. Be supplies the native insertion. */
+    public boolean insertInput(MaidRec work, java.util.function.Function<ItemStack, ItemStack> nativeInsert) {
+        if (work == null || peekMaidRec() != work || work.maidItems().size() != 1) return false;
+        return withPhysicalInputs(work, detached -> {
+            var actual = detached.getFirst();
+            var remainder = nativeInsert.apply(actual);
+            actual.setCount(remainder.getCount());
+            return actual.isEmpty();
+        });
+    }
+
+    /** Shared receipt body for the two native consuming APIs above; owns no persistent state. */
+    private boolean withPhysicalInputs(MaidRec work, Predicate<List<ItemStack>> nativeUse) {
         var materials = work.maidItems();
         if (materials.stream().anyMatch(item -> item.role() != MaidItem.Role.INGREDIENT)) return false;
         Map<ItemDefinition, Integer> needed = new HashMap<>();
@@ -526,11 +550,8 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
                 }
                 if (actual.getCount() != material.count()) return false;
             }
-            var result = nativeUse.apply(detached);
-            if (result.isEmpty()) return false;
-            CookInventoryTransactions.returnOrDrop(getOutputInv(), result, maid);
-            complete = true;
-            return true;
+            complete = nativeUse.test(detached);
+            return complete;
         } finally {
             for (ItemStack remainder : detached) CookInventoryTransactions.returnOrDrop(getInputInv(), remainder, maid);
             cookInv.syncInv(); cookInv.refreshInv();

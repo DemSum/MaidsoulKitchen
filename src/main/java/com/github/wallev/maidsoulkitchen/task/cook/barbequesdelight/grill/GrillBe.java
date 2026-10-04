@@ -55,8 +55,9 @@ public class GrillBe extends CookBeBase<GrillBlockEntity> {
     @Override public boolean insertInputs(MaidRec work, MaidCookManager<?> cm) {
         if (!cookStateMatch()) return false;
         return cm.insertInputs(work, stack -> {
-            for (var entry : be.entries) if (entry.stack.isEmpty() && entry.addItem(be, stack.copyWithCount(1))) {
-                stack.shrink(1); markChanged(); return true;
+            for (var entry : be.entries) if (entry.stack.isEmpty()) {
+                try { if (entry.addItem(be, stack.copyWithCount(1))) { markChanged(); return true; } }
+                finally { if (!entry.stack.isEmpty() && ItemStack.isSameItemSameComponents(stack, entry.stack)) stack.shrink(1); }
             }
             return false;
         });

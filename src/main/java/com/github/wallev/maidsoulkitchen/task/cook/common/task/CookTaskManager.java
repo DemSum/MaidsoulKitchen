@@ -13,7 +13,7 @@ import com.github.wallev.maidsoulkitchen.task.cook.cuisine.cuisine.TaskCdCuisine
 import com.github.wallev.maidsoulkitchen.task.cook.drinkbeer.beerbarrel.TaskDbBeerBarrel;
 import com.github.wallev.maidsoulkitchen.task.cook.farmersdelight.cookingpot.TaskFdCookingPot;
 import com.github.wallev.maidsoulkitchen.task.cook.farmersdelight.cuttingboard.TaskFdCuttingBoard;
-import com.github.wallev.maidsoulkitchen.task.cook.farmersdelight.TaskFdSkillet;
+import com.github.wallev.maidsoulkitchen.task.cook.farmersdelight.skillet.TaskFdSkillet;
 import com.github.wallev.maidsoulkitchen.task.cook.minecraft.furnace.TaskFurnace;
 import com.github.wallev.maidsoulkitchen.task.cook.kaleidoscopecookery.TaskKcSteamer;
 import com.github.wallev.maidsoulkitchen.task.cook.kaleidoscopecookery.TaskKcStockpot;
