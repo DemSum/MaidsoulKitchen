@@ -40,6 +40,5 @@ public class TaskCdCuisine extends ICookTask<CuisineSkilletBlockEntity, BaseCuis
     public ItemStack getIcon() {
         return CDBlocks.SKILLET.asStack();
     }
-    @Override public boolean isCookBE(net.minecraft.world.level.block.entity.BlockEntity entity) { return entity instanceof CuisineSkilletBlockEntity; }
     @Override public com.github.tartaricacid.touhoulittlemaid.api.entity.data.TaskDataKey<com.github.wallev.maidsoulkitchen.entity.data.inner.task.CookData> getCookDataKey() { return com.github.wallev.maidsoulkitchen.init.touhoulittlemaid.DataRegister.CUISINE_SKILLET; }
 }

@@ -63,7 +63,7 @@ public final class MaidStockpotCookManager extends MaidCookManager<Recipe<Stockp
                     for (int z = x < i && x > -i ? i : 0; z <= i; z = z > 0 ? -z : 1 - z) {
                         pos.setWithOffset(center, x, y + 1, z);
                         if (!maid.isWithinRestriction(pos) || !level.isLoaded(pos)
-                                || !com.github.wallev.maidsoulkitchen.api.task.v1.cook.ICookTargetTask.isWithinOwnerRange(maid, pos)) continue;
+                                || !com.github.wallev.maidsoulkitchen.api.task.cook.ICookTargetTask.isWithinOwnerRange(maid, pos)) continue;
                         if (level.getBlockEntity(pos) instanceof StockpotBlockEntity pot
                                 && com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookWorkLocks.isAvailable(level, pos, maid)) conditions.add(pot);
                     }

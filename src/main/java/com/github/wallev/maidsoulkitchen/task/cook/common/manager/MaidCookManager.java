@@ -4,7 +4,7 @@ import com.github.tartaricacid.touhoulittlemaid.entity.passive.EntityMaid;
 import com.github.tartaricacid.touhoulittlemaid.util.ItemsUtil;
 import com.github.tartaricacid.touhoulittlemaid.api.bauble.IChestType;
 import com.github.tartaricacid.touhoulittlemaid.inventory.chest.ChestManager;
-import com.github.wallev.maidsoulkitchen.api.task.v1.cook.ICookTask;
+import com.github.wallev.maidsoulkitchen.api.task.cook.ICookTask;
 import com.github.wallev.maidsoulkitchen.entity.data.inner.task.CookData;
 import com.github.wallev.maidsoulkitchen.inventory.container.item.BagType;
 import com.github.wallev.maidsoulkitchen.item.ItemCulinaryHub;
@@ -17,7 +17,6 @@ import com.github.wallev.maidsoulkitchen.task.cook.common.task.CookTaskManager;
 import com.github.wallev.maidsoulkitchen.task.cook.common.rule.rec.*;
 import com.github.wallev.maidsoulkitchen.task.cook.common.rule.rec.mkrec.MKRecipe;
 import com.github.wallev.maidsoulkitchen.util.BubbleUtil;
-import com.mojang.datafixers.util.Pair;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
@@ -34,8 +33,7 @@ import java.util.function.Predicate;
  * Holder/RecipeInput, canonical KitchenData, existing hub/bauble lookup and safe transfers adapt 1.21.
  * Reload/task/inventory invalidation and commit-after-acceptance fix confirmed upstream defects.
  * Replaces beta MaidRecipesManager's Pair queue, plannedResults and synchronous ingredient planner.
- * The temporary getRecipeIngredient projection owns no state and never polls; P3-P5 consumers replace
- * it with Be/Rule transactions. Empty upstream hooks and unused duplicate queues are omitted.
+ * Empty upstream hooks and unused duplicate queues are omitted. Be/Rule reads MaidRec directly.
  */
 public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
     protected final EntityMaid maid;
@@ -62,6 +60,8 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
     private long availableFoodsBubbleId = -1;
     private long noIngredientBubbleId = -1;
     private ItemStack loanedTool = ItemStack.EMPTY;
+    // A TLM brain context that was retired cannot resume when the same device UID is selected again.
+    private boolean retired;
 
     public MaidCookManager(RecSerializerManager<R> recSerializerManager, EntityMaid maid, ICookTask<?, R> task) {
         this.recSerializerManager = recSerializerManager;
@@ -71,6 +71,7 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
     }
 
     public EntityMaid getMaid() { return maid; }
+    public ResourceLocation getTaskUid() { return task.getUid(); }
     public RecSerializerManager<R> getRecSerializerManager() { return recSerializerManager; }
     public IMaidCookInventory getCookInv() { return cookInv; }
     public ItemInventory getItemInventory() { return cookInv.getItemInventory(); }
@@ -328,25 +329,6 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
         return true;
     }
 
-    /** Temporary beta consumer projection from MaidRec; no plan is removed and no result queue exists. */
-    @Deprecated
-    public Pair<List<Integer>, List<List<ItemStack>>> getRecipeIngredient() {
-        MaidRec recipe = peekMaidRec();
-        if (recipe == null) return Pair.of(List.of(), List.of());
-        List<Integer> counts = new ArrayList<>();
-        List<List<ItemStack>> materials = new ArrayList<>();
-        if (recSerializerManager instanceof FluidRecSerializerManager<?> && recipe.maidItems().stream()
-                .noneMatch(material -> material.role() == MaidItem.Role.FLUID)) {
-            counts.add(0); materials.add(List.of());
-        }
-        for (MaidItem material : recipe.maidItems()) {
-            counts.add(material.count());
-            var stacks = getItemInventory().getItemStacks(material.item());
-            materials.add(stacks == null ? List.of() : new ArrayList<>(stacks));
-        }
-        return Pair.of(counts, materials);
-    }
-
     public boolean isRecipeEnabled(ResourceLocation recipeId) {
         return recsGenerate.getRecs().stream().anyMatch(recipe -> recipe.id().equals(recipeId));
     }
@@ -368,6 +350,14 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
     public void clear() {
         resetState(); recsGenerate.clear(); maidRecs.clear(); hubItemDown.clear(); chestInputInventory.clear();
     }
+    /** Source TickCookRule stop cleanup, also applied when TLM replaces the brain task context.
+     * Return the actual loan before discarding plans; no old manager may retain executable work. */
+    public void retire() {
+        retired = true;
+        if (cookInv != null) { cookInv.refreshInv(); backpackTool(); }
+        else invalidate();
+        com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookTargetMemory.clear(maid);
+    }
     public void resetState() { runState = 0; tryTime = 0; }
     protected final void invalidate() { clear(); generation++; tryTime = 10; }
     private List<BlockPos> getBindingTypePoses(BagType type) { return bindingPoses.getOrDefault(type, List.of()); }
@@ -376,7 +366,10 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
         return maid.distanceToSqr(pos.getX(), pos.getY(), pos.getZ()) > range * range;
     }
 
-    private boolean isCurrentTask() { return maid.isAlive() && maid.getTask().getUid().equals(task.getUid()); }
+    private boolean isCurrentTask() {
+        return !retired && maid.isAlive() && com.github.wallev.maidsoulkitchen.task.cook.common.task.TaskCook.resolve(maid)
+                .map(current -> current.getUid().equals(task.getUid())).orElse(false);
+    }
 
     /** Existing WIP CulinaryHubWorkStorage.isStorageAccessible: preserve TLM opened-chest gating. */
     private boolean isStorageAccessible(BlockEntity be) {
@@ -388,8 +381,6 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
 
     public IItemHandlerModifiable getInputInv() { return cookInv.getInputInv(); }
     public IItemHandlerModifiable getOutputInv() { return cookInv.getOutputInv(); }
-    public IItemHandlerModifiable getIngredientInv() { return getInputInv(); }
-    public IItemHandlerModifiable getOutputAdditionInv() { return getInputInv(); }
 
     /** Upstream takeItem/insertAndShrink moved here so the manager owns all inventory transactions.
      * NeoForge transfer receipts prevent duplication on refused extraction and recover remainders. */
@@ -768,27 +759,6 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
         return GatherResult.FAIL;
     }
 
-    // Short-lived method-name adaptation for beta Be consumers; all operations use the owned Handler.
-    public boolean hasOutputAdditionItem(Predicate<ItemStack> predicate) { return !getItem(predicate).isFail(); }
-    public boolean hasOutputAdditionItem(ItemStack stack) { return hasOutputAdditionItem(candidate -> candidate.is(stack.getItem())); }
-    public ItemStack findOutputAdditionItem(Predicate<ItemStack> predicate) {
-        GatherResult result = getItem(predicate);
-        ItemStack stack = result.isFail() ? ItemStack.EMPTY : result.queryItemStack(64);
-        syncInv(); return stack;
-    }
-    public ItemStack findOutputAdditionItem(ItemStack stack) { return findOutputAdditionItem(candidate -> candidate.is(stack.getItem())); }
-    public int getOutputAdditionItemCount(ItemStack stack) {
-        int count = CookInventoryTransactions.count(getInputInv(), candidate -> candidate.is(stack.getItem()));
-        if (count > 0) return count;
-        GatherResult result = getItem(candidate -> candidate.is(stack.getItem()));
-        return result.isFail() ? 0 : result.getItemHandler().getStackInSlot(result.getSlot()).getCount();
-    }
-    public void shrinkOutputAdditionItem(ItemStack stack, int count) {
-        GatherResult result = getItem(candidate -> candidate.is(stack.getItem()));
-        if (!result.isFail()) result.queryItemStack(count);
-        syncInv();
-    }
-
     private void itemCookBag2Chest(BagType type, boolean requireHasItem) {
         if (!hasCulinaryHub) return;
         IItemHandlerModifiable source = cookInv.getAvailableInv(type);
@@ -820,8 +790,6 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
 
     public void itemOutput2Chest() { itemCookBag2Chest(BagType.OUTPUT, false); }
     public void itemUnIngre2Chest() { itemCookBag2Chest(BagType.INGREDIENT, true); }
-    public void tranOutput2Chest() { itemOutput2Chest(); }
-    public void tranUnIngre2Chest() { itemUnIngre2Chest(); }
     public static void makeChanged(BlockEntity be) {
         be.setChanged();
         if (be.getLevel() != null) be.getLevel().sendBlockUpdated(be.getBlockPos(), be.getBlockState(), be.getBlockState(), 3);

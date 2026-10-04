@@ -66,7 +66,7 @@ class Tlm15ApiMigrationTest {
                 "com/github/wallev/maidsoulkitchen/init/MkMemories.class"
         );
         String targetTask = classFileText(
-                "com/github/wallev/maidsoulkitchen/api/task/v1/cook/ICookTargetTask.class"
+                "com/github/wallev/maidsoulkitchen/api/task/cook/ICookTargetTask.class"
         );
         String genericMove = classFileText(
                 "com/github/wallev/maidsoulkitchen/task/cook/common/ai/CookMoveTask.class"

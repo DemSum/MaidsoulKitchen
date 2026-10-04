@@ -12,7 +12,6 @@ import com.github.wallev.maidsoulkitchen.item.ItemCulinaryHub;
 import com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookTargetMemory;
 import com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookWorkLocks;
 import com.github.wallev.maidsoulkitchen.task.cook.common.inventory.CookInventoryTransactions;
-import com.github.wallev.maidsoulkitchen.task.cook.common.inventory.CulinaryHubWorkStorage;
 import com.github.ysbbbbbb.kaleidoscopecookery.api.blockentity.IStockpot;
 import com.github.ysbbbbbb.kaleidoscopecookery.blockentity.kitchen.StockpotBlockEntity;
 import com.github.ysbbbbbb.kaleidoscopecookery.crafting.container.StockpotInput;
@@ -163,8 +162,8 @@ public final class StockpotGameTests {
             helper.assertTrue(pot.getStatus() == IStockpot.PUT_SOUP_BASE, "missing lid must not pour soup");
             ItemStack lid = ModItems.STOCKPOT_LID.get().getDefaultInstance();
             lid.setDamageValue(17);
-            var storage = CulinaryHubWorkStorage.open(maid).orElseThrow();
-            CookInventoryTransactions.insertAll(storage.ingredients(), lid.copy()); storage.sync();
+            var storage = cookManager(maid);
+            CookInventoryTransactions.insertAll(storage.getInputInv(), lid.copy()); storage.syncInv();
             helper.setBlock(2, 1, 2, Blocks.AIR);
             workAt(maid, pos);
             helper.assertTrue(pot.getStatus() == IStockpot.PUT_SOUP_BASE, "missing heat must leave all supplies intact");
@@ -189,8 +188,8 @@ public final class StockpotGameTests {
             helper.assertTrue(pot.hasLid() && pot.getStatus() == IStockpot.PUT_INGREDIENT, "ordinary plan must load and cover");
             helper.assertTrue(pot.getLidItem().getDamageValue() == 17, "cover must preserve actual lid components");
             helper.assertTrue(maid.getMainHandItem().is(Items.IRON_SWORD), "original main hand must be restored");
-            storage = CulinaryHubWorkStorage.open(maid).orElseThrow();
-            helper.assertTrue(CookInventoryTransactions.count(storage.ingredients(), stack -> stack.is(Items.BUCKET)) == 1,
+            storage = cookManager(maid);
+            helper.assertTrue(CookInventoryTransactions.count(storage.getInputInv(), stack -> stack.is(Items.BUCKET)) == 1,
                     "water base must return one real bucket");
             var oneSlot = new ItemStackHandler(1);
             helper.assertTrue(!CookInventoryTransactions.canFitAll(oneSlot, List.of(lid.copy(), lid.copy())),
@@ -199,28 +198,29 @@ public final class StockpotGameTests {
                 try {
                     helper.assertTrue(pot.getStatus() == IStockpot.FINISHED,
                             "native covered ticking must finish: " + StockpotAdapter.inspect(pot, level));
-                    var live = CulinaryHubWorkStorage.open(maid).orElseThrow();
-                    for (int slot = 0; slot < live.ingredients().getSlots(); slot++) live.ingredients().setStackInSlot(slot, new ItemStack(Items.DIRT, 64));
-                    live.sync();
+                    var live = cookManager(maid);
+                    for (int slot = 0; slot < live.getInputInv().getSlots(); slot++)
+                        if (live.getInputInv().getStackInSlot(slot) != hub) live.getInputInv().setStackInSlot(slot, new ItemStack(Items.DIRT, 64));
+                    live.syncInv();
                     workAt(maid, pos);
                     helper.assertTrue(pot.hasLid() && pot.getTakeoutCount() == 2, "full input must prevent uncovering");
                     supply(maid, hub, new ItemStack(Items.BOWL, 2));
-                    live = CulinaryHubWorkStorage.open(maid).orElseThrow();
-                    for (int slot = 0; slot < live.outputs().getSlots(); slot++) live.outputs().setStackInSlot(slot, new ItemStack(Items.DIRT, 64));
-                    live.sync();
+                    live = cookManager(maid);
+                    for (int slot = 0; slot < live.getOutputInv().getSlots(); slot++) live.getOutputInv().setStackInSlot(slot, new ItemStack(Items.DIRT, 64));
+                    live.syncInv();
                     workAt(maid, pos);
                     helper.assertTrue(pot.hasLid() && pot.getTakeoutCount() == 2, "full output must preserve finished pot");
-                    live = CulinaryHubWorkStorage.open(maid).orElseThrow();
-                    for (int slot = 0; slot < live.outputs().getSlots(); slot++) live.outputs().setStackInSlot(slot, ItemStack.EMPTY);
-                    live.sync();
+                    live = cookManager(maid);
+                    for (int slot = 0; slot < live.getOutputInv().getSlots(); slot++) live.getOutputInv().setStackInSlot(slot, ItemStack.EMPTY);
+                    live.syncInv();
                     workAt(maid, pos);
-                    live = CulinaryHubWorkStorage.open(maid).orElseThrow();
+                    live = cookManager(maid);
                     helper.assertTrue(pot.getStatus() == IStockpot.PUT_SOUP_BASE && !pot.hasLid(), "last serving must reset native state");
-                    helper.assertTrue(CookInventoryTransactions.count(live.outputs(), stack -> stack.is(Items.BEETROOT_SOUP)) == 2,
+                    helper.assertTrue(CookInventoryTransactions.count(live.getOutputInv(), stack -> stack.is(Items.BEETROOT_SOUP)) == 2,
                             "collect must consume carriers and store both servings exactly once");
-                    helper.assertTrue(CookInventoryTransactions.count(live.ingredients(), StockpotAdapter::isLid) == 1,
+                    helper.assertTrue(CookInventoryTransactions.count(live.getInputInv(), StockpotAdapter::isLid) == 1,
                             "one lid must return exactly once");
-                    helper.assertTrue(CookInventoryTransactions.count(live.ingredients(), stack ->
+                    helper.assertTrue(CookInventoryTransactions.count(live.getInputInv(), stack ->
                             StockpotAdapter.isLid(stack) && stack.getDamageValue() == 17) == 1, "returned lid must keep durability");
                     rawAndStorageCases(helper, maids, maid, hub);
                     EntityMaid reuse = maid(helper, maids);
@@ -331,6 +331,10 @@ public final class StockpotGameTests {
         h.assertTrue(hot.isEmpty() && worker.getHealth() == health && fireProtection.getDamageValue() == 1,
                 "TLM fire protection alone must allow native raw retrieval: empty=" + hot.isEmpty()
                         + ", health=" + worker.getHealth() + ", durability=" + fireProtection.getDamageValue());
+        // The full-input case now fills the real combined hub/backpack view. Remove its synthetic
+        // dirt before testing unrelated material routing; keep native returned items and the hub.
+        for (int slot = 0; slot < maid.getAvailableBackpackInv().getSlots(); slot++)
+            if (maid.getAvailableBackpackInv().getStackInSlot(slot).is(Items.DIRT)) maid.getAvailableBackpackInv().setStackInSlot(slot, ItemStack.EMPTY);
         h.setBlock(1, 1, 4, Blocks.CHEST); h.setBlock(1, 1, 6, Blocks.CHEST);
         var wrongChest = (ChestBlockEntity) level.getBlockEntity(h.absolutePos(new BlockPos(1, 1, 4)));
         var sameChest = (ChestBlockEntity) level.getBlockEntity(h.absolutePos(new BlockPos(1, 1, 6)));
@@ -338,37 +342,41 @@ public final class StockpotGameTests {
         ItemCulinaryHub.actionModePos(hub, BagType.INGREDIENT.name, wrongChest.getBlockPos());
         ItemCulinaryHub.actionModePos(hub, BagType.INGREDIENT.name, sameChest.getBlockPos());
         supply(maid, hub, new ItemStack(Items.CARROT, 3), ModItems.STOCKPOT_LID.get().getDefaultInstance());
-        var storage = CulinaryHubWorkStorage.open(maid).orElseThrow();
-        storage.storeUnusedInputs(StockpotAdapter::isLid); storage.sync();
+        var storage = cookManager(maid);
+        setSettings(maid, new StockpotTaskData(new RecipeFilterData(RecipeFilterData.Mode.WHITELIST, List.of(), List.of()), false));
+        storage.checkAndInit(); storage.itemUnIngre2Chest(); storage.syncInv();
         h.assertTrue(wrongChest.getItem(1).isEmpty() && sameChest.getItem(0).getCount() == 4,
                 "unused raw ingredients must deposit only in a chest already storing that material");
-        h.assertTrue(CookInventoryTransactions.count(storage.ingredients(), StockpotAdapter::isLid) == 1,
+        h.assertTrue(CookInventoryTransactions.count(storage.getInputInv(), StockpotAdapter::isLid) == 1,
                 "reusable lids must stay in unified input");
         if (com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskInfo.FD_COOK_POT.canLoad()) {
             sameChest.setItem(0, new ItemStack(Items.CARROT));
             supply(maid, hub, new ItemStack(Items.CARROT, 3), ModItems.STOCKPOT_LID.get().getDefaultInstance());
             var fdTask = new com.github.wallev.maidsoulkitchen.task.cook.farmersdelight.cookingpot.TaskFdCookingPot();
             maid.setTask(fdTask);
-            var fdInventory = new com.github.wallev.maidsoulkitchen.task.cook.common.manager.MaidCookManager<>(fdTask.getRecSerializerManager(), maid, fdTask);
+            com.github.wallev.maidsoulkitchen.entity.data.inner.task.KitchenData.get(maid).setCookData(fdTask.getUid(),
+                    new com.github.wallev.maidsoulkitchen.entity.data.inner.task.CookData("whitelist", List.of(), List.of()));
+            var fdInventory = fdTask.getRecipesManager(maid);
             fdInventory.checkAndCreateRecipesIngredients();
             h.assertTrue(wrongChest.getItem(1).isEmpty() && sameChest.getItem(0).getCount() == 4,
                     "FD common manager must return unused input to a same-material chest");
             maid.setTask(new TaskKcStockpot());
-            storage = CulinaryHubWorkStorage.open(maid).orElseThrow();
-            h.assertTrue(CookInventoryTransactions.count(storage.ingredients(), StockpotAdapter::isLid) == 1,
+            storage = cookManager(maid);
+            h.assertTrue(CookInventoryTransactions.count(storage.getInputInv(), StockpotAdapter::isLid) == 1,
                     "FD replanning must retain reusable supplies");
         }
-        for (int slot = 0; slot < storage.ingredients().getSlots(); slot++) storage.ingredients().setStackInSlot(slot, new ItemStack(Items.DIRT, 64));
-        storage.sync();
-        h.assertTrue(!storage.prepareIngredientCount(stack -> stack.is(Items.CARROT), 5) && sameChest.getItem(0).getCount() == 4,
+        for (int slot = 0; slot < storage.getInputInv().getSlots(); slot++)
+            if (storage.getInputInv().getStackInSlot(slot) != hub) storage.getInputInv().setStackInSlot(slot, new ItemStack(Items.DIRT, 64));
+        storage.syncInv();
+        h.assertTrue(CookInventoryTransactions.transfer(ItemCulinaryHub.getBeInv(level, sameChest), 0, storage.getInputInv(), 5, stack -> stack.is(Items.CARROT)).inserted() < 5 && sameChest.getItem(0).getCount() == 4,
                 "full input must not consume bound supplies");
-        storage.ingredients().setStackInSlot(0, ItemStack.EMPTY); storage.sync();
-        h.assertTrue(!storage.prepareIngredientCount(stack -> stack.is(Items.CARROT), 5)
-                        && CookInventoryTransactions.count(storage.ingredients(), stack -> stack.is(Items.CARROT)) == 4
+        storage.getInputInv().setStackInSlot(0, ItemStack.EMPTY); storage.syncInv();
+        h.assertTrue(CookInventoryTransactions.transfer(ItemCulinaryHub.getBeInv(level, sameChest), 0, storage.getInputInv(), 5, stack -> stack.is(Items.CARROT)).inserted() < 5
+                        && CookInventoryTransactions.count(storage.getInputInv(), stack -> stack.is(Items.CARROT)) == 4
                         && sameChest.getItem(0).isEmpty(),
                 "insufficient batch must preserve exact total quantity after a partial transfer");
         maid.getMaidInv().setStackInSlot(4, ItemStack.EMPTY); maid.getMaidBauble().setStackInSlot(0, hub);
-        h.assertTrue(CulinaryHubWorkStorage.open(maid).isPresent(), "hub must also work from the registered bauble slot");
+        h.assertTrue(!ItemCulinaryHub.getItem(maid).isEmpty() && cookManager(maid).getCookInv() instanceof com.github.wallev.maidsoulkitchen.task.cook.common.inv.maid.MaidCookBagInventory, "hub must also work from the registered bauble slot");
         maid.getMaidBauble().setStackInSlot(0, ItemStack.EMPTY); maid.getMaidInv().setStackInSlot(4, hub);
     }
 
@@ -506,6 +514,10 @@ public final class StockpotGameTests {
             if (work != null) return work;
         }
         return null;
+    }
+    private static com.github.wallev.maidsoulkitchen.task.cook.common.manager.MaidCookManager<?> cookManager(EntityMaid maid) {
+        var cm = com.github.wallev.maidsoulkitchen.task.cook.common.task.TaskCook.resolve(maid).orElseThrow().getRecipesManager(maid);
+        cm.checkAndInit(); return cm;
     }
     private static void finishPlanning(com.github.wallev.maidsoulkitchen.task.cook.common.manager.MaidCookManager<?> cm) {
         for (int retry=0; retry<12 && cm.getRunState()==0; retry++) cm.checkAndCreateRecipesIngredients();

@@ -1,6 +1,6 @@
 package com.github.wallev.maidsoulkitchen.task.cook.common.task;
 
-import com.github.wallev.maidsoulkitchen.api.task.v1.cook.ICookTargetTask;
+import com.github.wallev.maidsoulkitchen.api.task.cook.ICookTask;
 import com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskInfo;
 import net.minecraft.resources.ResourceLocation;
 import java.util.LinkedHashMap;
@@ -26,17 +26,16 @@ import com.github.wallev.maidsoulkitchen.task.cook.youkaishomecoming.kettle.Task
  * Keeps UID lookup and ordered task index. Current NeoForge canLoad/signature gates replace upstream Mods;
  * the catalog contains only currently registered devices, including KC devices absent from the old implementation.
  * Replaces the cooking constructor branches in TaskRegister; does not own per-maid plans or execution state.
- * ICookTargetTask is the temporary consumer type until Be/Rule consumers migrate in P3-P6.
  */
 public final class CookTaskManager {
-    private static Map<ResourceLocation, ICookTargetTask> taskMap = Map.of();
+    private static Map<ResourceLocation, ICookTask<?, ?>> taskMap = Map.of();
     private static long recipeGeneration;
     /** NeoForge reload boundary for the shared recipe catalog, not per-maid work state. */
     public static void recipesReloaded() { recipeGeneration++; }
     public static long getRecipeGeneration() { return recipeGeneration; }
     private CookTaskManager() { }
     public static void init() {
-        Map<ResourceLocation, ICookTargetTask> tasks = new LinkedHashMap<>();
+        Map<ResourceLocation, ICookTask<?, ?>> tasks = new LinkedHashMap<>();
         if (TaskInfo.FURNACE.canLoad()) {
             add(tasks, new TaskFurnace());
         }
@@ -84,10 +83,10 @@ public final class CookTaskManager {
 
         taskMap = java.util.Collections.unmodifiableMap(tasks);
     }
-    private static void add(Map<ResourceLocation, ICookTargetTask> tasks, ICookTargetTask task) {
+    private static void add(Map<ResourceLocation, ICookTask<?, ?>> tasks, ICookTask<?, ?> task) {
         if (tasks.putIfAbsent(task.getUid(), task) != null) throw new IllegalStateException("Duplicate cooking task " + task.getUid());
     }
-    public static Optional<ICookTargetTask> findTask(ResourceLocation uid) { return Optional.ofNullable(taskMap.get(uid)); }
-    public static Map<ResourceLocation, ICookTargetTask> getTaskMap() { return taskMap; }
-    public static List<ICookTargetTask> getTaskIndex() { return List.copyOf(taskMap.values()); }
+    public static Optional<ICookTask<?, ?>> findTask(ResourceLocation uid) { return Optional.ofNullable(taskMap.get(uid)); }
+    public static Map<ResourceLocation, ICookTask<?, ?>> getTaskMap() { return taskMap; }
+    public static List<ICookTask<?, ?>> getTaskIndex() { return List.copyOf(taskMap.values()); }
 }

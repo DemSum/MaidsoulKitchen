@@ -1,7 +1,7 @@
 package com.github.wallev.maidsoulkitchen.entity.data.inner.task;
 
 import com.github.tartaricacid.touhoulittlemaid.entity.passive.EntityMaid;
-import com.github.wallev.maidsoulkitchen.api.task.v1.cook.ICookTask;
+import com.github.wallev.maidsoulkitchen.api.task.cook.ICookTask;
 import com.github.wallev.maidsoulkitchen.init.touhoulittlemaid.DataRegister;
 import com.github.wallev.maidsoulkitchen.task.TaskInfo;
 import com.mojang.serialization.Codec;

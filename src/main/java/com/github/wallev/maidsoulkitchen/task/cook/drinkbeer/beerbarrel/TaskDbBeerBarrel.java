@@ -41,6 +41,5 @@ public class TaskDbBeerBarrel extends ICookTask<BeerBarrelBlockEntity, BrewingRe
     public ItemStack getIcon() {
         return BlockRegistry.BEER_BARREL.get().asItem().getDefaultInstance();
     }
-    @Override public boolean isCookBE(net.minecraft.world.level.block.entity.BlockEntity be) { return be instanceof BeerBarrelBlockEntity; }
     @Override public com.github.tartaricacid.touhoulittlemaid.api.entity.data.TaskDataKey<com.github.wallev.maidsoulkitchen.entity.data.inner.task.CookData> getCookDataKey() { return com.github.wallev.maidsoulkitchen.init.touhoulittlemaid.DataRegister.DB_BEER; }
 }

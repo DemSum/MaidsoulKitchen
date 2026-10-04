@@ -32,7 +32,6 @@ public final class TaskKcSteamer extends ICookTask<SteamerBlockEntity, SteamerRe
     }
     @Override public ResourceLocation getUid() { return com.github.wallev.maidsoulkitchen.task.TaskInfo.KC_STEAMER.uid; }
     @Override public ItemStack getIcon() { return ModItems.STEAMER.get().getDefaultInstance(); }
-    @Override public boolean isCookBE(net.minecraft.world.level.block.entity.BlockEntity be) { return SteamerAdapter.supports(be); }
     @Override public double getCloseEnoughDist() { return SteamerAdapter.STACK_INTERACTION_DISTANCE; }
     @Override public com.github.tartaricacid.touhoulittlemaid.api.entity.data.TaskDataKey<com.github.wallev.maidsoulkitchen.entity.data.inner.task.CookData> getCookDataKey() {
         throw new UnsupportedOperationException("Legacy KC key stores a filter; KitchenData performs its one-way migration");

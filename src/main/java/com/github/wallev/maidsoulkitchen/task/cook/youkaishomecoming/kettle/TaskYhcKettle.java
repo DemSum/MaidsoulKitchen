@@ -42,6 +42,5 @@ public class TaskYhcKettle extends ICookTask<KettleBlockEntity, KettleRecipe> {
     public ItemStack getIcon() {
         return YHBlocks.KETTLE.asStack();
     }
-    @Override public boolean isCookBE(net.minecraft.world.level.block.entity.BlockEntity be) { return be instanceof KettleBlockEntity; }
     @Override public com.github.tartaricacid.touhoulittlemaid.api.entity.data.TaskDataKey<com.github.wallev.maidsoulkitchen.entity.data.inner.task.CookData> getCookDataKey() { return com.github.wallev.maidsoulkitchen.init.touhoulittlemaid.DataRegister.YHC_TEA_KETTLE; }
 }

@@ -1,7 +1,7 @@
 package com.github.wallev.maidsoulkitchen.network.message;
 
 import com.github.wallev.maidsoulkitchen.entity.data.inner.task.CookData;
-import com.github.wallev.maidsoulkitchen.api.task.v1.cook.ICookTask;
+import com.github.wallev.maidsoulkitchen.api.task.cook.ICookTask;
 import com.github.tartaricacid.touhoulittlemaid.api.entity.data.TaskDataKey;
 import com.github.tartaricacid.touhoulittlemaid.entity.data.TaskDataRegister;
 import com.github.tartaricacid.touhoulittlemaid.entity.passive.EntityMaid;
@@ -45,12 +45,11 @@ public record ActionCookDataRecC2SPackage(int entityId, ResourceLocation dataKey
                 Entity entity = sender.level.getEntity(message.entityId);
                 ResourceLocation recipeId = ResourceLocation.tryParse(message.rec);
                 if (recipeId == null) return;
+                ICookTask<?, ?> cookTask = entity instanceof EntityMaid candidate ? com.github.wallev.maidsoulkitchen.task.cook.common.task.TaskCook.resolve(candidate).orElse(null) : null;
                 if (entity instanceof EntityMaid maid && maid.isOwnedBy(sender)
-                        && maid.getTask() instanceof ICookTask<?, ?> cookTask
-                        && cookTask.getCookDataKey().getKey().equals(message.dataKey)
+                        && cookTask != null
+                        && cookTask.getUid().equals(message.dataKey)
                         && cookTask.getRecipeHolders(maid.level).stream().anyMatch(holder -> holder.id().equals(recipeId))) {
-                    TaskDataKey<CookData> value = TaskDataRegister.getValue(message.dataKey);
-                    if (value == null || value != cookTask.getCookDataKey()) return;
                     CookData cookData = cookTask.getTaskData(maid);
                     cookData.addOrRemoveRec(message.rec, message.mode);
                     com.github.wallev.maidsoulkitchen.entity.data.inner.task.KitchenData.sync(maid);

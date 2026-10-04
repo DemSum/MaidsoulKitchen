@@ -79,6 +79,13 @@ public abstract class RecipeFilterGui<M extends TaskConfigContainer> extends Mai
     @Override
     protected void initAdditionWidgets() {
         super.initAdditionWidgets();
+        if (maid.getTask() instanceof com.github.wallev.maidsoulkitchen.task.cook.common.task.TaskCook) {
+            addRenderableWidget(Button.builder(Component.translatable("task.maidsoulkitchen.cook"), button ->
+                    com.github.wallev.maidsoulkitchen.network.NetworkHandler.sendToServer(
+                    new com.github.wallev.maidsoulkitchen.network.message.SyncKitchenDataC2SMessage(maid.getId(),
+                            com.github.wallev.maidsoulkitchen.entity.data.inner.task.KitchenData.get(maid).getCookName(), false)))
+                    .bounds(visualZone.startX() + 80, visualZone.startY() + 5, 80, 14).build());
+        }
         addTaskInfoButton();
         addSearchTextBox();
         addSearchButton();

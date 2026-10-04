@@ -4,6 +4,7 @@ import com.github.wallev.maidsoulkitchen.MaidsoulKitchen;
 import net.minecraft.resources.ResourceLocation;
 
 public enum TaskInfo {
+    COOK("cook"),
     BERRY_FARM("berries_farm"),
     FRUIT_FARM("fruit_farm"),
     FEED_ANIMAL_T("feed_animal_t"),

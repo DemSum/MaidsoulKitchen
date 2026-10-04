@@ -4,7 +4,7 @@ import com.github.tartaricacid.touhoulittlemaid.api.client.gui.ITooltipButton;
 import com.github.tartaricacid.touhoulittlemaid.client.gui.widget.button.TouhouStateSwitchButton;
 import com.github.tartaricacid.touhoulittlemaid.entity.passive.EntityMaid;
 import com.github.wallev.maidsoulkitchen.MaidsoulKitchen;
-import com.github.wallev.maidsoulkitchen.api.task.v1.cook.ICookTask;
+import com.github.wallev.maidsoulkitchen.api.task.cook.ICookTask;
 import com.github.wallev.maidsoulkitchen.entity.data.inner.task.CookData;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;

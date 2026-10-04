@@ -22,6 +22,7 @@ public class NetworkHandler {
         registrar.playToServer(ActionFruitFarmRuleC2SPackage.TYPE, ActionFruitFarmRuleC2SPackage.STREAM_CODEC, ActionFruitFarmRuleC2SPackage::handle);
         registrar.playToServer(SetCookBagBindModeC2SPackage.TYPE, SetCookBagBindModeC2SPackage.STREAM_CODEC, SetCookBagBindModeC2SPackage::handle);
         registrar.playToServer(SetCookDataC2SPackage.TYPE, SetCookDataC2SPackage.STREAM_CODEC, SetCookDataC2SPackage::handle);
+        registrar.playToServer(SyncKitchenDataC2SMessage.TYPE, SyncKitchenDataC2SMessage.STREAM_CODEC, SyncKitchenDataC2SMessage::handle);
         registrar.playToServer(SetFruitFarmSearchYOffsetC2SPackage.TYPE, SetFruitFarmSearchYOffsetC2SPackage.STREAM_CODEC, SetFruitFarmSearchYOffsetC2SPackage::handle);
         registrar.playToServer(ToggleCookBagGuiSideTabC2SPackage.TYPE, ToggleCookBagGuiSideTabC2SPackage.STREAM_CODEC, ToggleCookBagGuiSideTabC2SPackage::handle);
         registrar.playToServer(SetSteamerFilterC2SPackage.TYPE, SetSteamerFilterC2SPackage.STREAM_CODEC, SetSteamerFilterC2SPackage::handle);

@@ -42,6 +42,5 @@ public class TaskYhcDryingRack extends ICookTask<DryingRackBlockEntity, DryingRa
     public ItemStack getIcon() {
         return YHBlocks.RACK.asStack();
     }
-    @Override public boolean isCookBE(net.minecraft.world.level.block.entity.BlockEntity be) { return be instanceof DryingRackBlockEntity; }
     @Override public com.github.tartaricacid.touhoulittlemaid.api.entity.data.TaskDataKey<com.github.wallev.maidsoulkitchen.entity.data.inner.task.CookData> getCookDataKey() { return com.github.wallev.maidsoulkitchen.init.touhoulittlemaid.DataRegister.YHC_DRYING_RACK; }
 }

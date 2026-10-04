@@ -1,7 +1,7 @@
 package com.github.wallev.maidsoulkitchen.task.cook.common.ai;
 
 import com.github.tartaricacid.touhoulittlemaid.entity.passive.EntityMaid;
-import com.github.wallev.maidsoulkitchen.api.task.v1.cook.ICookTargetTask;
+import com.github.wallev.maidsoulkitchen.api.task.cook.ICookTargetTask;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;

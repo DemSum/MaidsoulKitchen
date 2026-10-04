@@ -36,6 +36,48 @@ public final class CookingArchitectureGameTests {
     private static ResourceLocation id(String name) { return ResourceLocation.fromNamespaceAndPath(MaidsoulKitchen.MOD_ID, name); }
 
     @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID, batch = "cooking_architecture")
+    public static void taskCookDispatchHasOneOwnerAndRetiresLoans(GameTestHelper helper) {
+        var level = helper.getLevel(); var original = List.copyOf(level.getRecipeManager().getRecipes());
+        var maid = helper.spawnWithNoFreeWill(InitEntities.MAID.get(), new net.minecraft.core.BlockPos(1, 1, 1)); maid.setNoAi(true);
+        var other = helper.spawnWithNoFreeWill(InitEntities.MAID.get(), new net.minecraft.core.BlockPos(2, 1, 1)); other.setNoAi(true);
+        try {
+            maid.setFavorability(10000); maid.setTask(new TaskCook());
+            var holder = new RecipeHolder<>(id("task_cook_owner"), new com.github.ysbbbbbb.kaleidoscopecookery.crafting.recipe.SteamerRecipe(
+                    Ingredient.of(Items.CARROT), new ItemStack(Items.BAKED_POTATO), 20)); reloadRecipes(helper, List.of(holder));
+            helper.assertTrue(TaskCook.resolve(maid).isEmpty() && TaskCook.select(maid, TaskInfo.KC_STEAMER.uid),
+                    "source idle entry must select an enabled native device through KitchenData");
+            var task = TaskCook.resolve(maid).orElseThrow(); var cm = task.getRecipesManager(maid); cm.checkAndInit();
+            helper.assertTrue(task.getRecipesManager(maid) == cm
+                    && ((com.github.wallev.maidsoulkitchen.entity.passive.IAddonMaid) maid).tlmk$getCookManager() == cm,
+                    "brain, UI/native lookup and work must share exactly one active manager");
+            cm.getInputInv().setStackInSlot(0, new ItemStack(Items.CARROT));
+            ItemStack tool = new ItemStack(Items.IRON_AXE); tool.setDamageValue(12);
+            tool.set(DataComponents.CUSTOM_NAME, Component.literal("retired physical loan")); cm.getInputInv().setStackInSlot(1, tool.copy());
+            cm.checkAndCreateRecipesIngredients(); finishPlanning(cm); MaidRec work = cm.peekMaidRec();
+            helper.assertTrue(work != null && work.taskId().equals(TaskInfo.KC_STEAMER.uid) && cm.equipTool(stack -> ItemStack.isSameItemSameComponents(stack, tool)),
+                    "delegated device must plan its own holder and lend an actual component-preserving tool");
+            var pos = helper.absolutePos(new net.minecraft.core.BlockPos(4, 1, 4));
+            com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookWorkLocks.tryClaim(level, pos, maid);
+            com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookTargetMemory.remember(maid, pos.west(), pos, 0.5f, 1);
+            helper.assertTrue(TaskCook.select(maid, TaskInfo.FURNACE.uid) && !cm.commitMaidRec(work) && cm.getMaidRecs().isEmpty()
+                    && maid.getMainHandItem().isEmpty() && CookInventoryTransactions.count(maid.getAvailableBackpackInv(),
+                    stack -> ItemStack.isSameItemSameComponents(stack, tool)) == 1
+                    && com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookWorkLocks.tryClaim(level, pos, other),
+                    "selection must revoke old work, return one actual loan and release its appliance lock");
+            helper.assertTrue(TaskCook.resolve(maid).orElseThrow().getRecipesManager(maid) != cm
+                    && TaskCook.select(maid, KitchenData.IDLE) && TaskCook.resolve(maid).isEmpty(), "idle must retire the previous source context");
+            helper.assertTrue(TaskCook.select(maid, TaskInfo.KC_STEAMER.uid), "native device must remain selectable after idle");
+            helper.assertTrue(!cm.checkAndInit(), "retired brain context must stay invalid when its old device UID is selected again");
+            var live = TaskCook.resolve(maid).orElseThrow().getRecipesManager(maid); live.checkAndInit();
+            helper.assertTrue(live.equipTool(stack -> ItemStack.isSameItemSameComponents(stack, tool)), "same returned tool must be borrowable once");
+            maid.die(level.damageSources().generic());
+            helper.assertTrue(maid.getMainHandItem().isEmpty() && ((com.github.wallev.maidsoulkitchen.entity.passive.IAddonMaid) maid).tlmk$getCookManager() == null
+                    && live.getMaidRecs().isEmpty(), "death must retire the actual context before native inventory drops");
+        } finally { reloadRecipes(helper, original); maid.discard(); other.discard(); }
+        helper.succeed();
+    }
+
+    @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID, batch = "cooking_architecture")
     public static void nativeSteamerOneToFourLayersUseUnifiedWorkAndOutput(GameTestHelper helper) {
         var level = helper.getLevel(); var original = List.copyOf(level.getRecipeManager().getRecipes());
         var maid = helper.spawnWithNoFreeWill(InitEntities.MAID.get(), new net.minecraft.core.BlockPos(1, 1, 1)); maid.setNoAi(true);
@@ -802,7 +844,7 @@ public final class CookingArchitectureGameTests {
                     && manager.getMaidRecs().get(0) != manager.getMaidRecs().get(1),
                     "repeated work units must have distinct identities for safe acknowledgments");
             MaidRec first = manager.peekMaidRec();
-            manager.getRecipeIngredient(); manager.getRecipeIngredient();
+            manager.peekMaidRec().maidItems(); manager.peekMaidRec().maidItems();
             helper.assertTrue(manager.peekMaidRec() == first && manager.getMaidRecs().size() == 2,
                     "reading materials must not consume the plan before device acceptance");
             var device = new ItemStackHandler(1);

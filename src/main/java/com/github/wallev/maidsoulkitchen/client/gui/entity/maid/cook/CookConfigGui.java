@@ -2,7 +2,9 @@ package com.github.wallev.maidsoulkitchen.client.gui.entity.maid.cook;
 
 import com.github.tartaricacid.touhoulittlemaid.client.gui.widget.button.TouhouImageButton;
 import com.github.wallev.maidsoulkitchen.MaidsoulKitchen;
-import com.github.wallev.maidsoulkitchen.api.task.v1.cook.ICookTask;
+import com.github.wallev.maidsoulkitchen.api.task.cook.ICookTask;
+import com.github.wallev.maidsoulkitchen.task.cook.common.task.*;
+import com.github.wallev.maidsoulkitchen.network.message.SyncKitchenDataC2SMessage;
 import com.github.wallev.maidsoulkitchen.client.gui.entity.maid.MaidTaskConfigGui;
 import com.github.wallev.maidsoulkitchen.entity.data.inner.task.CookData;
 import com.github.wallev.maidsoulkitchen.inventory.container.maid.CookConfigContainer;
@@ -59,6 +61,9 @@ public class CookConfigGui extends MaidTaskConfigGui<CookConfigContainer> {
     private CookData cookData;
     private ICookTask<?, ?> cookTask;
     private boolean initCookData = true;
+    // Source CookConfigGuiV1 ResultType.TASK: presentation only, never a cooking work state.
+    private boolean selectTask;
+    private List<ICookTask<?, ?>> cookTaskList = List.of();
 
     public CookConfigGui(CookConfigContainer screenContainer, Inventory inv, Component titleIn) {
         super(screenContainer, inv, Component.translatable("gui.maidsoulkitchen.cook_setting_screen.title"));
@@ -67,34 +72,34 @@ public class CookConfigGui extends MaidTaskConfigGui<CookConfigContainer> {
     @Override
     protected void initAdditionData() {
         super.initAdditionData();
-        if (!(task instanceof ICookTask<?, ?>)) {
-            return;
-        }
-
         this.initCookData();
         this.initRecipeList();
     }
 
     private void initCookData() {
-        if (!initCookData) return;
-        this.cookTask = (ICookTask<?, ?>) task;
-        this.cookData = cookTask.getTaskData(maid);
+        if (initCookData) { selectTask = menu.chooseDevices; initCookData = false; }
+        this.cookTask = TaskCook.resolve(maid).orElse(null);
+        if (cookTask == null) { selectTask = true; cookData = new CookData(); }
+        else this.cookData = cookTask.getTaskData(maid);
     }
 
     @SuppressWarnings("all")
     private void initRecipeList() {
         this.recipeList.clear();
+        String taskSearch = searchBox == null ? "" : searchBox.getValue().toLowerCase(Locale.ROOT);
+        cookTaskList = CookTaskManager.getTaskIndex().stream().filter(task -> task.getName().getString().toLowerCase(Locale.ROOT).contains(taskSearch)).toList();
+        if (cookTask == null) return;
         List<? extends RecipeHolder<?>> recipes;
         Level level = maid.level;
         RegistryAccess registryAccess = level.registryAccess();
         if (searchBox != null && StringUtils.isNotBlank(searchBox.getValue())) {
             String search = this.searchBox.getValue().toLowerCase(Locale.US);
-            recipes =  ((ICookTask<?, ?>) task).getRecipeHolders(level)
+            recipes =  cookTask.getRecipeHolders(level)
                     .stream().filter(recipe -> {
-                        return ((ICookTask<?, ?>) task).getResultItem((Recipe<?>) recipe.value(), registryAccess).getDisplayName().getString().toLowerCase(Locale.US).contains(search);
+                        return cookTask.getResultItem((Recipe<?>) recipe.value(), registryAccess).getDisplayName().getString().toLowerCase(Locale.US).contains(search);
                     }).toList();
         } else {
-            recipes =  ((ICookTask<?, ?>) task).getRecipeHolders(level); // all recipes
+            recipes =  cookTask.getRecipeHolders(level); // all recipes
         }
         this.recipeList.addAll(recipes);
     }
@@ -105,12 +110,11 @@ public class CookConfigGui extends MaidTaskConfigGui<CookConfigContainer> {
         this.addTaskInfoButton();
         this.addSearchTextBox();
         this.addSearchBox();
-        this.addTypeButton();
-        this.addResultInfo();
+        if (!selectTask) this.addTypeButton();
+        if (selectTask) this.addTypeInfoButton(); else this.addResultInfo();
         this.addScrollButton();
 
         this.addInfoButton();
-        this.addJeiButton();
     }
 
     @Override
@@ -148,7 +152,7 @@ public class CookConfigGui extends MaidTaskConfigGui<CookConfigContainer> {
                 return true;
             }
             // 向下滚
-            if (deltaY < 0 && solIndex < (this.recipeList.size() - 1) / (ref.col() * ref.row())) {
+            if (deltaY < 0 && solIndex < pageCount()) {
                 solIndex++;
                 this.init();
                 return true;
@@ -224,24 +228,48 @@ public class CookConfigGui extends MaidTaskConfigGui<CookConfigContainer> {
     }
 
     private void addInfoButton() {
-        if (((ICookTask<?, ?>) task).getWarnComponent().isEmpty()) return;
-        TImageButton infoButton = new TImageButton((ICookTask<?, ?>) task, visualZone.startX() + visualZone.width() - 15, visualZone.startY() + 5, 9, 9, 237, 212, 10, TEXTURE, (b) -> {
+        if (cookTask == null || cookTask.getWarnComponent().isEmpty()) return;
+        TImageButton infoButton = new TImageButton(cookTask, visualZone.startX() + visualZone.width() - 15, visualZone.startY() + 5, 9, 9, 237, 212, 10, TEXTURE, (b) -> {
         });
         this.addRenderableWidget(infoButton);
     }
 
-    private void addJeiButton() {
-//        ImageButton jeiButton = new ImageButton(visualZone.startX() + visualZone.width() - 12, visualZone.startY() + 8, 9, 9, 247, 212, 10, TEXTURE, (b) -> {
-//        }) {
-//
-//        };
-//        this.addRenderableWidget(jeiButton);
+    private void addTypeInfoButton() {
+        final int offsetX = 4;
+        int startX = visualZone.startX() + resultDisplay.startX();
+        int startY = visualZone.startY() + resultDisplay.startY();
+
+        int index = solIndex * (4 * 2);
+        for (int row = 0; row < 4; row++) {
+            for (int col = 0; col < 2; col++) {
+                if (index >= cookTaskList.size()) {
+                    return;
+                }
+
+                ICookTask<?, ?> kitchenTaskV2 = cookTaskList.get(index++);
+                int x = startX + (70 + 6) * col;
+                int y = startY + (20 + 2) * row;
+                TypeTaskButton typeTaskButton = new TypeTaskButton(offsetX + x, y, 70, 20, kitchenTaskV2, b -> {
+                    NetworkHandler.sendToServer(new SyncKitchenDataC2SMessage(maid.getId(), kitchenTaskV2.getUid(), true));
+                });
+                this.addRenderableWidget(typeTaskButton);
+            }
+        }
     }
+
+    private int pageCount() { return Math.max(0, ((selectTask ? cookTaskList.size() : recipeList.size()) - 1) / (selectTask ? 8 : ref.col() * ref.row())); }
 
     private void addTaskInfoButton() {
         int startX = visualZone.startX() + taskDisplay.startX();
         int startY = visualZone.startY() + taskDisplay.startY();
-        TaskInfoButton taskInfoButton = new TaskInfoButton(startX, startY, taskDisplay.width(), taskDisplay.height(), this.task);
+        TaskInfoButton taskInfoButton = new TaskInfoButton(startX, startY, taskDisplay.width(), taskDisplay.height(), cookTask == null ? this.task : cookTask) {
+            @Override public boolean mouseClicked(double x, double y, int button) {
+                if (task instanceof TaskCook && isMouseOver(x, y) && button == 0) {
+                    selectTask = !selectTask || cookTask == null; solIndex = 0; searchBox.setValue(""); init(); return true;
+                }
+                return false;
+            }
+        };
         this.addRenderableWidget(taskInfoButton);
     }
 
@@ -330,7 +358,7 @@ public class CookConfigGui extends MaidTaskConfigGui<CookConfigContainer> {
             public void onClick(double mouseX, double mouseY) {
                 initCookData = false;
                 setAndSyncMode(!isSelected);
-                updateRecButtonsState(this::toggleState);
+                this.toggleState();
                 init();
                 initCookData = true;
             }
@@ -340,7 +368,7 @@ public class CookConfigGui extends MaidTaskConfigGui<CookConfigContainer> {
 
     private void setAndSyncMode(String mode) {
         cookData.setMode(mode);
-        NetworkHandler.sendToServer(new SetCookDataC2SPackage(maid.getId(), cookTask.getCookDataKey().getKey(), mode));
+        NetworkHandler.sendToServer(new SetCookDataC2SPackage(maid.getId(), cookTask.getUid(), mode));
     }
 
     private void setAndSyncMode(boolean isSelected) {
@@ -363,16 +391,15 @@ public class CookConfigGui extends MaidTaskConfigGui<CookConfigContainer> {
                 RecipeHolder recipe = this.recipeList.get(index++);
                 int x = startX + (ref.rowWidth() + ref.rowSpacing()) * col;
                 int y = startY + (ref.colHeight() + ref.colSpacing()) * row;
-                RecButton recButton = new RecButton(maid, (ICookTask<?, ?>) task, cookData, recipe.value(), x, y) {
+                RecButton recButton = new RecButton(maid, cookTask, cookData, recipe.value(), x, y) {
                     @Override
                     public void onClick(double pMouseX, double pMouseY) {
-                        ((ICookTask) task).getRecipeHolders(maid.level).stream().filter(r -> recipe.id().equals(((RecipeHolder)r).id())).findFirst().ifPresent(r -> {
+                        ((ICookTask) cookTask).getRecipeHolders(maid.level).stream().filter(r -> recipe.id().equals(((RecipeHolder)r).id())).findFirst().ifPresent(r -> {
                             arAndSyncRec(((RecipeHolder)r).id().toString());
                         });
-                        updateRecButtonsState(this::toggleState);
+                        this.toggleState();
                     }
                 };
-                initRecButtonActive(recButton);
                 this.addRenderableWidget(recButton);
 
                 this.recButtons.add(recButton);
@@ -380,47 +407,9 @@ public class CookConfigGui extends MaidTaskConfigGui<CookConfigContainer> {
         }
     }
 
-    private void initRecButtonActive(RecButton recButton) {
-        initRecButtonActive(recButton, cookData.mode(), cookData.getRecs());
-    }
-
-    // 适配鼠标类型显示
-    private void initRecButtonActive(RecButton recButton, String cookTaskMode, List<String> cookTaskRecs) {
-//        if (!cookTaskMode.equals(CookData.Mode.BLACKLIST.name)) {
-//            recButton.active = false;
-//            return;
-//        }
-//        if (cookTaskRecs.size() >= TaskConfig.COOK_SELECTED_RECIPES.get() && !cookTaskRecs.contains(recButton.getRecipe().getId().toString())) {
-//            recButton.active = false;
-//            return;
-//        }
-//        recButton.active = true;
-    }
-
-    private void updateRecButtonsState(Runnable selfRun) {
-//        boolean selectedType = cookData.mode().equals(CookData.Mode.BLACKLIST.name);
-//        List<String> cookTaskRecs1 = cookData.getRecs();
-//        for (RecButton recButton : recButtons) {
-//            String id = recButton.getRecipe().getId().toString();
-//            // 不是选择模式，不可点击
-//            if (!selectedType) {
-//                recButton.active = false;
-//            }
-//            // 超出数量限制并且要继续添加配方，不可点击
-//            else if (cookTaskRecs1.size() >= (TaskConfig.COOK_SELECTED_RECIPES.get())
-//                    && !cookTaskRecs1.contains(id)) {
-//                recButton.active = false;
-//            }else {
-//                recButton.active = true;
-//            }
-//        }
-
-        selfRun.run();
-    }
-
     private void arAndSyncRec(String rec) {
         cookData.addOrRemoveRec(rec, this.cookData.mode());
-        NetworkHandler.sendToServer(new ActionCookDataRecC2SPackage(maid.getId(), cookTask.getCookDataKey().getKey(), rec, this.cookData.mode()));
+        NetworkHandler.sendToServer(new ActionCookDataRecC2SPackage(maid.getId(), cookTask.getUid(), rec, this.cookData.mode()));
     }
 
     // 161, 25 189, 74
@@ -434,7 +423,7 @@ public class CookConfigGui extends MaidTaskConfigGui<CookConfigContainer> {
             }
         });
         Button downButton = new TouhouImageButton(startX, startY + 8 + 1 + 70, 9, 7, 208, 74, 14, TEXTURE, b -> {
-            if (this.solIndex < (this.recipeList.size() - 1) / (ref.col() * ref.row())) {
+            if (this.solIndex < pageCount()) {
                 this.solIndex++;
                 this.init();
             }
@@ -483,7 +472,7 @@ public class CookConfigGui extends MaidTaskConfigGui<CookConfigContainer> {
     }
 
     private void drawScrollIndicator(GuiGraphics graphics, int startX, int startY) {
-        if ((this.recipeList.size() - 1) / (ref.col() * ref.row()) >= 1) {
+        if (pageCount() >= 1) {
             graphics.blit(TEXTURE, startX, startY + (int) ((70 - 2 - 9) * getCurrentScroll()), 199, 64, 7, 9);
         } else {
             graphics.blit(TEXTURE, startX, startY, 206, 64, 7, 9);
@@ -491,6 +480,6 @@ public class CookConfigGui extends MaidTaskConfigGui<CookConfigContainer> {
     }
 
     private float getCurrentScroll() {
-        return Mth.clamp((float) (solIndex * (1.0 / ((this.recipeList.size() - 1) / (ref.col() * ref.row())))), 0, 1);
+        return pageCount() == 0 ? 0 : Mth.clamp((float) solIndex / pageCount(), 0, 1);
     }
 }

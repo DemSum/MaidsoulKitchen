@@ -69,7 +69,7 @@ public class CookMoveTask<B extends BlockEntity, R extends Recipe<? extends Reci
         if (blockEntity == null) {
             return false;
         }
-        if (this.task.isCookBE(blockEntity)) {
+        if (this.cookBe.isCookBe(blockEntity)) {
             cookBe.setBlockEntity(blockEntity);
             return rule.canMoveTo(cookBe, maidRecipesManager);
         }

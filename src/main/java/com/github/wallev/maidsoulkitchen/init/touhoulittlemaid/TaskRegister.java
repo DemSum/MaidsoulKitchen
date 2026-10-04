@@ -31,6 +31,7 @@ public final class TaskRegister {
         }
 
         com.github.wallev.maidsoulkitchen.task.cook.common.task.CookTaskManager.init();
+        manager.add(new com.github.wallev.maidsoulkitchen.task.cook.common.task.TaskCook());
         com.github.wallev.maidsoulkitchen.task.cook.common.task.CookTaskManager.getTaskIndex().forEach(manager::add);
     }
 }

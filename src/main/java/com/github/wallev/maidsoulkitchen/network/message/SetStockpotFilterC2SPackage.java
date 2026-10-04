@@ -96,7 +96,8 @@ public record SetStockpotFilterC2SPackage(int maidId, StockpotTaskData settings)
                 sanitize(payload.settings().filter().blacklist(), knownRecipes)
         );
         com.github.wallev.maidsoulkitchen.entity.data.inner.task.KitchenData.setFilter(maid, com.github.wallev.maidsoulkitchen.task.TaskInfo.KC_STOCKPOT.uid, sanitized);
-        if (com.github.wallev.maidsoulkitchen.task.TaskInfo.KC_STOCKPOT.uid.equals(maid.getTask().getUid())) {
+        if (com.github.wallev.maidsoulkitchen.task.cook.common.task.TaskCook.resolve(maid)
+                .map(task -> task.getUid().equals(com.github.wallev.maidsoulkitchen.task.TaskInfo.KC_STOCKPOT.uid)).orElse(false)) {
             CookTargetMemory.getWorkPos(maid).ifPresent(pos -> CookWorkLocks.release(
                     (net.minecraft.server.level.ServerLevel) maid.level(), pos.currentBlockPosition(), maid));
             CookTargetMemory.clear(maid);

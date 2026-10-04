@@ -1,7 +1,7 @@
 package com.github.wallev.maidsoulkitchen.task.cook.common.cook.be;
 
 import com.github.tartaricacid.touhoulittlemaid.entity.passive.EntityMaid;
-import com.github.wallev.maidsoulkitchen.api.task.v1.cook.ICookTask;
+import com.github.wallev.maidsoulkitchen.api.task.cook.ICookTask;
 import com.github.wallev.maidsoulkitchen.task.cook.common.manager.MaidCookManager;
 import com.github.wallev.maidsoulkitchen.task.cook.common.rule.rec.MaidRec;
 import net.minecraft.core.BlockPos;

@@ -19,42 +19,12 @@ import java.util.Set;
 import static com.github.wallev.maidsoulkitchen.MaidsoulKitchen.LOGGER;
 
 public interface IAddonMaid {
+    /** Source ICookTask creates one manager with the maid's brain. TLM 1.5.3 exposes no task-context
+     * accessor for UI/tests/native devices; this reference prevents beta getter-created owners.
+     * No inventory or work is stored here: the referenced MaidCookManager owns all state. */
+    com.github.wallev.maidsoulkitchen.task.cook.common.manager.MaidCookManager<?> tlmk$getCookManager();
+    void tlmk$setCookManager(com.github.wallev.maidsoulkitchen.task.cook.common.manager.MaidCookManager<?> manager);
     Set<Block> BLACK_LIST = new HashSet<>();
-
-    static ItemStack interactUseOnBlockWithItem(EntityMaid maid, BlockPos blockPos, ItemStack itemStack) {
-        IAddonMaid addonMaid = (IAddonMaid) maid;
-        WeakReference<FakePlayer> fakePlayer$tlma = addonMaid.tlmk$getFakePlayer();
-        FakePlayer fakePlayer = fakePlayer$tlma.get();
-        if (fakePlayer != null) {
-            try {
-                fakePlayer.setItemInHand(InteractionHand.MAIN_HAND, itemStack);
-                InteractionResult interactionResult = FakePlayerUtil.interactUseOnBlock(fakePlayer$tlma, maid.level(), blockPos, InteractionHand.MAIN_HAND, null);
-
-                if (interactionResult == InteractionResult.PASS) {
-                    BlockState blockState = maid.level().getBlockState(blockPos);
-                    Block block = blockState.getBlock();
-                    LOGGER.warn("FakePlayerUtil.interactUseOnBlock PASS: blockState:{} block: {}", blockState, block);
-                    BLACK_LIST.add(block);
-                    LOGGER.warn(BLACK_LIST.toString());
-                }
-
-                if (interactionResult != InteractionResult.PASS) {
-                    ItemStack itemInHandCopy = fakePlayer.getItemInHand(InteractionHand.MAIN_HAND).copy();
-                    ItemHandlerHelper.insertItemStacked(maid.getAvailableInv(true), itemInHandCopy, false);
-                    fakePlayer.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
-                    return itemInHandCopy;
-                } else {
-                    fakePlayer.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
-                    return ItemStack.EMPTY;
-                }
-
-            } catch (Exception e) {
-                return ItemStack.EMPTY;
-            }
-        }
-
-        return ItemStack.EMPTY;
-    }
 
     static ItemUseOutcome tryInteractUseOnBlockWithItem(EntityMaid maid, BlockPos blockPos, ItemStack itemStack) {
         WeakReference<FakePlayer> reference = ((IAddonMaid) maid).tlmk$getFakePlayer();

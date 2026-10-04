@@ -41,6 +41,5 @@ public class TaskBbqBasin extends ICookTask<BasinBlockEntity, SkeweringRecipe<?>
     public ItemStack getIcon() {
         return BBQDBlocks.BASIN.asStack();
     }
-    @Override public boolean isCookBE(net.minecraft.world.level.block.entity.BlockEntity entity) { return entity instanceof BasinBlockEntity; }
     @Override public com.github.tartaricacid.touhoulittlemaid.api.entity.data.TaskDataKey<com.github.wallev.maidsoulkitchen.entity.data.inner.task.CookData> getCookDataKey() { return com.github.wallev.maidsoulkitchen.init.touhoulittlemaid.DataRegister.BD_BASIN; }
 }

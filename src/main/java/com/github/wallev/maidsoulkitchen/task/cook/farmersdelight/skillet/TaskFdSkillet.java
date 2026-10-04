@@ -22,6 +22,5 @@ public class TaskFdSkillet extends ICookTask<SkilletBlockEntity, CampfireCooking
     @Override protected CookBeBase<SkilletBlockEntity> createCookBe(EntityMaid maid) { return new SkilletBe(maid); }
     @Override public ResourceLocation getUid() { return com.github.wallev.maidsoulkitchen.task.TaskInfo.FD_SKILLET.uid; }
     @Override public ItemStack getIcon() { return ModItems.SKILLET.get().getDefaultInstance(); }
-    @Override public boolean isCookBE(BlockEntity entity) { return entity instanceof SkilletBlockEntity; }
     @Override public com.github.tartaricacid.touhoulittlemaid.api.entity.data.TaskDataKey<com.github.wallev.maidsoulkitchen.entity.data.inner.task.CookData> getCookDataKey() { return com.github.wallev.maidsoulkitchen.init.touhoulittlemaid.DataRegister.FD_SKILLET; }
 }

@@ -40,7 +40,6 @@ public class TaskFdCuttingBoard extends ICookTask<CuttingBoardBlockEntity, Cutti
     public ItemStack getIcon() {
         return ModBlocks.CUTTING_BOARD.get().asItem().getDefaultInstance();
     }
-    @Override public boolean isCookBE(net.minecraft.world.level.block.entity.BlockEntity be) { return be instanceof CuttingBoardBlockEntity; }
     @Override public com.github.tartaricacid.touhoulittlemaid.api.entity.data.TaskDataKey<com.github.wallev.maidsoulkitchen.entity.data.inner.task.CookData> getCookDataKey() { return com.github.wallev.maidsoulkitchen.init.touhoulittlemaid.DataRegister.FD_CUTTING_BOARD; }
     @Override public net.minecraft.core.NonNullList<net.minecraft.world.item.crafting.Ingredient> getIngredients(net.minecraft.world.item.crafting.Recipe<?> recipe) {
         var nativeRecipe = (CuttingBoardRecipe) recipe;

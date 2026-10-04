@@ -42,6 +42,5 @@ public class TaskFdCookingPot extends ICookTask<CookingPotBlockEntity, CookingPo
     public ItemStack getIcon() {
         return ModItems.COOKING_POT.get().getDefaultInstance();
     }
-    @Override public boolean isCookBE(net.minecraft.world.level.block.entity.BlockEntity be) { return be instanceof CookingPotBlockEntity; }
     @Override public com.github.tartaricacid.touhoulittlemaid.api.entity.data.TaskDataKey<com.github.wallev.maidsoulkitchen.entity.data.inner.task.CookData> getCookDataKey() { return com.github.wallev.maidsoulkitchen.init.touhoulittlemaid.DataRegister.FD_COOK_POT; }
 }

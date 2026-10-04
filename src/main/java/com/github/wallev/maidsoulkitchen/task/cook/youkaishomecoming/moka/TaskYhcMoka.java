@@ -43,6 +43,5 @@ public class TaskYhcMoka extends ICookTask<MokaMakerBlockEntity, MokaRecipe> {
     public ItemStack getIcon() {
         return YHBlocks.MOKA.asStack();
     }
-    @Override public boolean isCookBE(net.minecraft.world.level.block.entity.BlockEntity be) { return be instanceof MokaMakerBlockEntity; }
     @Override public com.github.tartaricacid.touhoulittlemaid.api.entity.data.TaskDataKey<com.github.wallev.maidsoulkitchen.entity.data.inner.task.CookData> getCookDataKey() { return com.github.wallev.maidsoulkitchen.init.touhoulittlemaid.DataRegister.YHC_MOKA; }
 }

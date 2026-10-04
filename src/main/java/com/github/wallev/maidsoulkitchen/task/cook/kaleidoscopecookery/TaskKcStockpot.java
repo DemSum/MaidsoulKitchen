@@ -28,7 +28,6 @@ public final class TaskKcStockpot extends ICookTask<StockpotBlockEntity, Recipe<
     }
     @Override public ResourceLocation getUid() { return com.github.wallev.maidsoulkitchen.task.TaskInfo.KC_STOCKPOT.uid; }
     @Override public ItemStack getIcon() { return ModItems.STOCKPOT.get().getDefaultInstance(); }
-    @Override public boolean isCookBE(net.minecraft.world.level.block.entity.BlockEntity be) { return StockpotAdapter.supports(be); }
     @Override public com.github.tartaricacid.touhoulittlemaid.api.entity.data.TaskDataKey<com.github.wallev.maidsoulkitchen.entity.data.inner.task.CookData> getCookDataKey() {
         throw new UnsupportedOperationException("Legacy KC key stores a filter; KitchenData performs its one-way migration");
     }
