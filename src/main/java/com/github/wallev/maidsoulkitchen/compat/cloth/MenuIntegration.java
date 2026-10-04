@@ -145,6 +145,10 @@ public class MenuIntegration {
                 .setDefaultValue(true).setTooltip(Component.translatable("config.maidsoulkitchen.register.db_beer.tooltip"),
                         Component.translatable("config.maidsoulkitchen.register.restart_warn.tooltip"), addition)
                 .setSaveConsumer(RegisterConfig.DB_BEER_TASK_ENABLED::set).build());
+        register.addEntry(entryBuilder.startBooleanToggle(Component.translatable("config.maidsoulkitchen.register.kc_stockpot"), RegisterConfig.KC_STOCKPOT_TASK_ENABLED.get())
+                .setDefaultValue(true).setTooltip(Component.translatable("config.maidsoulkitchen.register.kc_stockpot.tooltip"),
+                        Component.translatable("config.maidsoulkitchen.register.restart_warn.tooltip"), addition)
+                .setSaveConsumer(RegisterConfig.KC_STOCKPOT_TASK_ENABLED::set).build());
         register.addEntry(entryBuilder.startBooleanToggle(Component.translatable("config.maidsoulkitchen.register.cp_crock_pot"), RegisterConfig.CP_CROk_POT_TASK_ENABLED.get())
                 .setDefaultValue(true).setTooltip(Component.translatable("config.maidsoulkitchen.register.cp_crock_pot.tooltip"),
                         Component.translatable("config.maidsoulkitchen.register.restart_warn.tooltip"), addition)
@@ -160,6 +164,12 @@ public class MenuIntegration {
                     .append(Component.literal("\nModId: " + MaidsoulKitchen.MOD_ID).withStyle(ChatFormatting.DARK_GRAY));
         }
         ConfigCategory task = root.getOrCreateCategory(entryTitle);
+        task.addEntry(entryBuilder.startBooleanToggle(Component.translatable("config.maidsoulkitchen.task.experimental"),
+                        TaskConfig.EXPERIMENTAL_FEATURES.get())
+                .setDefaultValue(false)
+                .setTooltip(Component.translatable("config.maidsoulkitchen.task.experimental.tooltip")
+                        .withStyle(ChatFormatting.RED, ChatFormatting.BOLD), addition)
+                .setSaveConsumer(TaskConfig.EXPERIMENTAL_FEATURES::set).build());
 
         task.addEntry(entryBuilder.startStrList(Component.translatable("config.maidsoulkitchen.task.melon_and_stem_list"), TaskConfig.MELON_AND_STEM_LIST.get().stream().map(s -> s.get(0) + "," + s.get(1)).toList())
                 .setDefaultValue(TaskConfig.MELON_AND_STEM_LIST.getDefault().stream().map(s -> s.get(0) + "," + s.get(1)).toList())

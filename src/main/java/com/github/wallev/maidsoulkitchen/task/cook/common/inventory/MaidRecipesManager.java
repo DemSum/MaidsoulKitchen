@@ -6,6 +6,7 @@ import com.github.wallev.maidsoulkitchen.api.task.v1.cook.ICookTask;
 import com.github.wallev.maidsoulkitchen.entity.data.inner.task.CookData;
 import com.github.wallev.maidsoulkitchen.inventory.container.item.BagType;
 import com.github.wallev.maidsoulkitchen.item.ItemCulinaryHub;
+import com.github.wallev.maidsoulkitchen.util.BubbleUtil;
 import com.google.common.collect.Lists;
 import com.mojang.datafixers.util.Pair;
 import net.minecraft.core.BlockPos;
@@ -47,7 +48,11 @@ public class MaidRecipesManager<R extends Recipe<? extends RecipeInput>> {
     private ItemStack lastCulinaryHub = ItemStack.EMPTY;
     protected int repeatTimes = 0;
     protected List<Pair<List<Integer>, List<List<ItemStack>>>> recipesIngredients = new ArrayList<>();
+    protected final List<ItemStack> plannedResults = new ArrayList<>();
     protected int tryTime = 0;
+    private long collectIngredientsBubbleId = -1L;
+    private long noIngredientBubbleId = -1L;
+    private long availableFoodsBubbleId = -1L;
 
     public MaidRecipesManager(EntityMaid maid, ICookTask<?, R> task, boolean single) {
         this(maid, task, single, true);
@@ -110,6 +115,7 @@ public class MaidRecipesManager<R extends Recipe<? extends RecipeInput>> {
         for (int i = 0; i < itemStackHandler.getSlots(); i++) {
             ItemStack stack = itemStackHandler.getStackInSlot(i);
             if (stack.isEmpty()) continue;
+            if (requireHasItem && retainInputForCurrentRecipes(stack)) continue;
 
             for (BlockPos ingredientPo : ingredientPos) {
                 if (isPosZone(ingredientPo)) continue;
@@ -120,6 +126,7 @@ public class MaidRecipesManager<R extends Recipe<? extends RecipeInput>> {
 
                 IItemHandler beInv = ItemCulinaryHub.getBeInv(maid.level, blockEntity);
                 if (beInv == null) continue;
+                if (requireHasItem && !CookInventoryTransactions.containsItem(beInv, stack)) continue;
 
                 ItemStack leftStack = ItemHandlerHelper.insertItemStacked(beInv, stack.copy(), false);
                 stack.shrink(stack.getCount() - leftStack.getCount());
@@ -127,6 +134,21 @@ public class MaidRecipesManager<R extends Recipe<? extends RecipeInput>> {
             }
         }
         this.syncInv();
+    }
+
+    private boolean retainInputForCurrentRecipes(ItemStack stack) {
+        // Tools and reusable containers stay in unified input; recipe planning must not shuffle them out.
+        if ((stack.getMaxStackSize() == 1 && !stack.has(net.minecraft.core.component.DataComponents.FOOD))
+                || stack.is(net.minecraft.world.item.Items.BOWL)
+                || stack.is(net.minecraft.world.item.Items.BUCKET) || stack.is(net.minecraft.world.item.Items.GLASS_BOTTLE)) return true;
+        List<R> candidates = currentRecs.isEmpty() ? rec.stream().map(RecipeHolder::value).toList() : currentRecs;
+        for (R recipe : candidates) for (var ingredient : task.getIngredients(recipe)) {
+            for (ItemStack candidate : ingredient.getItems()) {
+                if (ItemStack.isSameItem(stack, candidate.getCraftingRemainingItem())) return true;
+            }
+        }
+        return candidates.stream().anyMatch(recipe -> task.getIngredients(recipe).stream()
+                .anyMatch(ingredient -> !ingredient.isEmpty() && ingredient.test(stack)));
     }
 
     private List<BlockPos> getBindingTypePoses(BagType bagType) {
@@ -165,6 +187,8 @@ public class MaidRecipesManager<R extends Recipe<? extends RecipeInput>> {
         Pair<List<Integer>, List<List<ItemStack>>> integerListPair = recipesIngredients.get(0);
         List<Pair<List<Integer>, List<List<ItemStack>>>> pairs = recipesIngredients.subList(1, size);
         recipesIngredients = pairs;
+        ItemStack plannedResult = plannedResults.isEmpty() ? ItemStack.EMPTY : plannedResults.remove(0);
+        BubbleUtil.makeFood(maid, plannedResult);
         return integerListPair;
     }
 
@@ -399,6 +423,8 @@ public class MaidRecipesManager<R extends Recipe<? extends RecipeInput>> {
     private void createRecipesIngredients() {
         this.init();
 
+        this.collectIngredientsBubbleId = BubbleUtil.collectIngredients(maid, this.collectIngredientsBubbleId);
+
         this.currentRecs.clear();
         this.currentRecs.addAll(this.getRecs());
         // 将CookBag里无用的配方原料放回原料箱子
@@ -407,6 +433,12 @@ public class MaidRecipesManager<R extends Recipe<? extends RecipeInput>> {
         this.mapChestIngredient();
         this.cookInv.refreshInv(maid.registryAccess());
         this.createIngres(true);
+        if (this.recipesIngredients.isEmpty() && !this.rec.isEmpty()) {
+            this.noIngredientBubbleId = BubbleUtil.noIngredient(maid, this.noIngredientBubbleId);
+        } else if (!this.recipesIngredients.isEmpty()) {
+            this.availableFoodsBubbleId = BubbleUtil.availableFoods(
+                    maid, this.plannedResults, this.availableFoodsBubbleId);
+        }
         this.currentRecs.clear();
 
     }
@@ -437,14 +469,26 @@ public class MaidRecipesManager<R extends Recipe<? extends RecipeInput>> {
     @NotNull
     protected List<Pair<List<Integer>, List<Item>>> getRecIngreMake(Map<Item, Integer> available) {
         List<Pair<List<Integer>, List<Item>>> _make = new ArrayList<>();
+        this.plannedResults.clear();
         for (R r : this.currentRecs) {
             Pair<List<Integer>, List<Item>> maxCount = this.getAmountIngredient(r, available);
             if (!maxCount.getFirst().isEmpty()) {
                 _make.add(Pair.of(maxCount.getFirst(), maxCount.getSecond()));
+                this.plannedResults.add(plannedResult(r, maxCount.getFirst()));
             }
         }
-        repeat(_make, available, this.repeatTimes);
+        repeat(_make, this.plannedResults, available, this.repeatTimes);
         return _make;
+    }
+
+    private ItemStack plannedResult(R recipe, List<Integer> ingredientCounts) {
+        ItemStack result = task.getResultItem(recipe, maid.registryAccess()).copy();
+        if (result.isEmpty() || ingredientCounts.isEmpty()) {
+            return result;
+        }
+        int batches = ingredientCounts.stream().mapToInt(Integer::intValue).min().orElse(1);
+        result.setCount(result.getCount() * Math.max(1, batches));
+        return result;
     }
 
     protected void setRecIngres(List<Pair<List<Integer>, List<Item>>> _make, Map<Item, Integer> available) {
@@ -461,10 +505,17 @@ public class MaidRecipesManager<R extends Recipe<? extends RecipeInput>> {
         return this.cookInv;
     }
 
-    protected void repeat(List<Pair<List<Integer>, List<Item>>> oriList, Map<Item, Integer> available, int times) {
+    protected void repeat(
+            List<Pair<List<Integer>, List<Item>>> oriList,
+            List<ItemStack> results,
+            Map<Item, Integer> available,
+            int times
+    ) {
         ArrayList<Pair<List<Integer>, List<Item>>> oriPairs = new ArrayList<>(oriList);
+        List<ItemStack> originalResults = results.stream().map(ItemStack::copy).toList();
         for (int l = 0; l < times; l++) {
-            for (Pair<List<Integer>, List<Item>> listListPair : oriPairs) {
+            for (int planIndex = 0; planIndex < oriPairs.size(); planIndex++) {
+                Pair<List<Integer>, List<Item>> listListPair = oriPairs.get(planIndex);
                 List<Integer> first = listListPair.getFirst();
                 List<Item> second = listListPair.getSecond();
 
@@ -483,6 +534,7 @@ public class MaidRecipesManager<R extends Recipe<? extends RecipeInput>> {
                         available.put(item, available.get(item) - first.get(i));
                     }
                     oriList.add(listListPair);
+                    results.add(originalResults.get(planIndex).copy());
                 }
             }
         }

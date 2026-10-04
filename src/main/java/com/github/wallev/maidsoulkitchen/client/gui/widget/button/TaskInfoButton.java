@@ -33,7 +33,7 @@ public class TaskInfoButton extends NormalTooltipButton {
         Minecraft mc = Minecraft.getInstance();
         pGuiGraphics.blit(TEXTURE, this.getX(), this.getY(), 179, 2, this.width, this.height);
         pGuiGraphics.renderItem(task.getIcon(), this.getX() + 2, this.getY() + 2);
-        List<FormattedCharSequence> splitTexts = mc.font.split(task.getName(), 42);
+        List<FormattedCharSequence> splitTexts = mc.font.split(task.getName(), Math.max(1, this.width - 28));
         if (!splitTexts.isEmpty()) {
             pGuiGraphics.drawString(mc.font, splitTexts.get(0), this.getX() + 22, this.getY() + 5, 0xffffff, false);
         }

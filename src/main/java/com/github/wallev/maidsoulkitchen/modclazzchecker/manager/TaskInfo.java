@@ -35,6 +35,8 @@ public enum TaskInfo {
             () -> RegisterConfig.FURNACE_TASK_ENABLED.get()),
     KC_STEAMER("kaleidoscope_cookery_steamer_steaming", Mods.KC,
             () -> RegisterConfig.KC_STEAMER_TASK_ENABLED.get()),
+    KC_STOCKPOT("kaleidoscope_cookery_stockpot_cooking", Mods.KC,
+            () -> RegisterConfig.KC_STOCKPOT_TASK_ENABLED.get()),
     FD_COOK_POT("farmersdelight_cooking_pot_cooking", Mods.FD,
             () -> RegisterConfig.FD_COOK_POT_TASK_ENABLED.get()),
     FD_CUTTING_BOARD("farmersdelight_cutting_board_cutting", Mods.FD,

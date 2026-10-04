@@ -7,6 +7,7 @@ import com.github.wallev.maidsoulkitchen.client.gui.entity.maid.farm.BerryFarmCo
 import com.github.wallev.maidsoulkitchen.client.gui.entity.maid.farm.CompatMelonConfigGui;
 import com.github.wallev.maidsoulkitchen.client.gui.entity.maid.farm.FruitFarmConfigGui;
 import com.github.wallev.maidsoulkitchen.client.gui.entity.maid.cook.SteamerRecipeFilterGui;
+import com.github.wallev.maidsoulkitchen.client.gui.entity.maid.cook.StockpotRecipeFilterGui;
 import com.github.wallev.maidsoulkitchen.client.gui.item.CookBagConfigContainerGui;
 import com.github.wallev.maidsoulkitchen.client.gui.item.CookBagGui;
 import com.github.wallev.maidsoulkitchen.inventory.container.item.CookBagConfigContainer;
@@ -16,6 +17,7 @@ import com.github.wallev.maidsoulkitchen.inventory.container.maid.CompatMelonCon
 import com.github.wallev.maidsoulkitchen.inventory.container.maid.CookConfigContainer;
 import com.github.wallev.maidsoulkitchen.inventory.container.maid.FruitFarmConfigContainer;
 import com.github.wallev.maidsoulkitchen.inventory.container.maid.SteamerRecipeFilterContainer;
+import com.github.wallev.maidsoulkitchen.inventory.container.maid.StockpotRecipeFilterContainer;
 import net.minecraft.client.gui.screens.MenuScreens;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -35,5 +37,6 @@ public final class InitContainerGui {
         evt.register(CookBagContainer.TYPE, CookBagGui::new);
         evt.register(CookBagConfigContainer.TYPE, CookBagConfigContainerGui::new);
         evt.register(SteamerRecipeFilterContainer.TYPE, SteamerRecipeFilterGui::new);
+        evt.register(StockpotRecipeFilterContainer.TYPE, StockpotRecipeFilterGui::new);
     }
 }

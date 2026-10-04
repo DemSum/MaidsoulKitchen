@@ -60,6 +60,10 @@ public final class CulinaryHubWorkStorage {
         return container(BagType.OUTPUT);
     }
 
+    public boolean hasOutputBindings() {
+        return !bindings.getOrDefault(BagType.OUTPUT, List.of()).isEmpty();
+    }
+
     public boolean hasIngredient(Predicate<ItemStack> predicate) {
         if (findMatchingSlot(ingredients(), predicate) >= 0) {
             return true;
@@ -128,6 +132,72 @@ public final class CulinaryHubWorkStorage {
             }
         }
         return false;
+    }
+
+    /** Snapshot for one throttled planning pass; never exposes live source stacks. */
+    public List<ItemStack> availableInputs() {
+        List<ItemStack> result = new ArrayList<>();
+        copyNonEmpty(ingredients(), result);
+        for (BoundInventory source : boundInventories(BagType.INGREDIENT)) copyNonEmpty(source.handler(), result);
+        return result;
+    }
+
+    private static void copyNonEmpty(IItemHandler inventory, List<ItemStack> destination) {
+        for (int slot = 0; slot < inventory.getSlots(); slot++) {
+            ItemStack stack = inventory.getStackInSlot(slot);
+            if (!stack.isEmpty()) destination.add(stack.copy());
+        }
+    }
+
+    /** Unlike prepareIngredient's existing maximum semantics, this requires the full quantity. */
+    public boolean prepareIngredientCount(Predicate<ItemStack> matches, int requiredCount) {
+        int missing = requiredCount - CookInventoryTransactions.count(ingredients(), matches);
+        if (missing <= 0) return true;
+        for (BoundInventory inventory : boundInventories(BagType.INGREDIENT)) {
+            IItemHandler source = inventory.handler();
+            for (int slot = 0; slot < source.getSlots() && missing > 0; slot++) {
+                ItemStack available = source.getStackInSlot(slot);
+                if (available.isEmpty() || !matches.test(available)) continue;
+                int requested = Math.min(missing, available.getCount());
+                ItemStack candidate = available.copyWithCount(requested);
+                int transferable = requested - ItemHandlerHelper.insertItemStacked(ingredients(), candidate, true).getCount();
+                if (transferable <= 0) continue;
+                ItemStack extracted = source.extractItem(slot, transferable, false);
+                if (extracted.isEmpty()) continue;
+                ItemStack remainder = matches.test(extracted)
+                        ? ItemHandlerHelper.insertItemStacked(ingredients(), extracted, false) : extracted;
+                if (!remainder.isEmpty()) remainder = ItemHandlerHelper.insertItemStacked(source, remainder, false);
+                CookInventoryTransactions.returnOrDrop(maid.getAvailableBackpackInv(), remainder, maid);
+                markChanged(inventory.blockEntity());
+                sync();
+                missing = requiredCount - CookInventoryTransactions.count(ingredients(), matches);
+            }
+        }
+        return missing <= 0;
+    }
+
+    /** Return only unnecessary food to a chest already storing the same item; keep reusable supplies. */
+    public void storeUnusedInputs(Predicate<ItemStack> retain) {
+        var buffer = ingredients();
+        boolean changed = false;
+        for (int slot = 0; slot < buffer.getSlots(); slot++) {
+            ItemStack stack = buffer.getStackInSlot(slot);
+            if (stack.isEmpty() || retain.test(stack)) continue;
+            ItemStack remainder = stack.copy();
+            for (BoundInventory target : boundInventories(BagType.INGREDIENT)) {
+                if (!CookInventoryTransactions.containsItem(target.handler(), remainder)) continue;
+                int before = remainder.getCount();
+                remainder = ItemHandlerHelper.insertItemStacked(target.handler(), remainder, false);
+                if (before != remainder.getCount()) markChanged(target.blockEntity());
+                if (remainder.isEmpty()) break;
+            }
+            int moved = stack.getCount() - remainder.getCount();
+            if (moved > 0) {
+                buffer.extractItem(slot, moved, false);
+                changed = true;
+            }
+        }
+        if (changed) sync();
     }
 
     public boolean canAcceptOutputs(List<ItemStack> incoming) {

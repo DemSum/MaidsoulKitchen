@@ -13,9 +13,12 @@ public class TaskConfig {
     public static ModConfigSpec.ConfigValue<List<List<String>>> MELON_AND_STEM_LIST;
 //    public static ModConfigSpec.ConfigValue<Integer> COOK_SELECTED_RECIPES;
     public static ModConfigSpec.ConfigValue<Integer> FEED_SINGLE_ANIMAL_MAX_NUMBER;
+    public static ModConfigSpec.BooleanValue EXPERIMENTAL_FEATURES;
 
     public static void init(ModConfigSpec.Builder builder) {
         builder.push("Task");
+        builder.comment("Experimental KC stockpot Flex recipes. Disabled by default; use at your own risk.");
+        EXPERIMENTAL_FEATURES = builder.define("ExperimentalFeatures", false);
 
         builder.comment("These entries configure the melon stem and melon_block item list.", "rule: [melon_block_id, attached_melon_stem_block_id]", "Eg: [\"minecraft:melon\", \"minecraft:attached_melon_stem\"]");
         MELON_AND_STEM_LIST = builder.define("MelonAndStemList", getmelonAndStemList());

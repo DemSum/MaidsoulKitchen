@@ -1,5 +1,64 @@
 {
   "clazzInfoMap": {
+    "maidsoulkitchen:kaleidoscope_cookery_stockpot_cooking": {
+      "bindMod": "KC",
+      "clazzInfo": {
+        "classes": [
+          "com.github.ysbbbbbb.kaleidoscopecookery.api.blockentity.IStockpot",
+          "com.github.ysbbbbbb.kaleidoscopecookery.api.recipe.soupbase.ISoupBase",
+          "com.github.ysbbbbbb.kaleidoscopecookery.blockentity.kitchen.StockpotBlockEntity",
+          "com.github.ysbbbbbb.kaleidoscopecookery.crafting.container.StockpotInput",
+          "com.github.ysbbbbbb.kaleidoscopecookery.crafting.recipe.StockpotRecipe",
+          "com.github.ysbbbbbb.kaleidoscopecookery.crafting.recipe.FlexStockpotRecipe",
+          "com.github.ysbbbbbb.kaleidoscopecookery.crafting.serializer.StockpotRecipeSerializer",
+          "com.github.ysbbbbbb.kaleidoscopecookery.crafting.soupbase.SoupBaseManager",
+          "com.github.ysbbbbbb.kaleidoscopecookery.crafting.soupbase.FluidSoupBase",
+          "com.github.ysbbbbbb.kaleidoscopecookery.init.ModItems",
+          "com.github.ysbbbbbb.kaleidoscopecookery.init.ModRecipes",
+          "com.github.ysbbbbbb.kaleidoscopecookery.init.tag.TagMod",
+          "com.github.ysbbbbbb.kaleidoscopecookery.compat.tetra.TetraCompat",
+          "com.github.ysbbbbbb.kaleidoscopecookery.util.ItemUtils"
+        ],
+        "methods": [
+          "com.github.ysbbbbbb.kaleidoscopecookery.api.blockentity.IStockpot#addSoupBase(Lnet/minecraft/world/level/Level;Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/item/ItemStack;)Z",
+          "com.github.ysbbbbbb.kaleidoscopecookery.api.blockentity.IStockpot#addIngredient(Lnet/minecraft/world/level/Level;Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/item/ItemStack;)Z",
+          "com.github.ysbbbbbb.kaleidoscopecookery.api.blockentity.IStockpot#onLitClick(Lnet/minecraft/world/level/Level;Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/item/ItemStack;)Z",
+          "com.github.ysbbbbbb.kaleidoscopecookery.api.blockentity.IStockpot#takeOutProduct(Lnet/minecraft/world/level/Level;Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/item/ItemStack;)Z",
+          "com.github.ysbbbbbb.kaleidoscopecookery.api.blockentity.IStockpot#removeIngredient(Lnet/minecraft/world/level/Level;Lnet/minecraft/world/entity/LivingEntity;)Z",
+          "com.github.ysbbbbbb.kaleidoscopecookery.blockentity.kitchen.StockpotBlockEntity#getStatus()I",
+          "com.github.ysbbbbbb.kaleidoscopecookery.blockentity.kitchen.StockpotBlockEntity#getInputs()Lnet/minecraft/core/NonNullList;",
+          "com.github.ysbbbbbb.kaleidoscopecookery.blockentity.kitchen.StockpotBlockEntity#hasHeatSource(Lnet/minecraft/world/level/Level;)Z",
+          "com.github.ysbbbbbb.kaleidoscopecookery.blockentity.kitchen.StockpotBlockEntity#hasLid()Z",
+          "com.github.ysbbbbbb.kaleidoscopecookery.blockentity.kitchen.StockpotBlockEntity#getSoupBaseId()Lnet/minecraft/resources/ResourceLocation;",
+          "com.github.ysbbbbbb.kaleidoscopecookery.blockentity.kitchen.StockpotBlockEntity#getSoupBase()Lcom/github/ysbbbbbb/kaleidoscopecookery/api/recipe/soupbase/ISoupBase;",
+          "com.github.ysbbbbbb.kaleidoscopecookery.blockentity.kitchen.StockpotBlockEntity#getLidItem()Lnet/minecraft/world/item/ItemStack;",
+          "com.github.ysbbbbbb.kaleidoscopecookery.blockentity.kitchen.StockpotBlockEntity#getResult()Lnet/minecraft/world/item/ItemStack;",
+          "com.github.ysbbbbbb.kaleidoscopecookery.blockentity.kitchen.StockpotBlockEntity#getTakeoutCount()I",
+          "com.github.ysbbbbbb.kaleidoscopecookery.api.recipe.soupbase.ISoupBase#isSoupBase(Lnet/minecraft/world/item/ItemStack;)Z",
+          "com.github.ysbbbbbb.kaleidoscopecookery.crafting.soupbase.SoupBaseManager#getAllSoupBases()Ljava/util/Map;",
+          "com.github.ysbbbbbb.kaleidoscopecookery.crafting.soupbase.FluidSoupBase#getFluid()Lnet/minecraft/world/level/material/Fluid;",
+          "com.github.ysbbbbbb.kaleidoscopecookery.util.ItemUtils#getContainerItem(Lnet/minecraft/world/item/ItemStack;)Lnet/minecraft/world/item/Item;",
+          "com.github.ysbbbbbb.kaleidoscopecookery.compat.tetra.TetraCompat#isModularItem(Lnet/minecraft/world/item/ItemStack;)Z",
+          "com.github.ysbbbbbb.kaleidoscopecookery.crafting.container.StockpotInput#<init>(Ljava/util/List;Lnet/minecraft/resources/ResourceLocation;)V",
+          "com.github.ysbbbbbb.kaleidoscopecookery.crafting.recipe.StockpotRecipe#ingredients()Lnet/minecraft/core/NonNullList;",
+          "com.github.ysbbbbbb.kaleidoscopecookery.crafting.recipe.StockpotRecipe#soupBase()Lnet/minecraft/resources/ResourceLocation;",
+          "com.github.ysbbbbbb.kaleidoscopecookery.crafting.recipe.StockpotRecipe#result()Lnet/minecraft/world/item/ItemStack;",
+          "com.github.ysbbbbbb.kaleidoscopecookery.crafting.recipe.StockpotRecipe#carrier()Lnet/minecraft/world/item/crafting/Ingredient;",
+          "com.github.ysbbbbbb.kaleidoscopecookery.crafting.recipe.FlexStockpotRecipe#ingredients()Lnet/minecraft/core/NonNullList;",
+          "com.github.ysbbbbbb.kaleidoscopecookery.crafting.recipe.FlexStockpotRecipe#soupBase()Lnet/minecraft/resources/ResourceLocation;",
+          "com.github.ysbbbbbb.kaleidoscopecookery.crafting.recipe.FlexStockpotRecipe#result()Lnet/minecraft/world/item/ItemStack;",
+          "com.github.ysbbbbbb.kaleidoscopecookery.crafting.recipe.FlexStockpotRecipe#carrier()Lnet/minecraft/world/item/crafting/Ingredient;"
+        ],
+        "fields": [
+          "com.github.ysbbbbbb.kaleidoscopecookery.init.ModItems#STOCKPOT",
+          "com.github.ysbbbbbb.kaleidoscopecookery.init.ModItems#STOCKPOT_LID",
+          "com.github.ysbbbbbb.kaleidoscopecookery.init.ModRecipes#STOCKPOT_RECIPE",
+          "com.github.ysbbbbbb.kaleidoscopecookery.init.ModRecipes#FLEX_STOCKPOT_RECIPE",
+          "com.github.ysbbbbbb.kaleidoscopecookery.init.tag.TagMod#INGREDIENT_BLOCKLIST",
+          "com.github.ysbbbbbb.kaleidoscopecookery.crafting.serializer.StockpotRecipeSerializer#DEFAULT_CARRIER"
+        ]
+      }
+    },
     "maidsoulkitchen:youkaishomecoming_fermentation_tank_fermentation": {
       "bindMod": "YHCD_NEW",
       "clazzInfo": {

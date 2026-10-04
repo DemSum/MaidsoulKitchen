@@ -25,7 +25,7 @@ class CompatibilityRegistryTest {
                 .map(TaskInfo::getUidStr)
                 .collect(Collectors.toSet());
 
-        assertEquals(23, manifest.tasks().size());
+        assertEquals(24, manifest.tasks().size());
         assertEquals(expectedTasks, manifest.tasks().keySet());
         for (TaskInfo task : TaskInfo.VALUES) {
             if (task != TaskInfo.NONE) {
@@ -33,6 +33,18 @@ class CompatibilityRegistryTest {
                         task.getUidStr());
             }
         }
+    }
+
+    @Test
+    void aMissingStockpotDependencyFailsTheSameApiValidationUsedAtStartup() throws ReflectiveOperationException {
+        var entry = new CompatibilityRegistry.Entry(Mods.KC,
+                java.util.List.of("test.missing.kc.StockpotBlockEntity"), java.util.List.of(), java.util.List.of());
+        java.util.List<String> issues = new java.util.ArrayList<>();
+        var validator = CompatibilityRegistry.class.getDeclaredMethod("validateEntry",
+                CompatibilityRegistry.Entry.class, java.util.List.class);
+        validator.setAccessible(true);
+        validator.invoke(null, entry, issues);
+        assertTrue(issues.stream().anyMatch(issue -> issue.contains("test.missing.kc.StockpotBlockEntity")));
     }
 
     @Test

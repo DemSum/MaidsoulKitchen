@@ -35,6 +35,7 @@ public enum TaskInfo {
     KK_AIR_COMPRESSOR("kk_air_compressor"),
     DB_BEER("drinkbeer_beerbarrel"),
     KC_STEAMER("kaleidoscope_steamer"),
+    KC_STOCKPOT("kaleidoscope_stockpot"),
     CP_CROCK_POT("cp_crock_pot"),
 
     DBK_COOKING_POT("dkb_cooking_pot"),
