@@ -189,7 +189,10 @@ public abstract class RecipeFilterGui<M extends TaskConfigContainer> extends Mai
     private void addTaskInfoButton() {
         int x = visualZone.startX() + TASK_DISPLAY.startX();
         int y = visualZone.startY() + TASK_DISPLAY.startY();
-        addRenderableWidget(new TaskInfoButton(x, y, taskDisplayWidth(), TASK_DISPLAY.height(), task));
+        // Source: 58ec08ec CookConfigGuiV1.addTaskInfoButton displays the selected cookTask.
+        // TaskCook is now TLM's entry task; resolve its KitchenData UID for the device header.
+        var selected = com.github.wallev.maidsoulkitchen.task.cook.common.task.TaskCook.resolve(maid).orElse(null);
+        addRenderableWidget(new TaskInfoButton(x, y, taskDisplayWidth(), TASK_DISPLAY.height(), selected == null ? task : selected));
     }
 
     protected int taskDisplayWidth() { return TASK_DISPLAY.width(); }
