@@ -34,6 +34,45 @@ import java.util.Map;
 @PrefixGameTestTemplate(false)
 public final class CookingArchitectureGameTests {
     @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID, batch = "cooking_architecture")
+    public static void nativeFailureFeedbackDoesNotConsumeWorkOrInventory(GameTestHelper helper) {
+        var maid = helper.spawnWithNoFreeWill(InitEntities.MAID.get(), new net.minecraft.core.BlockPos(1, 1, 1));
+        maid.setNoAi(true);
+        try {
+            var task = new com.github.wallev.maidsoulkitchen.task.cook.farmersdelight.cookingpot.TaskFdCookingPot();
+            maid.setTask(task);
+            maid.getMaidBauble().setStackInSlot(0, com.github.wallev.maidsoulkitchen.init.MkItems.CULINARY_HUB.get().getDefaultInstance());
+            var cm = task.getRecipesManager(maid); cm.checkAndInit();
+            helper.setBlock(new net.minecraft.core.BlockPos(2, 1, 2), vectorwing.farmersdelight.common.registry.ModBlocks.COOKING_POT.get().defaultBlockState());
+            var pot = (vectorwing.farmersdelight.common.block.entity.CookingPotBlockEntity) helper.getBlockEntity(new net.minecraft.core.BlockPos(2, 1, 2));
+            var be = new com.github.wallev.maidsoulkitchen.task.cook.farmersdelight.cookingpot.CookingPotBe(maid); be.setBe(pot);
+            var rule = com.github.wallev.maidsoulkitchen.task.cook.common.rule.cook.FdPotCookRule.<vectorwing.farmersdelight.common.block.entity.CookingPotBlockEntity, vectorwing.farmersdelight.common.crafting.CookingPotRecipe>getInstance();
+            ItemStack output = new ItemStack(Items.COOKED_BEEF, 5);
+            output.set(DataComponents.CUSTOM_NAME, Component.literal("feedback physical output"));
+            pot.getInventory().setStackInSlot(pot.OUTPUT_SLOT, output.copy());
+            for (int slot = 0; slot < cm.getOutputInv().getSlots(); slot++) cm.getOutputInv().setStackInSlot(slot, new ItemStack(Items.DIRT, 64));
+            long generation = cm.getGeneration();
+            cm.beginWorkFeedback();
+            helper.assertTrue(!rule.canMoveTo(be, cm) && cm.hasWorkFeedback()
+                    && ItemStack.matches(pot.getInventory().getStackInSlot(pot.OUTPUT_SLOT), output)
+                    && cm.getGeneration() == generation, "actual full-output rejection must report without touching the native result or work generation");
+            var collection = maid.getChatBubbleManager().getChatBubbleDataCollection();
+            int size = collection.size();
+            cm.reportMissingRequirement(new ItemStack(Items.BOWL));
+            cm.reportMissingRequirement(new ItemStack(Items.BOWL));
+            helper.assertTrue(collection.size() == size, "changing or repeating a failure must replace one native bubble, not accumulate messages");
+            cm.getOutputInv().setStackInSlot(0, ItemStack.EMPTY);
+            cm.beginWorkFeedback();
+            helper.assertTrue(rule.canMoveTo(be, cm), "physical free capacity must restore rule eligibility independently of feedback");
+            cm.endWorkFeedback();
+            helper.assertTrue(collection.size() == size - 1 && ItemStack.matches(pot.getInventory().getStackInSlot(pot.OUTPUT_SLOT), output),
+                    "recovery must clear only this feedback and must not consume the native result");
+            cm.reportMissingRequirement(new ItemStack(Items.BOWL)); cm.retire();
+            helper.assertTrue(collection.size() == size - 1, "retired task must leave no stale failure bubble");
+        } finally { maid.discard(); }
+        helper.succeed();
+    }
+
+    @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID, batch = "cooking_architecture")
     public static void nativeEdibleGoalCannotRevokeCookingSideTarget(GameTestHelper helper) {
         var maid = helper.spawnWithNoFreeWill(InitEntities.MAID.get(), new net.minecraft.core.BlockPos(1, 1, 1));
         maid.setNoAi(true);

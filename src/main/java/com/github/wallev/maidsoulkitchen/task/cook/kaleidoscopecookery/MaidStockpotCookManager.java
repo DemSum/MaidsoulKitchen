@@ -49,7 +49,7 @@ public final class MaidStockpotCookManager extends MaidCookManager<Recipe<Stockp
     @Override protected List<MKRecipe<Recipe<StockpotInput>>> getRecs() {
         List<MKRecipe<Recipe<StockpotInput>>> result = new ArrayList<>();
         var settings = TaskKcStockpot.settings(maid);
-        for (var device : collectValidConditions()) result.addAll(rsm.forDevice(device, level, settings));
+        for (var device : collectValidConditions()) result.addAll(rsm.forDevice(device, level, settings, this::reportPlanningRequirement));
         return result;
     }
     /** Direct upstream collectConditions coordinate traversal. Common Move alone checks reachability. */

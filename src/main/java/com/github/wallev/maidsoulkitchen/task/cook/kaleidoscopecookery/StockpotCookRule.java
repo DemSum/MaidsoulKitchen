@@ -17,6 +17,10 @@ public final class StockpotCookRule extends AbstractCookRule<StockpotBlockEntity
         var be = (StockpotBe) device;
         if (be.hasResult()) {
             var carrier = StockpotAdapter.carrier(be.getBe(), be.getBe().getLevel()).orElse(null);
+            if (carrier != null && !carrier.isEmpty() && cm.getItem(carrier::test).isFail()) {
+                var variants = carrier.getItems();
+                if (variants.length > 0) cm.reportMissingRequirement(variants[0]);
+            }
             return carrier != null && be.canReturnLid(cm) && cm.canAcceptNativeResults(List.of(be.getResult()))
                     && (carrier.isEmpty() || !cm.getItem(carrier::test).isFail());
         }
@@ -24,6 +28,9 @@ public final class StockpotCookRule extends AbstractCookRule<StockpotBlockEntity
             return !be.snapshot().covered() && be.cookStateMatch() && !cm.getItem(StockpotAdapter::isLid).isFail();
         if (be.canTakeInputs(cm)) return true;
         var work = cm.peekMaidRec(be);
+        if (work == null && be.cookStateMatch() && !be.snapshot().covered()
+                && cm.getItem(StockpotAdapter::isLid).isFail())
+            cm.reportMissingRequirement(com.github.ysbbbbbb.kaleidoscopecookery.init.ModItems.STOCKPOT_LID.get().getDefaultInstance());
         return work != null && be.cookStateMatch() && be.canReturnLid(cm) && cm.hasMaterials(work)
                 && cm.canAcceptNativeResults(List.of(work.result().copyWithCount(1)));
     }

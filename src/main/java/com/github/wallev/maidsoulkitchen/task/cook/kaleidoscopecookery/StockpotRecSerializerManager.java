@@ -62,16 +62,19 @@ public final class StockpotRecSerializerManager extends RecSerializerManager<Rec
         final com.github.ysbbbbbb.kaleidoscopecookery.blockentity.kitchen.StockpotBlockEntity device;
         final List<Spec> candidates;
         final StockpotTaskData settings;
-        DeviceRecipe(com.github.ysbbbbbb.kaleidoscopecookery.blockentity.kitchen.StockpotBlockEntity device, List<Spec> candidates, StockpotTaskData settings) {
+        final java.util.function.Consumer<ItemStack> missingRequirement;
+        DeviceRecipe(com.github.ysbbbbbb.kaleidoscopecookery.blockentity.kitchen.StockpotBlockEntity device, List<Spec> candidates, StockpotTaskData settings,
+                     java.util.function.Consumer<ItemStack> missingRequirement) {
             super(candidates.getFirst().holder(), true, RecIngredient.from(candidates.getFirst().ingredients()), candidates.getFirst().result());
             this.device = device; this.candidates = List.copyOf(candidates); this.settings = settings;
+            this.missingRequirement = missingRequirement;
         }
     }
 
     List<DeviceRecipe> forDevice(com.github.ysbbbbbb.kaleidoscopecookery.blockentity.kitchen.StockpotBlockEntity device,
-                                  Level level, StockpotTaskData settings) {
+                                  Level level, StockpotTaskData settings, java.util.function.Consumer<ItemStack> missingRequirement) {
         return groups(level, settings).stream().filter(group -> option(group).allowed(settings.filter()))
-                .map(group -> new DeviceRecipe(device, group, settings)).toList();
+                .map(group -> new DeviceRecipe(device, group, settings, missingRequirement)).toList();
     }
 
     @Override protected List<MaidRec> createMaidRec(MKRecipe<Recipe<StockpotInput>> description,
@@ -83,7 +86,7 @@ public final class StockpotRecSerializerManager extends RecSerializerManager<Rec
         var settings = deviceRecipe.settings;
         // Settings are attached by the sole manager, never read from a second persisted recipe state.
         List<ItemStack> pool = available.entrySet().stream().filter(entry -> entry.getValue() > 0).map(entry -> entry.getKey().toStack(entry.getValue())).toList();
-        var work = createWork(snapshot, level, settings, pool, deviceRecipe.candidates, device, taskId, generation);
+        var work = createWork(snapshot, level, settings, pool, deviceRecipe.candidates, device, taskId, generation, deviceRecipe.missingRequirement);
         if (work == null) return List.of();
         Map<ItemDefinition, ItemAmount> amounts = new HashMap<>();
         for (MaidItem material : work.maidItems()) {
@@ -190,7 +193,7 @@ public final class StockpotRecSerializerManager extends RecSerializerManager<Rec
     MaidRec createWork(StockpotAdapter.Snapshot snapshot, Level level, StockpotTaskData settings,
             List<ItemStack> available, List<Spec> candidates,
             com.github.ysbbbbbb.kaleidoscopecookery.blockentity.kitchen.StockpotBlockEntity device,
-            ResourceLocation taskId, long generation) {
+            ResourceLocation taskId, long generation, java.util.function.Consumer<ItemStack> missingRequirement) {
         Set<ResourceLocation> suppliedGroups = new HashSet<>();
         for (Spec spec : candidates) {
             ResourceLocation groupId = candidates.getFirst().id();
@@ -254,7 +257,13 @@ public final class StockpotRecSerializerManager extends RecSerializerManager<Rec
                             // Budget native ingredient returns without preparing or manufacturing those items.
                             if (!reserve(returnedContainers, spec.carrier()::test).isEmpty()) continue;
                             ItemStack carrier = reserve(carrierPool, spec.carrier()::test);
-                            if (carrier.isEmpty()) return false;
+                            if (carrier.isEmpty()) {
+                                // Existing verified native overlap/assembly has confirmed materials;
+                                // report this rejection to the sole manager, never a second planner.
+                                var choices = spec.carrier().getItems();
+                                if (choices.length > 0) missingRequirement.accept(choices[0]);
+                                return false;
+                            }
                             resources.add(carrier);
                         }
                         List<MaidItem> materials = new ArrayList<>();

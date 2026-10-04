@@ -59,6 +59,11 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
     private long collectIngredientsBubbleId = -1;
     private long availableFoodsBubbleId = -1;
     private long noIngredientBubbleId = -1;
+    private final BubbleUtil.Feedback hubFeedback = new BubbleUtil.Feedback();
+    private final BubbleUtil.Feedback workFeedback = new BubbleUtil.Feedback();
+    private boolean workFeedbackReported;
+    // One generation's rejected resource requirement, owned by this planner; not a work unit.
+    private ItemStack missingPlanningRequirement = ItemStack.EMPTY;
     private ItemStack loanedTool = ItemStack.EMPTY;
     // A TLM brain context that was retired cannot resume when the same device UID is selected again.
     private boolean retired;
@@ -151,6 +156,8 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
         cookInv.refreshInv();
         inventoryChanged |= !sameInventory(previous, cookInv.getLastInvStack());
         if (settingsChanged || storageChanged || inventoryChanged) invalidate();
+        if (hasCulinaryHub) hubFeedback.clear(maid);
+        else hubFeedback.show(maid, "chat_bubble.maidsoulkitchen.cook.no_hub");
         return true;
     }
 
@@ -328,9 +335,12 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
 
     public void makeResultsBubble() {
         if (maidRecs.isEmpty()) {
+            if (!missingPlanningRequirement.isEmpty()) { reportMissingRequirement(missingPlanningRequirement); return; }
+            if (workFeedbackReported) return;
             if (!recsGenerate.getRecs().isEmpty()) noIngredientBubbleId = BubbleUtil.noIngredient(maid, noIngredientBubbleId);
             return;
         }
+        missingPlanningRequirement = ItemStack.EMPTY;
         List<ItemStack> results = maidRecs.stream().flatMap(recipe -> recipe.results().stream().map(result ->
                 result.copyWithCount(result.getCount() * recipe.amount()))).toList();
         availableFoodsBubbleId = BubbleUtil.availableFoods(maid, results, availableFoodsBubbleId);
@@ -342,11 +352,14 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
 
     public void clear() {
         resetState(); recsGenerate.clear(); maidRecs.clear(); hubItemDown.clear(); chestInputInventory.clear();
+        missingPlanningRequirement = ItemStack.EMPTY;
     }
     /** Source TickCookRule stop cleanup, also applied when TLM replaces the brain task context.
      * Return the actual loan before discarding plans; no old manager may retain executable work. */
     public void retire() {
         retired = true;
+        hubFeedback.clear(maid);
+        workFeedback.clear(maid);
         if (cookInv != null) { cookInv.refreshInv(); backpackTool(); }
         else invalidate();
         com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookTargetMemory.clear(maid);
@@ -395,12 +408,51 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
     }
 
     public boolean canTakeResult(ItemStack result) {
-        return result.getCount() > ItemHandlerHelper.insertItemStacked(getOutputInv(), result.copy(), true).getCount();
+        boolean accepted = result.getCount() > ItemHandlerHelper.insertItemStacked(getOutputInv(), result.copy(), true).getCount();
+        if (!accepted && !result.isEmpty()) reportWorkFeedback("chat_bubble.maidsoulkitchen.cook.output_full");
+        return accepted;
+    }
+
+    /** Source: 1.20 makeResultsBubble + local WIP Feedback. Confirmed P7 omission: failures were
+     * presented as missing ingredients. Only the owning inventory/Rule/Move reports its actual
+     * rejection. The per-search flag controls message replacement, never work eligibility. */
+    public void beginWorkFeedback() { workFeedbackReported = false; }
+    public boolean hasWorkFeedback() { return workFeedbackReported; }
+    /** KC's bounded converter reports the exact rejected carrier after native ingredients match.
+     * Keep only the current generation's failure in the sole planner, retiring it on invalidation
+     * or any accepted queue. This replaces beta missing-requirement feedback without its Plan. */
+    public void reportPlanningRequirement(ItemStack required) { missingPlanningRequirement = required.copyWithCount(1); }
+    public void reportPlanningFailure() {
+        if (runState == 0 && maidRecs.isEmpty() && !missingPlanningRequirement.isEmpty())
+            reportMissingRequirement(missingPlanningRequirement);
+    }
+    public void reportWorkFeedback(String key) {
+        workFeedbackReported = true;
+        if (maid.getChatBubbleManager().getChatBubble(noIngredientBubbleId) != null)
+            maid.getChatBubbleManager().removeChatBubble(noIngredientBubbleId);
+        workFeedback.show(maid, key);
+    }
+    public void reportMissingRequirement(ItemStack required) {
+        if (required.isEmpty()) return;
+        workFeedbackReported = true;
+        if (maid.getChatBubbleManager().getChatBubble(noIngredientBubbleId) != null)
+            maid.getChatBubbleManager().removeChatBubble(noIngredientBubbleId);
+        workFeedback.show(maid, net.minecraft.network.chat.Component.translatable(
+                "chat_bubble.maidsoulkitchen.cook.missing_requirement", required.getHoverName()));
+    }
+    public void endWorkFeedback() {
+        if (!workFeedbackReported) workFeedback.clear(maid);
     }
 
     /** Verified KC capacity rule moved from CulinaryHubWorkStorage: keep native food untouched
      * when its output buffer or bound warehouse is full. Views reference the same real Handlers. */
     public boolean canAcceptNativeResults(List<ItemStack> incoming) {
+        boolean accepted = canFitNativeResults(incoming);
+        if (!accepted) reportWorkFeedback("chat_bubble.maidsoulkitchen.cook.output_full");
+        return accepted;
+    }
+
+    private boolean canFitNativeResults(List<ItemStack> incoming) {
         if (!CookInventoryTransactions.canFitAll(getOutputInv(), incoming)) return false;
         var bindings = getBindingTypePoses(BagType.OUTPUT);
         if (!hasCulinaryHub || bindings.isEmpty()) return true;

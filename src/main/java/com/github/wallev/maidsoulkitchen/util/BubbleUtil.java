@@ -4,6 +4,7 @@ import com.github.tartaricacid.touhoulittlemaid.entity.chatbubble.implement.Text
 import com.github.tartaricacid.touhoulittlemaid.entity.passive.EntityMaid;
 import com.github.wallev.maidsoulkitchen.vhelper.client.chat.VComponent;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 
@@ -17,6 +18,53 @@ public final class BubbleUtil {
     private static final String NO_INGREDIENT = "chat_bubble.maidsoulkitchen.cook.no_ingredient_cook";
 
     private BubbleUtil() {
+    }
+
+    /** Source: protected local WIP BubbleUtil.Feedback (6060fad0). Upstream lacked replaceable
+     * failure messages. Preserve this TLM 1.5.3 presentation boundary verbatim: it stores only
+     * bubble text/time, never recipes, inventory or execution status. */
+    public static final class Feedback {
+        private static final int REPEAT_TICKS = 200;
+        private long bubbleId = -1;
+        private long nextRepeat;
+        private Component currentText;
+
+        public long show(EntityMaid maid, String key) {
+            return show(maid, VComponent.translatable(key));
+        }
+
+        public long noIngredient(EntityMaid maid) {
+            return show(maid, NO_INGREDIENT);
+        }
+
+        public long show(EntityMaid maid, Component message) {
+            var manager = maid.getChatBubbleManager();
+            var active = manager.getChatBubble(bubbleId);
+            long now = maid.level().getGameTime();
+            if (active instanceof TextChatBubbleData text) {
+                if (!message.equals(currentText)) {
+                    text.setText(message);
+                    manager.forceUpdateChatBubble();
+                    currentText = message.copy();
+                    nextRepeat = now + REPEAT_TICKS;
+                }
+                return bubbleId;
+            }
+            if (message.equals(currentText) && now < nextRepeat) return bubbleId;
+            bubbleId = manager.addChatBubble(TextChatBubbleData.type2(message));
+            currentText = message.copy();
+            nextRepeat = now + REPEAT_TICKS;
+            return bubbleId;
+        }
+
+        public void clear(EntityMaid maid) {
+            if (maid.getChatBubbleManager().getChatBubble(bubbleId) != null) {
+                maid.getChatBubbleManager().removeChatBubble(bubbleId);
+            }
+            bubbleId = -1;
+            currentText = null;
+            nextRepeat = 0;
+        }
     }
 
     public static long collectIngredients(EntityMaid maid, long previousBubbleId) {

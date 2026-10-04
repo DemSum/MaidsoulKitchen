@@ -428,6 +428,16 @@ public final class StockpotGameTests {
                     List.of(lid, new ItemStack(Items.CARROT, 9), new ItemStack(Items.BOWL, 1)), snapshot, pot);
             h.assertTrue(missingCarriers == null,
                     "carrier shortage must not silently lower a fully supplied ingredient batch");
+            List<ItemStack> requirements = new ArrayList<>();
+            for (var descriptor : StockpotRecSerializerManager.INSTANCE.forDevice(pot, level, settings, requirements::add)) {
+                var rejected = StockpotRecSerializerManager.INSTANCE.createWork(snapshot, level, settings,
+                        List.of(lid, new ItemStack(Items.CARROT, 9), new ItemStack(Items.BOWL, 1)),
+                        descriptor.candidates, pot, com.github.wallev.maidsoulkitchen.task.TaskInfo.KC_STOCKPOT.uid, 0,
+                        descriptor.missingRequirement);
+                h.assertTrue(rejected == null, "feedback must not make a rejected carrier-short batch executable");
+            }
+            h.assertTrue(!requirements.isEmpty() && requirements.stream().allMatch(stack -> stack.is(Items.BOWL)),
+                    "native material-complete rejection must identify the real missing carrier to the sole planner");
             h.setBlock(6, 1, 1, Blocks.CHEST);
             var source = (ChestBlockEntity) level.getBlockEntity(h.absolutePos(new BlockPos(6, 1, 1)));
             ItemStack hub = MkItems.CULINARY_HUB.get().getDefaultInstance();
@@ -508,9 +518,9 @@ public final class StockpotGameTests {
     private static com.github.wallev.maidsoulkitchen.task.cook.common.rule.rec.MaidRec plan(net.minecraft.world.level.Level level,
             StockpotTaskData settings, List<ItemStack> available, StockpotAdapter.Snapshot snapshot, StockpotBlockEntity pot) {
         var rsm = StockpotRecSerializerManager.INSTANCE;
-        for (var descriptor : rsm.forDevice(pot, level, settings)) {
+        for (var descriptor : rsm.forDevice(pot, level, settings, required -> {})) {
             var work = rsm.createWork(snapshot, level, settings, available, descriptor.candidates, pot,
-                    com.github.wallev.maidsoulkitchen.task.TaskInfo.KC_STOCKPOT.uid, 0);
+                    com.github.wallev.maidsoulkitchen.task.TaskInfo.KC_STOCKPOT.uid, 0, required -> {});
             if (work != null) return work;
         }
         return null;

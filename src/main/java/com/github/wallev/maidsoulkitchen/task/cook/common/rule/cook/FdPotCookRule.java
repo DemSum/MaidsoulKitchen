@@ -19,6 +19,13 @@ public class FdPotCookRule<B extends BlockEntity, R extends Recipe<? extends Rec
         if (pot.canTakeResult() && pot.hasResult() && cm.canTakeResult(pot.getResult())) return true;
         ItemStack container = pot.getNowContainer();
         ItemStack needed = pot.getNeedContainer();
+        if (pot.hasMeal()) {
+            if (!cm.getCookInv().hasOutputAvailableSlot())
+                cm.reportWorkFeedback("chat_bubble.maidsoulkitchen.cook.output_full");
+            else if (!needed.isEmpty() && (container.isEmpty() || !container.is(needed.getItem()))
+                    && cm.getItem(stack -> stack.is(needed.getItem())).isFail())
+                cm.reportMissingRequirement(needed);
+        }
         if (pot.hasMeal() && cm.getCookInv().hasOutputAvailableSlot() && !needed.isEmpty()
                 && (container.isEmpty() || !container.is(needed.getItem()))
                 && !cm.getItem(stack -> stack.is(needed.getItem())).isFail()) return true;

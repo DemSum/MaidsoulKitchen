@@ -89,6 +89,8 @@ public class CookMoveTask<B extends BlockEntity, R extends Recipe<? extends Reci
             return;
         }
         int searchRange = (int) maid.getRestrictRadius();
+        maidRecipesManager.beginWorkFeedback();
+        maidRecipesManager.reportPlanningFailure();
         Optional<ReachableCookDeviceSearch.Result> result = ReachableCookDeviceSearch.find(
                 worldIn,
                 maid,
@@ -102,11 +104,16 @@ public class CookMoveTask<B extends BlockEntity, R extends Recipe<? extends Reci
                 cookBe.getInteractionHeightOffsets()
         );
         if (result.isEmpty()) {
+            if (!maidRecipesManager.hasWorkFeedback() && maidRecipesManager.hasMaidRecs())
+                reportSearchFailure(worldIn, maid, centrePos, searchRange);
+            maidRecipesManager.endWorkFeedback();
             this.guideBackToWorkArea(worldIn, maid, centrePos, centrePos);
             return;
         }
 
         ReachableCookDeviceSearch.Result target = result.get();
+        maidRecipesManager.beginWorkFeedback();
+        maidRecipesManager.endWorkFeedback();
         cookBe.setBlockEntity(worldIn.getBlockEntity(target.workPos()));
         if (this.guideBackToWorkArea(worldIn, maid, centrePos, cookBe.getWorkAreaFloorAnchor(target.walkPos()))) return;
         if (!CookWorkLocks.tryClaim(worldIn, target.workPos(), maid)) return;
@@ -119,6 +126,26 @@ public class CookMoveTask<B extends BlockEntity, R extends Recipe<? extends Reci
         );
         targetCycle.recordSelection(target.workPos().asLong());
         this.setNextCheckTickCount(5);
+    }
+
+    /** Source: 58ec08ec CookMoveTask coordinate traversal, retained only for diagnosis after
+     * the existing single TLM BFS fails. Reads device identity without planning or a second
+     * pathfinder. Availability includes occupation; a blocked device is never reported destroyed.
+     * Replaces the beta's silent search; this method cannot select or remember a work target. */
+    private void reportSearchFailure(ServerLevel level, EntityMaid maid, BlockPos center, int range) {
+        for (BlockPos pos : BlockPos.betweenClosed(center.offset(-range, -verticalSearchRange, -range),
+                center.offset(range, verticalSearchRange + 1, range))) {
+            if (!ReachableCookDeviceSearch.isDeviceWithinSearchBounds(pos, center, range,
+                    verticalSearchStart, verticalSearchRange) || !maid.isWithinRestriction(pos)
+                    || !com.github.wallev.maidsoulkitchen.api.task.cook.ICookTargetTask.isWithinOwnerRange(maid, pos)
+                    || !level.isLoaded(pos)) continue;
+            var device = level.getBlockEntity(pos);
+            if (device != null && cookBe.isCookBe(device)) {
+                maidRecipesManager.reportWorkFeedback("chat_bubble.maidsoulkitchen.cook.no_reachable_device");
+                return;
+            }
+        }
+        maidRecipesManager.reportWorkFeedback("chat_bubble.maidsoulkitchen.cook.no_work_block");
     }
 
     private boolean guideBackToWorkArea(
