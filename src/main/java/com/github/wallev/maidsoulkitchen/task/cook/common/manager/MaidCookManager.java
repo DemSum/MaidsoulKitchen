@@ -458,6 +458,30 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
         return complete;
     }
 
+    /** Source: DryingRackBe.insertInputs native placeFood boundary (58ec08ec).
+     * Extract detached physical single-item inputs before the native consuming call instead of
+     * passing aliased inventory stacks. Partial/refused native acceptance returns the remainder
+     * and invalidates the plan; already accepted materials remain in the real device. No queue or
+     * native timing is duplicated here. Used by devices whose native action initializes cooking. */
+    public boolean insertInputs(MaidRec rec, Predicate<ItemStack> insertOne) {
+        if (rec == null || peekMaidRec() != rec || rec.maidItems().size() != 1) return false;
+        MaidItem material = rec.maidItems().getFirst();
+        if (material.role() != MaidItem.Role.INGREDIENT
+                || CookInventoryTransactions.count(getInputInv(), material.item()::is) < material.count()) return false;
+        for (int count = 0; count < material.count(); count++) {
+            GatherResult source = getItem(material.item()::is);
+            ItemStack extracted = source.isFail() ? ItemStack.EMPTY : source.getItemHandler().extractItem(source.getSlot(), 1, false);
+            boolean accepted = false;
+            try { accepted = !extracted.isEmpty() && material.item().is(extracted) && insertOne.test(extracted) && extracted.isEmpty(); }
+            finally {
+                if (!extracted.isEmpty()) CookInventoryTransactions.returnOrDrop(maid.getAvailableBackpackInv(), source.backItemStack(extracted), maid);
+                if (!accepted) { cookInv.syncInv(); cookInv.refreshInv(); invalidate(); }
+            }
+            if (!accepted) return false;
+        }
+        return true;
+    }
+
     /** Source: upstream TickCookRule.swapItem/swapTool/backpackTool, and local cutting equipTool.
      * Live-stack copyAndClear could alias Handler contents or duplicate the previous hand item.
      * Extract first, transfer the old hand with real receipts, then lend exactly one physical tool.

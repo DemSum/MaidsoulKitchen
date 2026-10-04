@@ -53,6 +53,14 @@ public abstract class CookBeBase<B extends BlockEntity> {
     public IItemHandlerModifiable getResultInv() { return getInv(); }
     public ItemStack getResult() { return getResultInv().getStackInSlot(getResultSlot()).copy(); }
     public abstract int getResultSlot();
+    /** Source: CookBeBase meal/container contract, required by the shared upstream FdPotCookRule.
+     * Devices using that rule implement these native accessors. Unsupported devices fail explicitly
+     * instead of retaining the source's empty optional hooks or adding a duplicate pot abstraction. */
+    public ItemStack getMeal() { throw new UnsupportedOperationException("Device has no meal slot"); }
+    public boolean hasMeal() { return !getMeal().isEmpty(); }
+    public ItemStack getNeedContainer() { throw new UnsupportedOperationException("Device has no meal container"); }
+    public int getContainerSlot() { throw new UnsupportedOperationException("Device has no container slot"); }
+    public ItemStack getNowContainer() { return getInv().getStackInSlot(getContainerSlot()).copy(); }
     public abstract boolean recMatch();
     public abstract boolean cookStateMatch();
     public boolean canTakeResult() { return true; }

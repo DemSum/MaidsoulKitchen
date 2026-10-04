@@ -36,6 +36,70 @@ public final class CookingArchitectureGameTests {
     private static ResourceLocation id(String name) { return ResourceLocation.fromNamespaceAndPath(MaidsoulKitchen.MOD_ID, name); }
 
     @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID, batch = "cooking_architecture")
+    public static void nativeDryingBoundsReservationsAndStartsTimers(GameTestHelper helper) {
+        var level = helper.getLevel(); var original = List.copyOf(level.getRecipeManager().getRecipes()); var day = level.getDayTime();
+        var maid = helper.spawnWithNoFreeWill(InitEntities.MAID.get(), new net.minecraft.core.BlockPos(1, 1, 1)); maid.setNoAi(true);
+        try {
+            level.setDayTime(1000); level.updateSkyBrightness();
+            var task = new com.github.wallev.maidsoulkitchen.task.cook.youkaishomecoming.dryingrack.TaskYhcDryingRack(); maid.setTask(task);
+            var holder = new RecipeHolder<>(id("native_drying"), new dev.xkmc.youkaishomecoming.content.pot.rack.DryingRackRecipe("", CookingBookCategory.MISC,
+                    Ingredient.of(Items.CARROT), new ItemStack(Items.BAKED_POTATO), 0, 2));
+            reloadRecipes(helper, List.of(holder));
+            KitchenData.get(maid).setCookData(task.getUid(), new CookData("whitelist", List.of(holder.id().toString()), List.of()));
+            var input = maid.getAvailableInv(true);
+            for (int slot = 0; slot < input.getSlots(); slot++) input.setStackInSlot(slot, ItemStack.EMPTY);
+            input.setStackInSlot(0, new ItemStack(Items.CARROT, 8));
+            helper.setBlock(new net.minecraft.core.BlockPos(2, 1, 2), dev.xkmc.youkaishomecoming.init.registrate.YHBlocks.RACK.get());
+            var rack = (dev.xkmc.youkaishomecoming.content.pot.rack.DryingRackBlockEntity) helper.getBlockEntity(new net.minecraft.core.BlockPos(2, 1, 2));
+            var be = new com.github.wallev.maidsoulkitchen.task.cook.youkaishomecoming.dryingrack.DryingRackBe(maid); be.setBe(rack);
+            var cm = task.getRecipesManager(maid); cm.checkAndCreateRecipesIngredients(); finishPlanning(cm);
+            var rec = cm.peekMaidRec();
+            helper.assertTrue(rec != null && rec.amount() == 4 && rec.maidItems().getFirst().count() == 4,
+                    "four-position native drying must reserve only four of eight physical materials");
+            helper.assertTrue(be.insertInputs(rec, cm) && cm.commitMaidRec(rec) && rack.getItems().stream().allMatch(stack -> stack.is(Items.CARROT) && stack.getCount() == 1)
+                    && CookInventoryTransactions.count(input, stack -> stack.is(Items.CARROT)) == 4,
+                    "native placeFood must accept exactly four detached inputs, preserving the unreserved half");
+            helper.assertTrue(!be.insertInputs(rec, cm), "an accepted/stale drying work identity cannot insert again");
+            for (int i = 0; i < 3; i++) dev.xkmc.youkaishomecoming.content.pot.rack.DryingRackBlockEntity.cookTick(level, rack.getBlockPos(), rack.getBlockState(), rack);
+            helper.assertTrue(rack.getItems().stream().allMatch(ItemStack::isEmpty), "native timers initialized by placeFood must finish every occupied position");
+            cm.checkAndCreateRecipesIngredients(); finishPlanning(cm); level.setDayTime(18000); level.updateSkyBrightness();
+            helper.assertTrue(!be.cookStateMatch() && !be.isCookBe(rack) && !be.insertInputs(cm.peekMaidRec(), cm)
+                    && CookInventoryTransactions.count(input, stack -> stack.is(Items.CARROT)) == 4,
+                    "night must prevent both selection and actual native insertion without consuming materials");
+        } finally { level.setDayTime(day); level.updateSkyBrightness(); reloadRecipes(helper, original); maid.discard(); }
+        helper.succeed();
+    }
+
+    @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID, batch = "cooking_architecture")
+    public static void nativeMokaSharesPotRuleAndContainers(GameTestHelper helper) {
+        var maid = helper.spawnWithNoFreeWill(InitEntities.MAID.get(), new net.minecraft.core.BlockPos(1, 1, 1)); maid.setNoAi(true);
+        try {
+            var task = new com.github.wallev.maidsoulkitchen.task.cook.youkaishomecoming.moka.TaskYhcMoka(); maid.setTask(task);
+            var description = task.getRecSerializerManager().getRecipes(helper.getLevel()).stream().filter(recipe -> !recipe.inItems().isEmpty()
+                    && recipe.inItems().size() <= 4 && recipe.inItems().stream().allMatch(ingredient -> ingredient.ingredient.getItems().length > 0)).findFirst().orElseThrow();
+            KitchenData.get(maid).setCookData(task.getUid(), new CookData("whitelist", List.of(description.idStr()), List.of()));
+            var input = maid.getAvailableInv(true);
+            for (int slot = 0; slot < input.getSlots(); slot++) input.setStackInSlot(slot, ItemStack.EMPTY);
+            for (int slot = 0; slot < description.inItems().size(); slot++) input.setStackInSlot(slot, description.inItems().get(slot).ingredient.getItems()[0].copyWithCount(1));
+            helper.setBlock(new net.minecraft.core.BlockPos(2, 0, 2), net.minecraft.world.level.block.Blocks.CAMPFIRE);
+            helper.setBlock(new net.minecraft.core.BlockPos(2, 1, 2), dev.xkmc.youkaishomecoming.init.registrate.YHBlocks.MOKA.get());
+            var moka = (dev.xkmc.youkaishomecoming.content.pot.moka.MokaMakerBlockEntity) helper.getBlockEntity(new net.minecraft.core.BlockPos(2, 1, 2));
+            var be = new com.github.wallev.maidsoulkitchen.task.cook.youkaishomecoming.moka.MokaBe(maid); be.setBe(moka);
+            var cm = task.getRecipesManager(maid); cm.checkAndCreateRecipesIngredients(); finishPlanning(cm);
+            var rec = cm.peekMaidRec();
+            helper.assertTrue(rec != null && be.cookStateMatch() && be.insertInputs(rec, cm) && be.recMatch() && cm.commitMaidRec(rec),
+                    "native Moka must accept the unified descriptor and match its original Holder");
+            for (int slot = 0; slot < 4; slot++) moka.getInventory().setStackInSlot(slot, ItemStack.EMPTY);
+            moka.getInventory().setStackInSlot(be.getContainerSlot(), new ItemStack(Items.BOWL, 2));
+            var rule = com.github.wallev.maidsoulkitchen.task.cook.common.rule.cook.FdPotCookRule.<dev.xkmc.youkaishomecoming.content.pot.moka.MokaMakerBlockEntity, dev.xkmc.youkaishomecoming.content.pot.moka.MokaRecipe>getInstance();
+            helper.assertTrue(rule.canMoveTo(be, cm), "shared pot rule must see idle native containers"); rule.cookMake(be, cm);
+            helper.assertTrue(be.getNowContainer().isEmpty() && CookInventoryTransactions.count(input, stack -> stack.is(Items.BOWL)) == 2,
+                    "shared pot rule must return only the actual idle containers through manager transactions");
+        } finally { maid.discard(); }
+        helper.succeed();
+    }
+
+    @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID, batch = "cooking_architecture")
     public static void nativeCuttingUsesTickLifecycleAndPhysicalTool(GameTestHelper helper) {
         var maid = helper.spawnWithNoFreeWill(InitEntities.MAID.get(), new net.minecraft.core.BlockPos(1, 1, 1)); maid.setNoAi(true);
         var task = new com.github.wallev.maidsoulkitchen.task.cook.farmersdelight.cuttingboard.TaskFdCuttingBoard(); maid.setTask(task);
@@ -162,7 +226,7 @@ public final class CookingArchitectureGameTests {
             }
             var cm = task.getRecipesManager(maid); cm.checkAndInit();
             var cookBe = new com.github.wallev.maidsoulkitchen.task.cook.farmersdelight.cookingpot.CookingPotBe(maid);
-            var rule = com.github.wallev.maidsoulkitchen.task.cook.common.rule.cook.FdPotCookRule.getInstance();
+            var rule = com.github.wallev.maidsoulkitchen.task.cook.common.rule.cook.FdPotCookRule.<vectorwing.farmersdelight.common.block.entity.CookingPotBlockEntity, vectorwing.farmersdelight.common.crafting.CookingPotRecipe>getInstance();
             var move = new com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookMoveTask<vectorwing.farmersdelight.common.block.entity.CookingPotBlockEntity, vectorwing.farmersdelight.common.crafting.CookingPotRecipe>(task, cm, rule, cookBe) {
                 public void runSearch() { start(helper.getLevel(), maid, helper.getLevel().getGameTime()); }
             };

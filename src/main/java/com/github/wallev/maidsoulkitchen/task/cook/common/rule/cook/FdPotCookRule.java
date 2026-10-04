@@ -2,20 +2,20 @@ package com.github.wallev.maidsoulkitchen.task.cook.common.rule.cook;
 
 import com.github.wallev.maidsoulkitchen.task.cook.common.cook.be.CookBeBase;
 import com.github.wallev.maidsoulkitchen.task.cook.common.manager.MaidCookManager;
-import com.github.wallev.maidsoulkitchen.task.cook.farmersdelight.cookingpot.CookingPotBe;
+import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.ItemStack;
-import vectorwing.farmersdelight.common.block.entity.CookingPotBlockEntity;
-import vectorwing.farmersdelight.common.crafting.CookingPotRecipe;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.item.crafting.RecipeInput;
 
 /** Source: 58ec08ec FdPotCookRule.java (MIT). Keeps meal/container -> output -> cleanup ->
- * input ordering. Concrete FD meal access replaces upstream empty optional base hooks.
+ * input ordering. Shared native meal/container access keeps the upstream FD/Moka rule contract.
  * Matching containers stay in place while a meal exists; slot receipts and commit-after-acceptance
  * fix upstream live-stack mutation/early consumption. Replaces beta IFdPotCook execution. */
-public class FdPotCookRule extends AbstractCookRule<CookingPotBlockEntity, CookingPotRecipe> {
-    private static final FdPotCookRule INSTANCE = new FdPotCookRule();
-    public static FdPotCookRule getInstance() { return INSTANCE; }
-    @Override public boolean canMoveTo(CookBeBase<CookingPotBlockEntity> cookBe, MaidCookManager<CookingPotRecipe> cm) {
-        CookingPotBe pot = (CookingPotBe) cookBe;
+public class FdPotCookRule<B extends BlockEntity, R extends Recipe<? extends RecipeInput>> extends AbstractCookRule<B, R> {
+    private static final FdPotCookRule<?, ?> INSTANCE = new FdPotCookRule<>();
+    @SuppressWarnings("unchecked") public static <B extends BlockEntity, R extends Recipe<? extends RecipeInput>> FdPotCookRule<B, R> getInstance() { return (FdPotCookRule<B, R>) INSTANCE; }
+    @Override public boolean canMoveTo(CookBeBase<B> cookBe, MaidCookManager<R> cm) {
+        CookBeBase<B> pot = cookBe;
         if (pot.canTakeResult() && pot.hasResult() && cm.canTakeResult(pot.getResult())) return true;
         ItemStack container = pot.getNowContainer();
         ItemStack needed = pot.getNeedContainer();
@@ -26,8 +26,8 @@ public class FdPotCookRule extends AbstractCookRule<CookingPotBlockEntity, Cooki
         if (!container.isEmpty() && !pot.hasMeal() && !pot.hasInputs() && cm.getCookInv().hasInputAvailableSlot()) return true;
         return pot.cookStateMatch() && !pot.hasMeal() && !pot.hasInputs() && cm.hasMaidRecs();
     }
-    @Override public void cookMake(CookBeBase<CookingPotBlockEntity> cookBe, MaidCookManager<CookingPotRecipe> cm) {
-        CookingPotBe pot = (CookingPotBe) cookBe;
+    @Override public void cookMake(CookBeBase<B> cookBe, MaidCookManager<R> cm) {
+        CookBeBase<B> pot = cookBe;
         boolean changed = false;
         if (pot.hasMeal() && cm.getCookInv().hasOutputAvailableSlot()) {
             ItemStack needed = pot.getNeedContainer();

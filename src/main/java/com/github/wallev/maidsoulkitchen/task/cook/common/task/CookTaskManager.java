@@ -17,9 +17,9 @@ import com.github.wallev.maidsoulkitchen.task.cook.farmersdelight.TaskFdSkillet;
 import com.github.wallev.maidsoulkitchen.task.cook.minecraft.furnace.TaskFurnace;
 import com.github.wallev.maidsoulkitchen.task.cook.kaleidoscopecookery.TaskKcSteamer;
 import com.github.wallev.maidsoulkitchen.task.cook.kaleidoscopecookery.TaskKcStockpot;
-import com.github.wallev.maidsoulkitchen.task.cook.youkaishomecoming.TaskYhcDryingRack;
+import com.github.wallev.maidsoulkitchen.task.cook.youkaishomecoming.dryingrack.TaskYhcDryingRack;
 import com.github.wallev.maidsoulkitchen.task.cook.youkaishomecoming.TaskYhcFermentationTank;
-import com.github.wallev.maidsoulkitchen.task.cook.youkaishomecoming.TaskYhcMoka;
+import com.github.wallev.maidsoulkitchen.task.cook.youkaishomecoming.moka.TaskYhcMoka;
 import com.github.wallev.maidsoulkitchen.task.cook.youkaishomecoming.TaskYhcTeaKettle;
 /**
  * Source: 58ec08ec task/cook/common/task/CookTaskManager.java (MIT).
