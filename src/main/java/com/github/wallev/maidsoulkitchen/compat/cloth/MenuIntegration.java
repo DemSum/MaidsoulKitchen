@@ -100,18 +100,6 @@ public class MenuIntegration {
                 .setDefaultValue(true).setTooltip(Component.translatable("config.maidsoulkitchen.register.cd_cuisine_skillet.tooltip"),
                         Component.translatable("config.maidsoulkitchen.register.restart_warn.tooltip"), addition)
                 .setSaveConsumer(RegisterConfig.CD_CUISINE_SKILLET_TASK_ENABLED::set).build());
-        register.addEntry(entryBuilder.startBooleanToggle(Component.translatable("config.maidsoulkitchen.register.md_cook_pot"), RegisterConfig.MD_COOK_POT_TASK_ENABLED.get())
-                .setDefaultValue(true).setTooltip(Component.translatable("config.maidsoulkitchen.register.md_cook_pot.tooltip"),
-                        Component.translatable("config.maidsoulkitchen.register.restart_warn.tooltip"), addition)
-                .setSaveConsumer(RegisterConfig.MD_COOK_POT_TASK_ENABLED::set).build());
-        register.addEntry(entryBuilder.startBooleanToggle(Component.translatable("config.maidsoulkitchen.register.fr_kettle"), RegisterConfig.FR_KETTLE_TASK_ENABLED.get())
-                .setDefaultValue(true).setTooltip(Component.translatable("config.maidsoulkitchen.register.fr_kettle.tooltip"),
-                        Component.translatable("config.maidsoulkitchen.register.restart_warn.tooltip"), addition)
-                .setSaveConsumer(RegisterConfig.FR_KETTLE_TASK_ENABLED::set).build());
-        register.addEntry(entryBuilder.startBooleanToggle(Component.translatable("config.maidsoulkitchen.register.bnc_key"), RegisterConfig.BNC_KEY_TASK_ENABLED.get())
-                .setDefaultValue(true).setTooltip(Component.translatable("config.maidsoulkitchen.register.bnc_key.tooltip"),
-                        Component.translatable("config.maidsoulkitchen.register.restart_warn.tooltip"), addition)
-                .setSaveConsumer(RegisterConfig.BNC_KEY_TASK_ENABLED::set).build());
         register.addEntry(entryBuilder.startBooleanToggle(Component.translatable("config.maidsoulkitchen.register.bd_basin"), RegisterConfig.BD_BASIN_TASK_ENABLED.get())
                 .setDefaultValue(true).setTooltip(Component.translatable("config.maidsoulkitchen.register.bd_basin.tooltip"),
                         Component.translatable("config.maidsoulkitchen.register.restart_warn.tooltip"), addition)
@@ -133,14 +121,6 @@ public class MenuIntegration {
                         Component.translatable("config.maidsoulkitchen.register.restart_warn.tooltip"), addition)
                 .setSaveConsumer(RegisterConfig.YHC_DRYING_RACK_TASK_ENABLED::set).build());
 
-        register.addEntry(entryBuilder.startBooleanToggle(Component.translatable("config.maidsoulkitchen.register.kk_brew_barrel"), RegisterConfig.KK_BREW_BARREL.get())
-                .setDefaultValue(true).setTooltip(Component.translatable("config.maidsoulkitchen.register.kk_brew_barrel.tooltip"),
-                        Component.translatable("config.maidsoulkitchen.register.restart_warn.tooltip"), addition)
-                .setSaveConsumer(RegisterConfig.KK_BREW_BARREL::set).build());
-        register.addEntry(entryBuilder.startBooleanToggle(Component.translatable("config.maidsoulkitchen.register.kk_air_compressor"), RegisterConfig.KK_AIR_COMPRESSOR.get())
-                .setDefaultValue(true).setTooltip(Component.translatable("config.maidsoulkitchen.register.kk_air_compressor.tooltip"),
-                        Component.translatable("config.maidsoulkitchen.register.restart_warn.tooltip"), addition)
-                .setSaveConsumer(RegisterConfig.KK_AIR_COMPRESSOR::set).build());
         register.addEntry(entryBuilder.startBooleanToggle(Component.translatable("config.maidsoulkitchen.register.db_beer"), RegisterConfig.DB_BEER_TASK_ENABLED.get())
                 .setDefaultValue(true).setTooltip(Component.translatable("config.maidsoulkitchen.register.db_beer.tooltip"),
                         Component.translatable("config.maidsoulkitchen.register.restart_warn.tooltip"), addition)
@@ -149,10 +129,6 @@ public class MenuIntegration {
                 .setDefaultValue(true).setTooltip(Component.translatable("config.maidsoulkitchen.register.kc_stockpot.tooltip"),
                         Component.translatable("config.maidsoulkitchen.register.restart_warn.tooltip"), addition)
                 .setSaveConsumer(RegisterConfig.KC_STOCKPOT_TASK_ENABLED::set).build());
-        register.addEntry(entryBuilder.startBooleanToggle(Component.translatable("config.maidsoulkitchen.register.cp_crock_pot"), RegisterConfig.CP_CROk_POT_TASK_ENABLED.get())
-                .setDefaultValue(true).setTooltip(Component.translatable("config.maidsoulkitchen.register.cp_crock_pot.tooltip"),
-                        Component.translatable("config.maidsoulkitchen.register.restart_warn.tooltip"), addition)
-                .setSaveConsumer(RegisterConfig.CP_CROk_POT_TASK_ENABLED::set).build());
     }
 
     private static void taskConfig(ConfigBuilder root, ConfigEntryBuilder entryBuilder, boolean tlmEntry) {

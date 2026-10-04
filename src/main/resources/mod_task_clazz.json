@@ -185,25 +185,6 @@
         "fields": []
       }
     },
-    "maidsoulkitchen:brewinandchewin_keg_fermenting": {
-      "bindMod": "BNCD",
-      "clazzInfo": {
-        "classes": [
-          "umpaz.brewinandchewin.common.block.entity.KegBlockEntity",
-          "umpaz.brewinandchewin.common.crafting.KegFermentingRecipe",
-          "umpaz.brewinandchewin.common.utility.KegRecipeWrapper"
-        ],
-        "methods": [
-          "umpaz.brewinandchewin.common.block.entity.KegBlockEntity#canFerment(Lumpaz/brewinandchewin/common/crafting/KegFermentingRecipe;Lumpaz/brewinandchewin/common/block/entity/KegBlockEntity;)Z",
-          "umpaz.brewinandchewin.common.block.entity.KegBlockEntity#getMatchingRecipe(Lumpaz/brewinandchewin/common/utility/KegRecipeWrapper;)Ljava/util/Optional;",
-          "umpaz.brewinandchewin.common.block.entity.KegBlockEntity#getUsedRecipesAndPopExperience(Lnet/minecraft/world/level/Level;Lnet/minecraft/world/phys/Vec3;)Ljava/util/List;"
-        ],
-        "fields": [
-          "umpaz.brewinandchewin.common.block.entity.KegBlockEntity#recipeWrapper",
-          "umpaz.brewinandchewin.common.block.entity.KegBlockEntity#usedRecipeTracker"
-        ]
-      }
-    },
     "maidsoulkitchen:fruit_farm": {
       "bindMod": "MC",
       "clazzInfo": {
@@ -594,9 +575,6 @@
     "sereneseasons.api.season.ISeasonState",
     "sereneseasons.api.season.Season",
     "sereneseasons.api.season.SeasonHelper",
-    "umpaz.brewinandchewin.common.block.entity.KegBlockEntity",
-    "umpaz.brewinandchewin.common.crafting.KegFermentingRecipe",
-    "umpaz.brewinandchewin.common.utility.KegRecipeWrapper",
     "vectorwing.farmersdelight.common.block.entity.CookingPotBlockEntity",
     "vectorwing.farmersdelight.common.block.entity.CuttingBoardBlockEntity",
     "vectorwing.farmersdelight.common.block.entity.SkilletBlockEntity",
@@ -615,15 +593,6 @@
           "compatMod": "YHCD",
           "mixinList": [
             "dev.xkmc.youkaishomecoming.content.pot.base.BasePotBlockEntity"
-          ]
-        }
-      ],
-      "maidsoulkitchen:brewinandchewin_keg_fermenting": [
-        {
-          "taskUid": "maidsoulkitchen:brewinandchewin_keg_fermenting",
-          "compatMod": "BNCD",
-          "mixinList": [
-            "umpaz.brewinandchewin.common.block.entity.KegBlockEntity"
           ]
         }
       ],

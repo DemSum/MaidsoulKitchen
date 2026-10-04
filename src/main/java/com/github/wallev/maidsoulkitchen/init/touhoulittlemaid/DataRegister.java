@@ -10,6 +10,8 @@ import com.github.wallev.maidsoulkitchen.entity.data.inner.task.StockpotTaskData
 import com.github.wallev.maidsoulkitchen.task.TaskInfo;
 
 public final class DataRegister {
+    // Legacy UID keys retain existing saved filters. They do not register executable tasks;
+    // CookTaskManager is the sole supported cooking catalog, including the 1.20.1 port.
     public static TaskDataKey<com.github.wallev.maidsoulkitchen.entity.data.inner.task.KitchenData> KITCHEN;
     public static TaskDataKey<BerryData> BERRY_FARM;
     public static TaskDataKey<FruitData> FRUIT_FARM;

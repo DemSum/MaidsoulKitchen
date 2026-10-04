@@ -12,6 +12,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -25,7 +26,7 @@ class CompatibilityRegistryTest {
                 .map(TaskInfo::getUidStr)
                 .collect(Collectors.toSet());
 
-        assertEquals(24, manifest.tasks().size());
+        assertEquals(23, manifest.tasks().size());
         assertEquals(expectedTasks, manifest.tasks().keySet());
         for (TaskInfo task : TaskInfo.VALUES) {
             if (task != TaskInfo.NONE) {
@@ -52,9 +53,9 @@ class CompatibilityRegistryTest {
         CompatibilityRegistry.Manifest manifest = readManifest();
         Map<String, java.util.List<Mods>> gates = manifest.mixinRequirements();
 
-        assertEquals(5, gates.size());
-        assertEquals(java.util.List.of(Mods.BNCD),
-                gates.get("umpaz.brewinandchewin.common.block.entity.KegBlockEntity"));
+        assertEquals(4, gates.size());
+        assertFalse(manifest.tasks().containsKey("maidsoulkitchen:brewinandchewin_keg_fermenting"));
+        assertFalse(gates.containsKey("umpaz.brewinandchewin.common.block.entity.KegBlockEntity"));
         assertEquals(java.util.List.of(Mods.FD),
                 gates.get("vectorwing.farmersdelight.common.block.entity.CookingPotBlockEntity"));
         assertEquals(java.util.List.of(Mods.MC),

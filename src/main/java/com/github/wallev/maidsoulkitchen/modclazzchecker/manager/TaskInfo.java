@@ -45,8 +45,6 @@ public enum TaskInfo {
             () -> RegisterConfig.FD_SKILLET_TASK_ENABLED.get()),
     CD_CUISINE_SKILLET("cuisinedelight_cuisine_skillet_cuisine", Mods.CD,
             () -> RegisterConfig.CD_CUISINE_SKILLET_TASK_ENABLED.get()),
-    BNC_KEY("brewinandchewin_keg_fermenting", Mods.BNCD,
-            () -> RegisterConfig.BNC_KEY_TASK_ENABLED.get()),
     BD_BASIN("barbequesdelight_basin_skewering", Mods.BD,
             () -> RegisterConfig.BD_BASIN_TASK_ENABLED.get()),
     BD_GRILL("barbequesdelight_grill_grilling", Mods.BD,
