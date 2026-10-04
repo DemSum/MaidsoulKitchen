@@ -9,7 +9,7 @@ import java.util.Map;
 import java.util.Optional;
 import com.github.wallev.maidsoulkitchen.task.cook.barbequesdelight.TaskBdBasin;
 import com.github.wallev.maidsoulkitchen.task.cook.barbequesdelight.TaskBdGrill;
-import com.github.wallev.maidsoulkitchen.task.cook.cuisine.TaskCdCuisineSkillet;
+import com.github.wallev.maidsoulkitchen.task.cook.cuisine.cuisine.TaskCdCuisine;
 import com.github.wallev.maidsoulkitchen.task.cook.drinkbeer.beerbarrel.TaskDbBeerBarrel;
 import com.github.wallev.maidsoulkitchen.task.cook.farmersdelight.cookingpot.TaskFdCookingPot;
 import com.github.wallev.maidsoulkitchen.task.cook.farmersdelight.cuttingboard.TaskFdCuttingBoard;
@@ -51,7 +51,7 @@ public final class CookTaskManager {
             add(tasks, new TaskFdSkillet());
         }
         if (TaskInfo.CD_CUISINE_SKILLET.canLoad()) {
-            add(tasks, new TaskCdCuisineSkillet());
+            add(tasks, new TaskCdCuisine());
         }
         if (TaskInfo.BD_BASIN.canLoad()) {
             add(tasks, new TaskBdBasin());

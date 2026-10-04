@@ -36,6 +36,61 @@ public final class CookingArchitectureGameTests {
     private static ResourceLocation id(String name) { return ResourceLocation.fromNamespaceAndPath(MaidsoulKitchen.MOD_ID, name); }
 
     @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID, batch = "cooking_architecture")
+    public static void nativeCuisineRetainsPlanUntilPhysicalServing(GameTestHelper helper) {
+        var level = helper.getLevel(); long time = level.getGameTime();
+        var maid = helper.spawnWithNoFreeWill(InitEntities.MAID.get(), new net.minecraft.core.BlockPos(1, 1, 1)); maid.setNoAi(true);
+        var rule = com.github.wallev.maidsoulkitchen.task.cook.cuisine.cuisine.CuisineCookRule.getInstance().getOrCreate();
+        var be = new com.github.wallev.maidsoulkitchen.task.cook.cuisine.cuisine.CuisineBe(maid);
+        com.github.wallev.maidsoulkitchen.task.cook.common.manager.MaidCookManager<dev.xkmc.cuisinedelight.content.recipe.BaseCuisineRecipe<?>> cm = null;
+        try {
+            var task = new com.github.wallev.maidsoulkitchen.task.cook.cuisine.cuisine.TaskCdCuisine(); maid.setTask(task);
+            var description = task.getRecSerializerManager().getRecipes(level).stream().filter(recipe -> recipe.inItems().size() > 1 && recipe.inItems().size() <= 6
+                    && recipe.inItems().stream().skip(1).allMatch(ingredient -> java.util.Arrays.stream(ingredient.ingredient.getItems())
+                            .anyMatch(stack -> dev.xkmc.cuisinedelight.content.logic.IngredientConfig.get().getEntry(stack) != null))).findFirst().orElseThrow();
+            KitchenData.get(maid).setCookData(task.getUid(), new CookData("whitelist", List.of(description.idStr()), List.of()));
+            maid.getMaidBauble().setStackInSlot(0, com.github.wallev.maidsoulkitchen.init.MkItems.CULINARY_HUB.get().getDefaultInstance());
+            cm = task.getRecipesManager(maid); cm.checkAndInit();
+            var input = cm.getInputInv();
+            input.setStackInSlot(0, dev.xkmc.cuisinedelight.init.registrate.CDItems.PLATE.asStack());
+            for (int i = 1; i < description.inItems().size(); i++) input.setStackInSlot(i, java.util.Arrays.stream(description.inItems().get(i).ingredient.getItems())
+                    .filter(stack -> dev.xkmc.cuisinedelight.content.logic.IngredientConfig.get().getEntry(stack) != null).findFirst().orElseThrow().copyWithCount(1));
+            var tool = dev.xkmc.cuisinedelight.init.registrate.CDItems.SPATULA.asStack(); tool.set(DataComponents.CUSTOM_NAME, Component.literal("native cuisine tool"));
+            input.setStackInSlot(7, tool.copy()); cm.syncInv(); cm.checkAndCreateRecipesIngredients(); finishPlanning(cm);
+            var work = cm.peekMaidRec();
+            helper.assertTrue(work != null && work.maidItems().getFirst().role() == MaidItem.Role.CONTAINER
+                    && work.maidItems().stream().anyMatch(item -> item.role() == MaidItem.Role.TOOL && item.item().is(tool)), "the sole work unit must preserve actual component-bearing tool and plate");
+            helper.setBlock(new net.minecraft.core.BlockPos(2, 0, 2), net.minecraft.world.level.block.Blocks.CAMPFIRE);
+            helper.setBlock(new net.minecraft.core.BlockPos(2, 1, 2), dev.xkmc.cuisinedelight.init.registrate.CDBlocks.SKILLET.get());
+            var skillet = (dev.xkmc.cuisinedelight.content.block.CuisineSkilletBlockEntity) helper.getBlockEntity(new net.minecraft.core.BlockPos(2, 1, 2)); be.setBe(skillet);
+            var output = cm.getOutputInv(); for (int slot = 0; slot < output.getSlots(); slot++) output.setStackInSlot(slot, new ItemStack(Items.DIRT, 64));
+            helper.assertTrue(rule.canMoveTo(be, cm), "native heated Cuisine must use the common Rule selection"); rule.cookMake(be, cm);
+            helper.assertTrue(be.hasInputs() && cm.peekMaidRec() == work && CookInventoryTransactions.count(input, stack -> stack.is(dev.xkmc.cuisinedelight.init.registrate.CDItems.PLATE.get())) == 1,
+                    "initial real ingredients must not consume the plan or serving plate");
+            int maxTime = work.maidItems().stream().filter(item -> item.role() == MaidItem.Role.INGREDIENT)
+                    .mapToInt(item -> dev.xkmc.cuisinedelight.content.logic.IngredientConfig.get().getEntry(item.item().stack()).min_time).max().orElseThrow();
+            for (int i = 1; i <= maxTime + 12; i++) {
+                ((net.minecraft.world.level.storage.ServerLevelData) level.getLevelData()).setGameTime(time + i);
+                skillet.cookingData.update(time + i); rule.tickCookMake(be, cm);
+            }
+            helper.assertTrue(be.hasInputs() && cm.peekMaidRec() == work && skillet.cookingData.contents.size() == description.inItems().size() - 1
+                    && CookInventoryTransactions.count(input, stack -> stack.is(dev.xkmc.cuisinedelight.init.registrate.CDItems.PLATE.get())) == 1,
+                    "full output must preserve native cooked data, every scheduled ingredient, plate and pending work");
+            output.setStackInSlot(0, ItemStack.EMPTY);
+            var expected = be.getResult(); rule.tickCookMake(be, cm);
+            helper.assertTrue(!be.hasInputs() && cm.getMaidRecs().isEmpty() && CookInventoryTransactions.count(input, stack -> stack.is(dev.xkmc.cuisinedelight.init.registrate.CDItems.PLATE.get())) == 0
+                    && CookInventoryTransactions.count(output, stack -> ItemStack.isSameItemSameComponents(stack, expected)) == expected.getCount(),
+                    "native PlateItem must produce exactly its real food before committing work and resetting native data");
+            rule.tickStop(be, cm); rule.tickStop(be, cm);
+            helper.assertTrue(maid.getMainHandItem().isEmpty() && CookInventoryTransactions.count(input, stack -> ItemStack.isSameItemSameComponents(stack, tool)) == 1,
+                    "the actual component-bearing spatula must return exactly once");
+        } finally {
+            if (cm != null) rule.tickStop(be, cm);
+            ((net.minecraft.world.level.storage.ServerLevelData) level.getLevelData()).setGameTime(time); maid.discard();
+        }
+        helper.succeed();
+    }
+
+    @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID, batch = "cooking_architecture")
     public static void nativeFermentationUsesExactHalfTankVolume(GameTestHelper helper) {
         var level = helper.getLevel(); var original = List.copyOf(level.getRecipeManager().getRecipes());
         var maid = helper.spawnWithNoFreeWill(InitEntities.MAID.get(), new net.minecraft.core.BlockPos(1, 1, 1)); maid.setNoAi(true);
