@@ -82,7 +82,7 @@ public final class CookingArchitectureGameTests {
                     "same-ID recipe reload must discard the old work identity");
             manager.checkAndCreateRecipesIngredients(); finishPlanning(manager);
             if (com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskInfo.FD_COOK_POT.canLoad()) {
-                maid.setTask(new com.github.wallev.maidsoulkitchen.task.cook.farmersdelight.TaskFdCookPot());
+                maid.setTask(new com.github.wallev.maidsoulkitchen.task.cook.farmersdelight.cookingpot.TaskFdCookingPot());
                 helper.assertTrue(!manager.checkAndInit() && manager.getMaidRecs().isEmpty(),
                         "switching tasks must revoke the previous manager's work");
                 maid.setTask(task);

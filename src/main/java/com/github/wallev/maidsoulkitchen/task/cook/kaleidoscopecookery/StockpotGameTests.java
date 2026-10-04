@@ -297,7 +297,7 @@ public final class StockpotGameTests {
         if (com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskInfo.FD_COOK_POT.canLoad()) {
             sameChest.setItem(0, new ItemStack(Items.CARROT));
             supply(maid, hub, new ItemStack(Items.CARROT, 3), ModItems.STOCKPOT_LID.get().getDefaultInstance());
-            var fdTask = new com.github.wallev.maidsoulkitchen.task.cook.farmersdelight.TaskFdCookPot();
+            var fdTask = new com.github.wallev.maidsoulkitchen.task.cook.farmersdelight.cookingpot.TaskFdCookingPot();
             maid.setTask(fdTask);
             var fdInventory = new com.github.wallev.maidsoulkitchen.task.cook.common.manager.MaidCookManager<>(fdTask.getRecSerializerManager(), maid, fdTask);
             fdInventory.checkAndCreateRecipesIngredients();

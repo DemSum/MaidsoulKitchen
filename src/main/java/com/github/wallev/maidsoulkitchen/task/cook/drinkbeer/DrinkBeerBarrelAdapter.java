@@ -9,23 +9,23 @@ import lekavar.lma.drinkbeer.blockentities.BeerBarrelBlockEntity;
  * methods. Keeping those calls here avoids mixins against private barrel internals
  * and makes a future API migration local to one class.</p>
  */
-final class DrinkBeerBarrelAdapter {
+public final class DrinkBeerBarrelAdapter {
     private DrinkBeerBarrelAdapter() {
     }
 
-    static boolean canModifyInputs(BeerBarrelBlockEntity barrel) {
+    public static boolean canModifyInputs(BeerBarrelBlockEntity barrel) {
         return barrel.canModifyInputs();
     }
 
-    static boolean isBrewing(BeerBarrelBlockEntity barrel) {
+    public static boolean isBrewing(BeerBarrelBlockEntity barrel) {
         return !barrel.canModifyInputs() && !barrel.isOutputReady();
     }
 
-    static boolean isOutputReady(BeerBarrelBlockEntity barrel) {
+    public static boolean isOutputReady(BeerBarrelBlockEntity barrel) {
         return barrel.isOutputReady();
     }
 
-    static void markChanged(BeerBarrelBlockEntity barrel) {
+    public static void markChanged(BeerBarrelBlockEntity barrel) {
         barrel.updateBE();
     }
 }

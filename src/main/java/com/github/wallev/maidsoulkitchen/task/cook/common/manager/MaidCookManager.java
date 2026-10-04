@@ -357,6 +357,73 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
     public IItemHandlerModifiable getIngredientInv() { return getInputInv(); }
     public IItemHandlerModifiable getOutputAdditionInv() { return getInputInv(); }
 
+    /** Upstream takeItem/insertAndShrink moved here so the manager owns all inventory transactions.
+     * NeoForge transfer receipts prevent duplication on refused extraction and recover remainders. */
+    public int takeItem(IItemHandler source, int slot, IItemHandler destination, Predicate<ItemStack> matches) {
+        var receipt = CookInventoryTransactions.transfer(source, slot, destination,
+                source.getStackInSlot(slot).getCount(), matches);
+        CookInventoryTransactions.returnOrDrop(maid.getAvailableBackpackInv(), receipt.remainder(), maid);
+        return receipt.inserted();
+    }
+
+    public int insertItem(GatherResult source, IItemHandlerModifiable destination, int slot, int amount) {
+        if (source.isFail()) return 0;
+        ItemStack expected = source.getItemHandler().getStackInSlot(source.getSlot()).copy();
+        var receipt = CookInventoryTransactions.transfer(source.getItemHandler(), source.getSlot(),
+                new net.neoforged.neoforge.items.wrapper.RangedWrapper(destination, slot, slot + 1), amount,
+                stack -> ItemStack.isSameItemSameComponents(stack, expected));
+        CookInventoryTransactions.returnOrDrop(maid.getAvailableBackpackInv(), receipt.remainder(), maid);
+        return receipt.inserted();
+    }
+
+    public boolean canTakeResult(ItemStack result) {
+        return result.getCount() > ItemHandlerHelper.insertItemStacked(getOutputInv(), result.copy(), true).getCount();
+    }
+
+    /** Source: CookBeBase.insertInputs/insertAndShrink (58ec08ec).
+     * The source consumed plans before insertion and trusted live stacks. Keep ordered recipe slots,
+     * preflight component counts and real slot acceptance, then use extract-first receipts.
+     * A refused/partial insert rolls back only this attempt's physical inserts and invalidates its
+     * plan; device leftovers remain visible for the Rule's next cleanup. No shadow work state survives.
+     */
+    public boolean insertInputs(MaidRec rec, IItemHandlerModifiable device, int start, int size) {
+        if (rec == null || peekMaidRec() != rec || rec.maidItems().size() > size) return false;
+        Map<ItemDefinition, Integer> needed = new HashMap<>();
+        int[] missing = new int[rec.maidItems().size()];
+        for (int i = 0; i < missing.length; i++) {
+            MaidItem material = rec.maidItems().get(i);
+            if (material.isEmpty()) continue;
+            if (material.role() == MaidItem.Role.TOOL || material.role() == MaidItem.Role.FLUID) return false;
+            ItemStack present = device.getStackInSlot(start + i);
+            if (!present.isEmpty() && !material.item().is(present)) return false;
+            missing[i] = Math.max(0, material.count() - present.getCount());
+            needed.merge(material.item(), missing[i], Integer::sum);
+            if (missing[i] > 0 && !device.insertItem(start + i, material.item().toStack(missing[i]), true).isEmpty()) return false;
+        }
+        for (var entry : needed.entrySet())
+            if (CookInventoryTransactions.count(getInputInv(), entry.getKey()::is) < entry.getValue()) return false;
+        int[] accepted = new int[missing.length];
+        boolean complete = true;
+        for (int i = 0; i < missing.length; i++) {
+            MaidItem material = rec.maidItems().get(i);
+            for (int source = 0; source < getInputInv().getSlots() && accepted[i] < missing[i]; source++) {
+                if (material.isEmpty() || !material.item().is(getInputInv().getStackInSlot(source))) continue;
+                accepted[i] += insertItem(new GatherResult(getInputInv(), source), device, start + i, missing[i] - accepted[i]);
+            }
+            if (accepted[i] < missing[i]) { complete = false; break; }
+        }
+        if (!complete) {
+            for (int i = accepted.length - 1; i >= 0; i--) {
+                if (accepted[i] == 0) continue;
+                var receipt = CookInventoryTransactions.transfer(device, start + i, getInputInv(), accepted[i],
+                        rec.maidItems().get(i).item()::is);
+                CookInventoryTransactions.returnOrDrop(maid.getAvailableBackpackInv(), receipt.remainder(), maid);
+            }
+            syncInv(); invalidate();
+        }
+        return complete;
+    }
+
     public void syncInv() {
         if (cookInv == null) return;
         // Unmigrated consumers cannot silently retain a plan after mutating its live inputs.
