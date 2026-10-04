@@ -162,12 +162,8 @@ public final class CulinaryHubWorkStorage {
                 ItemStack candidate = available.copyWithCount(requested);
                 int transferable = requested - ItemHandlerHelper.insertItemStacked(ingredients(), candidate, true).getCount();
                 if (transferable <= 0) continue;
-                ItemStack extracted = source.extractItem(slot, transferable, false);
-                if (extracted.isEmpty()) continue;
-                ItemStack remainder = matches.test(extracted)
-                        ? ItemHandlerHelper.insertItemStacked(ingredients(), extracted, false) : extracted;
-                if (!remainder.isEmpty()) remainder = ItemHandlerHelper.insertItemStacked(source, remainder, false);
-                CookInventoryTransactions.returnOrDrop(maid.getAvailableBackpackInv(), remainder, maid);
+                var transfer = CookInventoryTransactions.transfer(source, slot, ingredients(), transferable, matches);
+                CookInventoryTransactions.returnOrDrop(maid.getAvailableBackpackInv(), transfer.remainder(), maid);
                 markChanged(inventory.blockEntity());
                 sync();
                 missing = requiredCount - CookInventoryTransactions.count(ingredients(), matches);

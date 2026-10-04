@@ -13,6 +13,7 @@ import com.github.wallev.maidsoulkitchen.task.cook.common.rule.rec.MaidRec;
 import com.github.wallev.maidsoulkitchen.task.cook.common.rule.rec.RecSerializerManager;
 import com.github.wallev.maidsoulkitchen.task.cook.common.rule.rec.mkrec.MKRecipe;
 import com.github.wallev.maidsoulkitchen.task.cook.common.inv.ingredient.RecIngredient;
+import com.github.wallev.maidsoulkitchen.task.cook.common.inventory.CookInventoryTransactions;
 import com.mojang.serialization.JsonOps;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.gametest.framework.GameTest;
@@ -24,6 +25,7 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.*;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 import net.neoforged.neoforge.common.crafting.DataComponentIngredient;
+import net.neoforged.neoforge.items.ItemStackHandler;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,6 +34,53 @@ import java.util.Map;
 @PrefixGameTestTemplate(false)
 public final class CookingArchitectureGameTests {
     private static ResourceLocation id(String name) { return ResourceLocation.fromNamespaceAndPath(MaidsoulKitchen.MOD_ID, name); }
+
+    @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID)
+    public static void refusedAndPartialHandlers(GameTestHelper helper) {
+        var refusedSource = new ItemStackHandler(1) {
+            @Override public ItemStack extractItem(int slot, int amount, boolean simulate) {
+                return simulate ? super.extractItem(slot, amount, true) : ItemStack.EMPTY;
+            }
+        };
+        refusedSource.setStackInSlot(0, new ItemStack(Items.CARROT, 5));
+        var destination = new ItemStackHandler(1);
+        var refused = CookInventoryTransactions.transfer(refusedSource, 0, destination, 5, stack -> stack.is(Items.CARROT));
+        helper.assertTrue(refused.inserted() == 0 && destination.getStackInSlot(0).isEmpty()
+                && refusedSource.getStackInSlot(0).getCount() == 5, "refused real extraction must never mint destination items");
+        var source = new ItemStackHandler(1); source.setStackInSlot(0, new ItemStack(Items.CARROT, 5));
+        var partial = new ItemStackHandler(1) {
+            @Override public ItemStack insertItem(int slot, ItemStack stack, boolean simulate) {
+                if (simulate) return super.insertItem(slot, stack, true);
+                int accepted = Math.min(2, stack.getCount());
+                ItemStack left = super.insertItem(slot, stack.copyWithCount(accepted), false);
+                return stack.copyWithCount(stack.getCount() - accepted + left.getCount());
+            }
+        };
+        var result = CookInventoryTransactions.transfer(source, 0, partial, 5, stack -> stack.is(Items.CARROT));
+        helper.assertTrue(result.extracted() == 5 && result.inserted() == 2 && result.remainder().isEmpty()
+                && source.getStackInSlot(0).getCount() == 3 && partial.getStackInSlot(0).getCount() == 2,
+                "partial real insertion must restore the remainder and report only destination acceptance");
+        var rejectReturn = new ItemStackHandler(1) {
+            @Override public ItemStack insertItem(int slot, ItemStack stack, boolean simulate) { return stack.copy(); }
+        };
+        rejectReturn.setStackInSlot(0, new ItemStack(Items.CARROT, 5));
+        var rejectActual = new ItemStackHandler(1) {
+            @Override public ItemStack insertItem(int slot, ItemStack stack, boolean simulate) {
+                return simulate ? super.insertItem(slot, stack, true) : stack.copy();
+            }
+        };
+        var recovery = CookInventoryTransactions.transfer(rejectReturn, 0, rejectActual, 5, stack -> stack.is(Items.CARROT));
+        helper.assertTrue(recovery.inserted() == 0 && recovery.remainder().getCount() == 5
+                && rejectReturn.getStackInSlot(0).isEmpty() && rejectActual.getStackInSlot(0).isEmpty(),
+                "a rejected rollback must return physical items to the manager instead of discarding them");
+        recovery.remainder().setCount(0);
+        helper.assertTrue(recovery.remainder().getCount() == 5, "receipt must not alias caller-owned mutable stacks");
+        destination.setStackInSlot(0, new ItemStack(Items.DIRT, 64));
+        var full = CookInventoryTransactions.transfer(source, 0, destination, 3, stack -> stack.is(Items.CARROT));
+        helper.assertTrue(full.extracted() == 0 && source.getStackInSlot(0).getCount() == 3,
+                "full destination must preserve source material before extraction");
+        helper.succeed();
+    }
 
     @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID)
     public static void conversionAndRejectedReservation(GameTestHelper helper) {

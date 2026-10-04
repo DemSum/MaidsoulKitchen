@@ -341,19 +341,13 @@ public class MaidRecipesManager<R extends Recipe<? extends RecipeInput>> {
                     IItemHandler first1 = iTrackedContentsItemHandlerIntegerPair.getFirst();
                     Integer second1 = iTrackedContentsItemHandlerIntegerPair.getSecond();
 
-                    if (i1 - count > 0) {
-                        ItemStack copy = itemStack.copy();
-
-                        ItemStack itemStack1 = ItemHandlerHelper.insertItemStacked(inventory, copy, false);
-                        first1.extractItem(second1, itemStack.getCount() - itemStack1.getCount(), false);
-                    } else {
-                        ItemStack copy = itemStack.copyWithCount(i1);
-
-                        ItemStack itemStack1 = ItemHandlerHelper.insertItemStacked(inventory, copy, false);
-                        first1.extractItem(second1, i1 - itemStack1.getCount(), false);
-                        break;
-                    }
-                    i1 -= count;
+                    int requested = Math.min(i1, count);
+                    ItemStack expectedStack = itemStack.copy();
+                    var transfer = CookInventoryTransactions.transfer(first1, second1, inventory, requested,
+                            stack -> ItemStack.isSameItemSameComponents(stack, expectedStack));
+                    CookInventoryTransactions.returnOrDrop(maid.getAvailableBackpackInv(), transfer.remainder(), maid);
+                    i1 -= transfer.inserted();
+                    if (i1 <= 0) break;
                 }
             }
         }

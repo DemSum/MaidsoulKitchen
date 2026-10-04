@@ -13,6 +13,36 @@ public final class CookInventoryTransactions {
     private CookInventoryTransactions() {
     }
 
+    /**
+     * Source: upstream InvUtil.extractItem / MaidCookManager.removeItemStacks and the validated
+     * local CulinaryHubWorkStorage.prepareIngredientCount. Upstream and beta insert before extraction;
+     * a source which refuses real extraction can duplicate items. Keep the local extract-first sequence,
+     * report actual destination acceptance, and return un-restorable physical remainders to the owner.
+     * This is a stateless 1.21 Handler boundary, replacing those unsafe transfer call sites.
+     */
+    public static TransferResult transfer(IItemHandler source, int slot, IItemHandler destination,
+                                          int requested, Predicate<ItemStack> matches) {
+        if (requested <= 0 || source == destination) return new TransferResult(0, 0, ItemStack.EMPTY);
+        ItemStack preview = source.extractItem(slot, requested, true);
+        if (preview.isEmpty() || !matches.test(preview)) return new TransferResult(0, 0, ItemStack.EMPTY);
+        int capacity = preview.getCount() - ItemHandlerHelper.insertItemStacked(destination, preview.copy(), true).getCount();
+        if (capacity <= 0) return new TransferResult(0, 0, ItemStack.EMPTY);
+        ItemStack extracted = source.extractItem(slot, capacity, false);
+        if (extracted.isEmpty()) return new TransferResult(0, 0, ItemStack.EMPTY);
+        int extractedCount = extracted.getCount();
+        ItemStack remainder = matches.test(extracted) && ItemStack.isSameItemSameComponents(preview, extracted)
+                ? ItemHandlerHelper.insertItemStacked(destination, extracted.copy(), false) : extracted.copy();
+        int inserted = extractedCount - remainder.getCount();
+        if (!remainder.isEmpty()) remainder = source.insertItem(slot, remainder.copy(), false);
+        if (!remainder.isEmpty()) remainder = ItemHandlerHelper.insertItemStacked(source, remainder.copy(), false);
+        return new TransferResult(extractedCount, inserted, remainder);
+    }
+
+    public record TransferResult(int extracted, int inserted, ItemStack remainder) {
+        public TransferResult { remainder = remainder.copy(); }
+        @Override public ItemStack remainder() { return remainder.copy(); }
+    }
+
     public static boolean canInsertAll(IItemHandler destination, ItemStack stack) {
         return stack.isEmpty() || ItemHandlerHelper.insertItemStacked(destination, stack.copy(), true).isEmpty();
     }
