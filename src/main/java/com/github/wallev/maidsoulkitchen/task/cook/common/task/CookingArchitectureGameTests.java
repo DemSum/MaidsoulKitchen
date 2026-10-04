@@ -36,6 +36,108 @@ public final class CookingArchitectureGameTests {
     private static ResourceLocation id(String name) { return ResourceLocation.fromNamespaceAndPath(MaidsoulKitchen.MOD_ID, name); }
 
     @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID)
+    public static void nativeRecipeDescriptors(GameTestHelper helper) {
+        var level = helper.getLevel();
+        if (com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskInfo.FD_COOK_POT.canLoad()) {
+            var recipes = com.github.wallev.maidsoulkitchen.task.cook.farmersdelight.cookingpot.CookingPotRecSerializerManager.getInstance().getRecipes(level);
+            helper.assertTrue(!recipes.isEmpty(), "FD native pot recipe descriptors must load");
+            for (var description : recipes) helper.assertTrue(description.holder().value() == description.rec()
+                    && ItemStack.matches(description.container(), description.rec().getOutputContainer()),
+                    "FD descriptor must preserve native Holder identity and output-container requirements");
+        }
+        if (com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskInfo.FD_CUTTING_BOARD.canLoad()) {
+            var recipes = com.github.wallev.maidsoulkitchen.task.cook.farmersdelight.cuttingboard.CuttingBoardRecSerializerManager.getInstance().getRecipes(level);
+            helper.assertTrue(!recipes.isEmpty() && recipes.stream().allMatch(description -> !description.tool().isEmpty()),
+                    "FD cutting descriptors must retain native tools separately from consumed ingredients");
+        }
+        if (com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskInfo.DB_BEER.canLoad()) {
+            var recipes = com.github.wallev.maidsoulkitchen.task.cook.drinkbeer.beerbarrel.BeerBarrelRecSerializerManager.getInstance().getRecipes(level);
+            helper.assertTrue(!recipes.isEmpty(), "DrinkBeer native recipe descriptors must load");
+            for (var description : recipes) {
+                ItemStack cups = description.rec().getBeerCup();
+                helper.assertTrue(description.inItems().size() == description.rec().getIngredients().size() + 1
+                        && description.inItems().getLast().test(cups.copyWithCount(64)) == cups.getCount(),
+                        "DrinkBeer native cup count must be reserved as the final material slot");
+            }
+        }
+        if (com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskInfo.YHC_FERMENTATION_TANK.canLoad()) {
+            var recipes = com.github.wallev.maidsoulkitchen.task.cook.youkaishomecoming.ferment.FermentationRecSerializerManager.getInstance().getRecipes(level);
+            helper.assertTrue(!recipes.isEmpty(), "YHC native fluid-ingredient descriptors must load");
+            for (var description : recipes) helper.assertTrue(level.getRecipeManager().byKey(description.id()).orElseThrow().value() == description.rec(),
+                    "YHC native registry scan must retain the original Holder rather than a second recipe map");
+        }
+        helper.succeed();
+    }
+
+    @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID)
+    public static void reusableToolsAndFluidAccounting(GameTestHelper helper) {
+        var holder = new RecipeHolder<>(id("fluid_tool_plan"), new SmokingRecipe("", CookingBookCategory.MISC,
+                Ingredient.of(Items.CARROT), new ItemStack(Items.BAKED_POTATO), 0, 20));
+        var toolConverter = new com.github.wallev.maidsoulkitchen.task.cook.common.rule.rec.ToolRecSerializerManager<SmokingRecipe>(RecipeType.SMOKING) {
+            @Override protected ToolRecipeInfoProvider<SmokingRecipe> createRecipeInfoProvider() {
+                return new ToolRecipeInfoProvider<>() {
+                    @Override public RecIngredient getTool(RecSerializerManager<SmokingRecipe> rsm, SmokingRecipe recipe) {
+                        return RecIngredient.of(Ingredient.of(Items.IRON_HOE));
+                    }
+                };
+            }
+        };
+        ItemStack namedTool = new ItemStack(Items.IRON_HOE);
+        namedTool.set(DataComponents.CUSTOM_NAME, Component.literal("reusable tool"));
+        var tool = ItemDefinition.of(namedTool);
+        var carrot = ItemDefinition.of(Items.CARROT);
+        var toolDescription = new MKRecipe<>(holder, false, RecIngredient.of(Ingredient.of(Items.IRON_HOE)),
+                List.of(RecIngredient.of(Ingredient.of(Items.CARROT))), new ItemStack(Items.BAKED_POTATO));
+        var toolsAvailable = new HashMap<ItemDefinition, Long>(); toolsAvailable.put(tool, 1L); toolsAvailable.put(carrot, 3L);
+        var tools = toolConverter.createMaidRecs(List.of(toolDescription), toolsAvailable,
+                (r, range) -> { }, r -> true, reservation -> {
+                    helper.assertTrue(reservation.getItemUse().get(tool).isTool(), "hub reservation must include the reusable tool");
+                    return true;
+                }, done -> { }, TaskInfo.FD_CUTTING_BOARD.uid, 1);
+        helper.assertTrue(tools.size() == 1 && tools.getFirst().amount() == 3 && toolsAvailable.get(tool) == 1L
+                && toolsAvailable.get(carrot) == 0L && tools.getFirst().maidItems().stream()
+                .anyMatch(material -> material.role() == MaidItem.Role.TOOL && material.item().equals(tool) && material.count() == 1),
+                "one component-bearing reusable tool must support all ingredient batches without being consumed by planning");
+        var fluidConverter = new com.github.wallev.maidsoulkitchen.task.cook.common.rule.rec.FluidRecSerializerManager<SmokingRecipe>(RecipeType.SMOKING) {
+            @Override protected FluidRecipeInfoProvider<SmokingRecipe> createRecipeInfoProvider() {
+                return new FluidRecipeInfoProvider<>() {
+                    @Override public net.minecraft.world.level.material.Fluid getOutputFluid(RecSerializerManager<SmokingRecipe> rsm, SmokingRecipe recipe) {
+                        return net.minecraft.world.level.material.Fluids.EMPTY;
+                    }
+                };
+            }
+            @Override protected void initFluidRecs(net.minecraft.world.level.Level level, List<RecipeHolder<SmokingRecipe>> holders) {
+                this.recipes = holders.stream().map(this::createMKRecipe).toList();
+            }
+        };
+        ItemStack namedBucket = new ItemStack(Items.WATER_BUCKET);
+        namedBucket.set(DataComponents.CUSTOM_NAME, Component.literal("fluid component"));
+        var bucket = ItemDefinition.of(namedBucket);
+        var available = new HashMap<ItemDefinition, Long>(); available.put(bucket, 2L); available.put(carrot, 8L);
+        var fluidDescription = new MKRecipe<>(holder, true, List.of(new ItemStack(Items.WATER_BUCKET)),
+                List.of(RecIngredient.of(Ingredient.of(Items.CARROT))), new ItemStack(Items.BAKED_POTATO));
+        var fluids = fluidConverter.createMaidRecs(List.of(fluidDescription), available, (r, range) -> { }, r -> true,
+                reservation -> true, done -> { }, TaskInfo.YHC_FERMENTATION_TANK.uid, 1);
+        helper.assertTrue(fluids.size() == 2 && available.get(bucket) == 0L && available.get(carrot) == 6L
+                && fluids.stream().allMatch(plan -> plan.amount() == 1 && plan.maidItems().getFirst().role() == MaidItem.Role.FLUID
+                && plan.maidItems().getFirst().item().equals(bucket)), "each repeated fluid work unit must reserve its full inputs once");
+        var bottle = ItemDefinition.of(Items.GLASS_BOTTLE);
+        available.clear(); available.put(bottle, 6L); available.put(carrot, 9L);
+        var batched = new MKRecipe<>(holder, false, List.of(new ItemStack(Items.GLASS_BOTTLE, 2)),
+                List.of(RecIngredient.ofCount(new ItemStack(Items.CARROT, 3))), new ItemStack(Items.BAKED_POTATO));
+        var batches = fluidConverter.createMaidRecs(List.of(batched), available, (r, range) -> { }, r -> true,
+                reservation -> true, done -> { }, TaskInfo.YHC_FERMENTATION_TANK.uid, 1);
+        helper.assertTrue(batches.size() == 1 && batches.getFirst().amount() == 3 && available.get(bottle) == 0L
+                && available.get(carrot) == 0L, "a batched fluid plan must not also be repeated and overspend its ingredients");
+        available.clear(); available.put(carrot, 3L);
+        var noFluid = new MKRecipe<>(holder, true, List.of(RecIngredient.of(Ingredient.of(Items.CARROT))), new ItemStack(Items.BAKED_POTATO));
+        helper.assertTrue(fluidConverter.createMaidRecs(List.of(noFluid), available, (r, range) -> { }, r -> true,
+                reservation -> true, done -> { }, TaskInfo.YHC_FERMENTATION_TANK.uid, 1).size() == 3 && available.get(carrot) == 0L,
+                "no-fluid recipes must use ordinary ingredient conversion rather than being rejected");
+        helper.succeed();
+    }
+
+    @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID)
     public static void incrementalScanAndFilteredGeneration(GameTestHelper helper) {
         var handler = new ItemStackHandler(23);
         for (int i = 0; i < 23; i++) handler.setStackInSlot(i, new ItemStack(Items.CARROT, 1));

@@ -207,6 +207,8 @@ public class RecSerializerManager<R extends Recipe<? extends RecipeInput>> {
         if (itemTimes.isEmpty()) return 0;
         int maxCount = 64;
         for (ItemDefinition itemDefinition : itemTimes.keySet()) {
+            // Reusable tools constrain presence, not the number of ingredient batches.
+            if (itemTimes.get(itemDefinition).isTool()) continue;
             if (itemDefinition.getMaxStackSize() == 1) {
                 // 最大份量为 64 份；
                 // getStack(item).getMaxStackSize()：该种物品的最大堆叠数量，比如 鸡蛋为16个，那么他的最大份量就只能是16份；
@@ -242,9 +244,14 @@ public class RecSerializerManager<R extends Recipe<? extends RecipeInput>> {
         if (this.recipes == null || !holders.equals(loadedHolders)) {
             this.registryAccess = level.registryAccess();
             this.loadedHolders = List.copyOf(holders);
-            this.recipes = holders.stream().map(this::createMKRecipe).toList();
+            this.initRecs(level, holders);
         }
         return this.recipes;
+    }
+
+    /** Upstream initRecs, with Holder snapshots instead of bare 1.20 recipes. */
+    protected void initRecs(Level level, List<RecipeHolder<R>> holders) {
+        this.recipes = holders.stream().map(this::createMKRecipe).toList();
     }
 
     protected MKRecipe<R> createMKRecipe(RecipeHolder<R> holder) {
