@@ -326,7 +326,11 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
                 || recipe.resolve(level.getRecipeManager(), task.getUid(), generation).isEmpty()) return false;
         maidRecs.remove(recipe);
         cookInv.syncInv(); cookInv.refreshInv();
-        BubbleUtil.makeFood(maid, recipe.result());
+        // Source BubbleUtil's collection overview already multiplies output count by amount.
+        // The upstream single-work announcement omitted it; report the accepted batch consistently.
+        ItemStack announced = recipe.result();
+        announced.setCount(announced.getCount() * recipe.amount());
+        BubbleUtil.makeFood(maid, announced);
         return true;
     }
 

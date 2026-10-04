@@ -1015,6 +1015,21 @@ public final class CookingArchitectureGameTests {
                     && source.getStackInSlot(0).isEmpty()
                     && CookInventoryTransactions.count(manager.getInputInv(), stack -> stack.is(Items.CARROT)) == 5,
                     "only a fully prepared plan may enter the executable queue without item loss or duplication");
+            var work = manager.peekMaidRec();
+            var nativeBe = new com.github.wallev.maidsoulkitchen.task.cook.minecraft.furnace.FurnaceCookBe(maid);
+            nativeBe.setBlockEntity(helper.getBlockEntity(new net.minecraft.core.BlockPos(2, 1, 2)));
+            helper.assertTrue(nativeBe.insertInputs(work, manager) && manager.commitMaidRec(work) && !manager.commitMaidRec(work),
+                    "the native appliance must accept this five-unit batch before one announcement");
+            // TLM exposes no server text getter. Read the native message without loading its client renderer.
+            try {
+                var bubble = maid.getChatBubbleManager().getChatBubbleDataCollection().getLast();
+                var field = com.github.tartaricacid.touhoulittlemaid.entity.chatbubble.implement.TextChatBubbleData.class.getDeclaredField("text");
+                field.setAccessible(true);
+                var text = (Component) field.get(bubble);
+                var contents = (net.minecraft.network.chat.contents.TranslatableContents) text.getContents();
+                helper.assertTrue(java.util.Arrays.stream(contents.getArgs()).anyMatch(argument -> argument instanceof Number count && count.intValue() == 5),
+                        "the actual post-acceptance native bubble must announce five servings, not one recipe unit");
+            } catch (ReflectiveOperationException exception) { throw new IllegalStateException(exception); }
         } finally { reloadRecipes(helper, original); maid.discard(); }
         helper.succeed();
     }
