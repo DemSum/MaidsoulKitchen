@@ -34,6 +34,39 @@ import java.util.Map;
 @PrefixGameTestTemplate(false)
 public final class CookingArchitectureGameTests {
     @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID, batch = "cooking_architecture")
+    public static void conditionalPlannerReportsAbsentDeviceWithoutInventingWork(GameTestHelper helper) {
+        var maid = helper.spawnWithNoFreeWill(InitEntities.MAID.get(), new net.minecraft.core.BlockPos(1, 1, 1));
+        maid.setNoAi(true);
+        try {
+            for (int x = 0; x < 7; x++) for (int z = 0; z < 7; z++) helper.setBlock(x, 0, z, net.minecraft.world.level.block.Blocks.STONE);
+            var center = helper.absolutePos(new net.minecraft.core.BlockPos(3, 1, 3));
+            maid.getSchedulePos().setHomeModeEnable(maid, center); maid.getSchedulePos().setConfigured(true);
+            maid.setHomeModeEnable(true); maid.restrictTo(center, 3); maid.setOnGround(true);
+            var task = new com.github.wallev.maidsoulkitchen.task.cook.minecraft.furnace.TaskFurnace(); maid.setTask(task);
+            var description = task.getRecSerializerManager().getRecipes(helper.getLevel()).stream()
+                    .filter(recipe -> recipe.rec() instanceof SmeltingRecipe && recipe.inItems().size() == 1
+                            && recipe.inItems().getFirst().ingredient.getItems().length > 0).findFirst().orElseThrow();
+            KitchenData.get(maid).setCookData(task.getUid(), new CookData("whitelist", List.of(description.idStr()), List.of()));
+            var cm = task.getRecipesManager(maid); cm.checkAndInit();
+            var material = description.inItems().getFirst().ingredient.getItems()[0].copyWithCount(9);
+            cm.getInputInv().setStackInSlot(0, material.copy()); cm.syncInv(); cm.checkAndCreateRecipes(); finishPlanning(cm);
+            helper.assertTrue(cm.hasEnabledRecipes() && cm.getMaidRecs().isEmpty(),
+                    "native furnace conditions must not invent executable work without an appliance");
+            var move = new com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookMoveTask<net.minecraft.world.level.block.entity.AbstractFurnaceBlockEntity, AbstractCookingRecipe>(task, cm,
+                    com.github.wallev.maidsoulkitchen.task.cook.common.rule.cook.FuelCookRule.getInstance(),
+                    new com.github.wallev.maidsoulkitchen.task.cook.minecraft.furnace.FurnaceCookBe(maid)) {
+                public void runSearch() { start(helper.getLevel(), maid, helper.getLevel().getGameTime()); }
+            };
+            cm.beginWorkFeedback(); move.runSearch();
+            helper.assertTrue(cm.hasWorkFeedback() && cm.getMaidRecs().isEmpty()
+                    && CookInventoryTransactions.count(cm.getInputInv(), stack -> ItemStack.isSameItemSameComponents(stack, material)) == 9
+                    && !com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookTargetMemory.hasCookingAssignment(maid),
+                    "actual missing-device search must report without consuming ingredients or creating a target/plan");
+        } finally { com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookTargetMemory.clear(maid); maid.discard(); }
+        helper.succeed();
+    }
+
+    @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID, batch = "cooking_architecture")
     public static void nativeFailureFeedbackDoesNotConsumeWorkOrInventory(GameTestHelper helper) {
         var maid = helper.spawnWithNoFreeWill(InitEntities.MAID.get(), new net.minecraft.core.BlockPos(1, 1, 1));
         maid.setNoAi(true);

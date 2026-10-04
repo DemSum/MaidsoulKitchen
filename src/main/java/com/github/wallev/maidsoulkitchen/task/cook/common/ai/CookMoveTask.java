@@ -104,7 +104,8 @@ public class CookMoveTask<B extends BlockEntity, R extends Recipe<? extends Reci
                 cookBe.getInteractionHeightOffsets()
         );
         if (result.isEmpty()) {
-            if (!maidRecipesManager.hasWorkFeedback() && maidRecipesManager.hasMaidRecs())
+            if (!maidRecipesManager.hasWorkFeedback() && maidRecipesManager.getRunState() == 0
+                    && maidRecipesManager.hasEnabledRecipes())
                 reportSearchFailure(worldIn, maid, centrePos, searchRange);
             maidRecipesManager.endWorkFeedback();
             this.guideBackToWorkArea(worldIn, maid, centrePos, centrePos);
@@ -141,7 +142,8 @@ public class CookMoveTask<B extends BlockEntity, R extends Recipe<? extends Reci
                     || !level.isLoaded(pos)) continue;
             var device = level.getBlockEntity(pos);
             if (device != null && cookBe.isCookBe(device)) {
-                maidRecipesManager.reportWorkFeedback("chat_bubble.maidsoulkitchen.cook.no_reachable_device");
+                if (maidRecipesManager.hasMaidRecs())
+                    maidRecipesManager.reportWorkFeedback("chat_bubble.maidsoulkitchen.cook.no_reachable_device");
                 return;
             }
         }

@@ -84,6 +84,7 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
     public int getRunState() { return runState; }
     public long getGeneration() { return generation; }
     public boolean recsGenerateDone() { return recsGenerate.done(); }
+    public boolean hasEnabledRecipes() { return !recsGenerate.getRecs().isEmpty(); }
     public ItemStack findCulinaryHub() { return ItemCulinaryHub.getItem(maid); }
 
     private boolean initInvData() {
