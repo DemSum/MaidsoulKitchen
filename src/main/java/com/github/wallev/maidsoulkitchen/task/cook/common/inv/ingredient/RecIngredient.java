@@ -27,6 +27,10 @@ public class RecIngredient {
         return new CountIngredient(itemStack);
     }
 
+    public static CountIngredient ofCount(Ingredient ingredient, int count) {
+        return new CountIngredient(ingredient, count);
+    }
+
     public static RecIngredient of(Ingredient ingredient) {
         return new RecIngredient(ingredient);
     }

@@ -7,7 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import com.github.wallev.maidsoulkitchen.task.cook.barbequesdelight.TaskBdBasin;
+import com.github.wallev.maidsoulkitchen.task.cook.barbequesdelight.basin.TaskBbqBasin;
 import com.github.wallev.maidsoulkitchen.task.cook.barbequesdelight.grill.TaskBbqGrill;
 import com.github.wallev.maidsoulkitchen.task.cook.cuisine.cuisine.TaskCdCuisine;
 import com.github.wallev.maidsoulkitchen.task.cook.drinkbeer.beerbarrel.TaskDbBeerBarrel;
@@ -54,7 +54,7 @@ public final class CookTaskManager {
             add(tasks, new TaskCdCuisine());
         }
         if (TaskInfo.BD_BASIN.canLoad()) {
-            add(tasks, new TaskBdBasin());
+            add(tasks, new TaskBbqBasin());
         }
         if (TaskInfo.BD_GRILL.canLoad()) {
             add(tasks, new TaskBbqGrill());

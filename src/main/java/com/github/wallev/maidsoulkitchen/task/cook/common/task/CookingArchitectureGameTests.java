@@ -36,6 +36,56 @@ public final class CookingArchitectureGameTests {
     private static ResourceLocation id(String name) { return ResourceLocation.fromNamespaceAndPath(MaidsoulKitchen.MOD_ID, name); }
 
     @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID, batch = "cooking_architecture")
+    public static void nativeBasinConsumesCompleteCountedUnitOnce(GameTestHelper helper) {
+        var level = helper.getLevel(); var original = List.copyOf(level.getRecipeManager().getRecipes());
+        var maid = helper.spawnWithNoFreeWill(InitEntities.MAID.get(), new net.minecraft.core.BlockPos(1, 1, 1)); maid.setNoAi(true);
+        try {
+            var recipe = new com.mao.barbequesdelight.content.recipe.SimpleSkeweringRecipe(); recipe.tool = Ingredient.of(Items.STICK);
+            recipe.ingredient = Ingredient.of(Items.CARROT); recipe.ingredientCount = 3; recipe.side = Ingredient.of(Items.POTATO); recipe.sideCount = 2;
+            recipe.output = new ItemStack(Items.COOKED_BEEF, 2); var holder = new RecipeHolder<>(id("native_counted_skewer"), recipe); reloadRecipes(helper, List.of(holder));
+            var task = new com.github.wallev.maidsoulkitchen.task.cook.barbequesdelight.basin.TaskBbqBasin(); maid.setTask(task);
+            KitchenData.get(maid).setCookData(task.getUid(), new CookData("whitelist", List.of(holder.id().toString()), List.of()));
+            maid.getMaidBauble().setStackInSlot(0, com.github.wallev.maidsoulkitchen.init.MkItems.CULINARY_HUB.get().getDefaultInstance());
+            boolean[] rejectSide = {true};
+            var cm = new com.github.wallev.maidsoulkitchen.task.cook.common.manager.MaidCookManager<com.mao.barbequesdelight.content.recipe.SkeweringRecipe<?>>(task.getRecSerializerManager(), maid, task) {
+                @Override public net.neoforged.neoforge.items.IItemHandlerModifiable getInputInv() {
+                    var actual = super.getInputInv(); return new net.neoforged.neoforge.items.IItemHandlerModifiable() {
+                        @Override public int getSlots() { return actual.getSlots(); }
+                        @Override public ItemStack getStackInSlot(int slot) { return actual.getStackInSlot(slot); }
+                        @Override public void setStackInSlot(int slot, ItemStack stack) { actual.setStackInSlot(slot, stack); }
+                        @Override public ItemStack insertItem(int slot, ItemStack stack, boolean simulate) { return actual.insertItem(slot, stack, simulate); }
+                        @Override public ItemStack extractItem(int slot, int count, boolean simulate) { return rejectSide[0] && actual.getStackInSlot(slot).is(Items.POTATO) && !simulate ? ItemStack.EMPTY : actual.extractItem(slot, count, simulate); }
+                        @Override public int getSlotLimit(int slot) { return actual.getSlotLimit(slot); }
+                        @Override public boolean isItemValid(int slot, ItemStack stack) { return actual.isItemValid(slot, stack); }
+                    };
+                }
+            };
+            cm.checkAndInit(); var input = cm.getInputInv(); input.setStackInSlot(0, new ItemStack(Items.STICK, 2));
+            var carrot = new ItemStack(Items.CARROT, 6); carrot.set(DataComponents.CUSTOM_NAME, Component.literal("counted native basin components"));
+            input.setStackInSlot(1, carrot.copy()); input.setStackInSlot(2, new ItemStack(Items.POTATO, 4)); cm.syncInv(); cm.checkAndCreateRecipesIngredients(); finishPlanning(cm);
+            helper.setBlock(new net.minecraft.core.BlockPos(2, 1, 2), com.mao.barbequesdelight.init.registrate.BBQDBlocks.BASIN.get());
+            var basin = (com.mao.barbequesdelight.content.block.BasinBlockEntity) helper.getBlockEntity(new net.minecraft.core.BlockPos(2, 1, 2));
+            var be = new com.github.wallev.maidsoulkitchen.task.cook.barbequesdelight.basin.BasinBe(maid); be.setBe(basin);
+            var work = cm.peekMaidRec(); helper.assertTrue(cm.getMaidRecs().size() == 2 && work.maidItems().get(1).count() == 3 && work.maidItems().get(2).count() == 2,
+                    "native ingredientCount and sideCount must reserve two complete independent work units");
+            helper.assertTrue(!be.insertInputs(work, cm) && !be.hasInputs() && cm.getMaidRecs().isEmpty()
+                    && CookInventoryTransactions.count(input, stack -> stack.is(Items.STICK)) == 2 && CookInventoryTransactions.count(input, stack -> ItemStack.isSameItemSameComponents(stack, carrot)) == 6
+                    && CookInventoryTransactions.count(input, stack -> stack.is(Items.POTATO)) == 4 && CookInventoryTransactions.count(cm.getOutputInv(), stack -> stack.is(Items.COOKED_BEEF)) == 0,
+                    "actual side extraction refusal must refund preceding physical inputs and produce no native effect or executable work");
+            rejectSide[0] = false; cm.checkAndCreateRecipesIngredients(); finishPlanning(cm); work = cm.peekMaidRec();
+            var output = cm.getOutputInv(); for (int slot = 0; slot < output.getSlots(); slot++) output.setStackInSlot(slot, new ItemStack(Items.DIRT, 64));
+            helper.assertTrue(!be.insertInputs(work, cm) && cm.peekMaidRec() == work && !be.hasInputs()
+                    && CookInventoryTransactions.count(input, stack -> stack.is(Items.CARROT)) == 6, "full output must retain counted physical ingredients and pending work");
+            output.setStackInSlot(0, ItemStack.EMPTY);
+            helper.assertTrue(be.insertInputs(work, cm) && cm.commitMaidRec(work) && !cm.commitMaidRec(work) && !be.hasInputs()
+                    && CookInventoryTransactions.count(input, stack -> stack.is(Items.STICK)) == 1 && CookInventoryTransactions.count(input, stack -> stack.is(Items.CARROT)) == 3
+                    && CookInventoryTransactions.count(input, stack -> stack.is(Items.POTATO)) == 2 && CookInventoryTransactions.count(output, stack -> stack.is(Items.COOKED_BEEF)) == 2,
+                    "native assembly must consume one actual stick, three ingredient items and two sides before one work commits");
+        } finally { reloadRecipes(helper, original); maid.discard(); }
+        helper.succeed();
+    }
+
+    @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID, batch = "cooking_architecture")
     public static void nativeGrillAcceptsEntriesFlipsAndRetainsFullOutput(GameTestHelper helper) {
         var maid = helper.spawnWithNoFreeWill(InitEntities.MAID.get(), new net.minecraft.core.BlockPos(1, 1, 1)); maid.setNoAi(true);
         var rule = com.github.wallev.maidsoulkitchen.task.cook.barbequesdelight.grill.GrillCookRule.getInstance().getOrCreate();

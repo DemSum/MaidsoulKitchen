@@ -498,6 +498,46 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
         return useItem(source, pos, getInputInv(), null);
     }
 
+    /** Source: BasinCookRule contItemStack/swapItem -> native SkeweringInput assemble (58ec08ec,
+     * MIT). Native assembly consumes several inputs together, including counted ingredients.
+     * The source/beta passed live inventory aliases and consumed the plan before device success.
+     * Extract the complete unit first, pass only physical detached stacks to the device, and return
+     * actual unconsumed remainders even on native failure. Be owns the native operation; this sole
+     * manager owns receipts/output placement. No material queue or result cache is introduced. */
+    public boolean useItems(MaidRec work, java.util.function.Function<List<ItemStack>, ItemStack> nativeUse) {
+        if (work == null || peekMaidRec() != work || !canTakeResult(work.result())) return false;
+        var materials = work.maidItems();
+        if (materials.stream().anyMatch(item -> item.role() != MaidItem.Role.INGREDIENT)) return false;
+        Map<ItemDefinition, Integer> needed = new HashMap<>();
+        materials.forEach(item -> needed.merge(item.item(), item.count(), Integer::sum));
+        if (needed.entrySet().stream().anyMatch(entry -> CookInventoryTransactions.count(getInputInv(), entry.getKey()::is) < entry.getValue())) return false;
+        List<ItemStack> detached = new ArrayList<>();
+        boolean complete = false;
+        try {
+            for (MaidItem material : materials) {
+                ItemStack actual = ItemStack.EMPTY;
+                int materialIndex = detached.size(); detached.add(actual);
+                for (int slot = 0; slot < getInputInv().getSlots() && actual.getCount() < material.count(); slot++) {
+                    if (!material.item().is(getInputInv().getStackInSlot(slot))) continue;
+                    var part = getInputInv().extractItem(slot, material.count() - actual.getCount(), false);
+                    if (part.isEmpty()) continue;
+                    if (!material.item().is(part)) { CookInventoryTransactions.returnOrDrop(getInputInv(), part, maid); continue; }
+                    if (actual.isEmpty()) { actual = part; detached.set(materialIndex, actual); } else actual.grow(part.getCount());
+                }
+                if (actual.getCount() != material.count()) return false;
+            }
+            var result = nativeUse.apply(detached);
+            if (result.isEmpty()) return false;
+            CookInventoryTransactions.returnOrDrop(getOutputInv(), result, maid);
+            complete = true;
+            return true;
+        } finally {
+            for (ItemStack remainder : detached) CookInventoryTransactions.returnOrDrop(getInputInv(), remainder, maid);
+            cookInv.syncInv(); cookInv.refreshInv();
+            if (!complete) invalidate();
+        }
+    }
+
     /** Source fluid insert/useItem output-container path. A pending work identity acknowledges
      * only its own physical transfers until Be confirms all inputs. Native fermentation can put
      * filled bottles in FakePlayer inventory rather than its hand; transfer those actual stacks
