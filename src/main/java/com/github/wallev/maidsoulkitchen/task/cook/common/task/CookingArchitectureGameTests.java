@@ -36,6 +36,189 @@ public final class CookingArchitectureGameTests {
     private static ResourceLocation id(String name) { return ResourceLocation.fromNamespaceAndPath(MaidsoulKitchen.MOD_ID, name); }
 
     @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID, batch = "cooking_architecture")
+    public static void commonMoveMakeOwnsTargetsAndLocks(GameTestHelper helper) {
+        for (int x = 0; x < 7; x++) for (int z = 0; z < 7; z++)
+            helper.setBlock(x, 0, z, net.minecraft.world.level.block.Blocks.STONE);
+        var maid = helper.spawnWithNoFreeWill(InitEntities.MAID.get(), new net.minecraft.core.BlockPos(1, 1, 1));
+        var other = helper.spawnWithNoFreeWill(InitEntities.MAID.get(), new net.minecraft.core.BlockPos(1, 1, 2));
+        maid.setNoAi(true); other.setNoAi(true);
+        try {
+            var center = helper.absolutePos(new net.minecraft.core.BlockPos(3, 1, 3));
+            maid.getSchedulePos().setHomeModeEnable(maid, center); maid.getSchedulePos().setConfigured(true);
+            maid.setHomeModeEnable(true); maid.restrictTo(center, 8); maid.setOnGround(true);
+            var task = new com.github.wallev.maidsoulkitchen.task.cook.farmersdelight.cookingpot.TaskFdCookingPot(); maid.setTask(task);
+            var input = maid.getAvailableInv(true);
+            for (int slot = 0; slot < input.getSlots(); slot++) input.setStackInSlot(slot, ItemStack.EMPTY);
+            for (var pos : List.of(new net.minecraft.core.BlockPos(4, 2, 4), new net.minecraft.core.BlockPos(6, 2, 4))) {
+                helper.setBlock(pos, vectorwing.farmersdelight.common.registry.ModBlocks.COOKING_POT.get().defaultBlockState());
+                var pot = (vectorwing.farmersdelight.common.block.entity.CookingPotBlockEntity) helper.getBlockEntity(pos);
+                pot.getInventory().setStackInSlot(pot.OUTPUT_SLOT, new ItemStack(Items.COOKED_BEEF));
+            }
+            var cm = task.getRecipesManager(maid); cm.checkAndInit();
+            var cookBe = new com.github.wallev.maidsoulkitchen.task.cook.farmersdelight.cookingpot.CookingPotBe(maid);
+            var rule = com.github.wallev.maidsoulkitchen.task.cook.common.rule.cook.FdPotCookRule.getInstance();
+            var move = new com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookMoveTask<vectorwing.farmersdelight.common.block.entity.CookingPotBlockEntity, vectorwing.farmersdelight.common.crafting.CookingPotRecipe>(task, cm, rule, cookBe) {
+                public void runSearch() { start(helper.getLevel(), maid, helper.getLevel().getGameTime()); }
+            };
+            move.runSearch();
+            var first = com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookTargetMemory.getWorkPos(maid).orElseThrow().currentBlockPosition();
+            var walk = maid.getBrain().getMemory(com.github.wallev.maidsoulkitchen.init.MkMemories.COOK_WALK_POS.get()).orElseThrow().currentBlockPosition();
+            helper.assertTrue(!first.equals(walk) && cookBe.getPos().equals(first)
+                    && !com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookWorkLocks.tryClaim(helper.getLevel(), first, other),
+                    "common single-BFS Move must bind the selected real device and reserve it separately from its walk position");
+            com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookTargetMemory.clear(maid);
+            move.runSearch();
+            var second = com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookTargetMemory.getWorkPos(maid).orElseThrow().currentBlockPosition();
+            helper.assertTrue(!first.equals(second), "common Move must retain validated multi-device rotation");
+            walk = maid.getBrain().getMemory(com.github.wallev.maidsoulkitchen.init.MkMemories.COOK_WALK_POS.get()).orElseThrow().currentBlockPosition();
+            maid.moveTo(walk.getX() + 0.5, walk.getY(), walk.getZ() + 0.5);
+            var make = new com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookMakeTask<>(task, cm, rule, cookBe);
+            helper.assertTrue(make.tryStart(helper.getLevel(), maid, helper.getLevel().getGameTime()), "common Make must start at the reachable side");
+            make.tickOrStop(helper.getLevel(), maid, helper.getLevel().getGameTime() + 1);
+            helper.assertTrue(!com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookTargetMemory.hasCookingAssignment(maid)
+                    && cookBe.getBe() == null
+                    && com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookWorkLocks.isAvailable(helper.getLevel(), second, other)
+                    && CookInventoryTransactions.count(input, stack -> stack.is(Items.COOKED_BEEF)) == 1,
+                    "common Make stop must release Be/memories/claim after the actual output transfer");
+            move.runSearch();
+            var selected = cookBe.getBe();
+            helper.getLevel().destroyBlock(selected.getBlockPos(), false);
+            helper.getLevel().setBlock(selected.getBlockPos(), vectorwing.farmersdelight.common.registry.ModBlocks.COOKING_POT.get().defaultBlockState(), 3);
+            walk = maid.getBrain().getMemory(com.github.wallev.maidsoulkitchen.init.MkMemories.COOK_WALK_POS.get()).orElseThrow().currentBlockPosition();
+            maid.moveTo(walk.getX() + 0.5, walk.getY(), walk.getZ() + 0.5);
+            helper.assertTrue(!make.tryStart(helper.getLevel(), maid, helper.getLevel().getGameTime() + 2)
+                    && !com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookTargetMemory.hasCookingAssignment(maid),
+                    "replacement at the same coordinate must revoke the old selected block entity");
+        } finally {
+            com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookTargetMemory.clear(maid);
+            maid.discard(); other.discard();
+        }
+        helper.succeed();
+    }
+
+    @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID, batch = "cooking_architecture")
+    public static void devicePartialAcceptanceRollsBack(GameTestHelper helper) {
+        var recipes = helper.getLevel().getRecipeManager();
+        var original = List.copyOf(recipes.getRecipes());
+        var maid = helper.spawnWithNoFreeWill(InitEntities.MAID.get(), new net.minecraft.core.BlockPos(1, 1, 1));
+        maid.setNoAi(true);
+        try {
+            var task = new com.github.wallev.maidsoulkitchen.task.cook.minecraft.TaskFurnace(); maid.setTask(task);
+            var holder = new RecipeHolder<>(id("device_partial_fixture"), new SmokingRecipe("", CookingBookCategory.MISC,
+                    Ingredient.of(Items.CARROT), new ItemStack(Items.BAKED_POTATO), 0, 20));
+            reloadRecipes(helper, List.of(holder));
+            KitchenData.get(maid).setCookData(task.getUid(), new CookData("whitelist", List.of(holder.id().toString()), List.of()));
+            var input = maid.getAvailableInv(true);
+            for (int slot = 0; slot < input.getSlots(); slot++) input.setStackInSlot(slot, ItemStack.EMPTY);
+            input.setStackInSlot(0, new ItemStack(Items.CARROT, 5));
+            var cm = task.getRecipesManager(maid); cm.checkAndCreateRecipesIngredients(); finishPlanning(cm);
+            var rec = cm.peekMaidRec();
+            var partial = new ItemStackHandler(1) {
+                @Override public ItemStack insertItem(int slot, ItemStack stack, boolean simulate) {
+                    if (simulate) return super.insertItem(slot, stack, true);
+                    ItemStack remainder = super.insertItem(slot, stack.copyWithCount(Math.min(2, stack.getCount())), false);
+                    return stack.copyWithCount(stack.getCount() - Math.min(2, stack.getCount()) + remainder.getCount());
+                }
+            };
+            helper.assertTrue(rec != null && !cm.insertInputs(rec, partial, 0, 1)
+                    && partial.getStackInSlot(0).isEmpty() && cm.getMaidRecs().isEmpty()
+                    && CookInventoryTransactions.count(input, stack -> stack.is(Items.CARROT)) == 5,
+                    "real partial device acceptance must roll back actual inserts and revoke the unfulfilled plan");
+            cm.checkAndCreateRecipesIngredients(); finishPlanning(cm);
+            var refused = new ItemStackHandler(1) {
+                @Override public ItemStack insertItem(int slot, ItemStack stack, boolean simulate) {
+                    return simulate ? super.insertItem(slot, stack, true) : stack.copy();
+                }
+            };
+            helper.assertTrue(!cm.insertInputs(cm.peekMaidRec(), refused, 0, 1) && refused.getStackInSlot(0).isEmpty()
+                    && CookInventoryTransactions.count(input, stack -> stack.is(Items.CARROT)) == 5,
+                    "real refusal after simulation must conserve all inputs");
+        } finally { reloadRecipes(helper, original); maid.discard(); }
+        helper.succeed();
+    }
+
+    @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID, batch = "cooking_architecture")
+    public static void nativeCookingPotAcceptsUnifiedWork(GameTestHelper helper) {
+        var maid = helper.spawnWithNoFreeWill(InitEntities.MAID.get(), new net.minecraft.core.BlockPos(1, 1, 1));
+        maid.setNoAi(true);
+        try {
+            var task = new com.github.wallev.maidsoulkitchen.task.cook.farmersdelight.cookingpot.TaskFdCookingPot();
+            maid.setTask(task);
+            var description = task.getRecSerializerManager().getRecipes(helper.getLevel()).stream()
+                    .filter(recipe -> !recipe.inItems().isEmpty() && recipe.inItems().size() <= 6
+                            && recipe.inItems().stream().allMatch(ingredient -> ingredient.ingredient.getItems().length > 0))
+                    .findFirst().orElseThrow();
+            KitchenData.get(maid).setCookData(task.getUid(), new CookData("whitelist", List.of(description.idStr()), List.of()));
+            var input = maid.getAvailableInv(true);
+            for (int slot = 0; slot < input.getSlots(); slot++) input.setStackInSlot(slot, ItemStack.EMPTY);
+            for (int slot = 0; slot < description.inItems().size(); slot++) {
+                var ingredient = description.inItems().get(slot);
+                input.setStackInSlot(slot, ingredient.ingredient.getItems()[0].copyWithCount(ingredient.test(ingredient.ingredient.getItems()[0])));
+            }
+            var cm = task.getRecipesManager(maid); cm.checkAndCreateRecipesIngredients(); finishPlanning(cm);
+            helper.setBlock(new net.minecraft.core.BlockPos(2, 1, 2), vectorwing.farmersdelight.common.registry.ModBlocks.COOKING_POT.get().defaultBlockState());
+            var pot = (vectorwing.farmersdelight.common.block.entity.CookingPotBlockEntity) helper.getBlockEntity(new net.minecraft.core.BlockPos(2, 1, 2));
+            var cookBe = new com.github.wallev.maidsoulkitchen.task.cook.farmersdelight.cookingpot.CookingPotBe(maid); cookBe.setBe(pot);
+            var rec = cm.peekMaidRec();
+            helper.assertTrue(rec != null && cookBe.insertInputs(rec, cm) && cm.getMaidRecs().size() == 1
+                    && cookBe.recMatch() && cm.commitMaidRec(rec) && !cm.commitMaidRec(rec),
+                    "native FD Handler must accept the selected Holder before exactly one work unit commits");
+            ItemStack result = description.output().copyWithCount(5);
+            result.set(DataComponents.CUSTOM_NAME, Component.literal("component output"));
+            pot.getInventory().setStackInSlot(pot.OUTPUT_SLOT, result.copy());
+            for (int slot = 0; slot < input.getSlots(); slot++) input.setStackInSlot(slot, new ItemStack(Items.DIRT, 64));
+            helper.assertTrue(!cookBe.extractResult(cm) && pot.getInventory().getStackInSlot(pot.OUTPUT_SLOT).getCount() == 5,
+                    "full output must leave native device contents intact");
+            input.setStackInSlot(0, result.copyWithCount(result.getMaxStackSize() - 1));
+            helper.assertTrue(cookBe.extractResult(cm) && pot.getInventory().getStackInSlot(pot.OUTPUT_SLOT).getCount() == 4
+                    && input.getStackInSlot(0).getCount() == result.getMaxStackSize()
+                    && ItemStack.isSameItemSameComponents(input.getStackInSlot(0), result),
+                    "partial output acceptance must remove only actual accepted component-identical output");
+        } finally { maid.discard(); }
+        helper.succeed();
+    }
+
+    @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID, batch = "cooking_architecture")
+    public static void nativeBeerBarrelRetainsNativeFixes(GameTestHelper helper) {
+        var maid = helper.spawnWithNoFreeWill(InitEntities.MAID.get(), new net.minecraft.core.BlockPos(1, 1, 1));
+        maid.setNoAi(true);
+        try {
+            var task = new com.github.wallev.maidsoulkitchen.task.cook.drinkbeer.beerbarrel.TaskDbBeerBarrel(); maid.setTask(task);
+            var description = task.getRecSerializerManager().getRecipes(helper.getLevel()).stream()
+                    .filter(recipe -> recipe.inItems().size() == 5
+                            && recipe.inItems().stream().allMatch(ingredient -> ingredient.ingredient.getItems().length > 0))
+                    .findFirst().orElseThrow();
+            KitchenData.get(maid).setCookData(task.getUid(), new CookData("whitelist", List.of(description.idStr()), List.of()));
+            var input = maid.getAvailableInv(true);
+            for (int slot = 0; slot < input.getSlots(); slot++) input.setStackInSlot(slot, ItemStack.EMPTY);
+            for (int slot = 0; slot < description.inItems().size(); slot++) {
+                var ingredient = description.inItems().get(slot);
+                ItemStack sample = ingredient.ingredient.getItems()[0];
+                input.setStackInSlot(slot, sample.copyWithCount(ingredient.test(sample)));
+            }
+            var cm = task.getRecipesManager(maid); cm.checkAndCreateRecipesIngredients(); finishPlanning(cm);
+            helper.setBlock(new net.minecraft.core.BlockPos(2, 1, 2), lekavar.lma.drinkbeer.registries.BlockRegistry.BEER_BARREL.get().defaultBlockState());
+            var barrel = (lekavar.lma.drinkbeer.blockentities.BeerBarrelBlockEntity) helper.getBlockEntity(new net.minecraft.core.BlockPos(2, 1, 2));
+            var cookBe = new com.github.wallev.maidsoulkitchen.task.cook.drinkbeer.beerbarrel.BeerBarrelBe(maid); cookBe.setBe(barrel);
+            var rec = cm.peekMaidRec();
+            helper.assertTrue(rec != null && cookBe.insertInputs(rec, cm) && cm.commitMaidRec(rec)
+                    && barrel.getBrewingInventory().getItem(4).getCount() == description.rec().getRequiredCupCount(),
+                    "native beer inputs and all required cups must accept one unified work unit");
+            // The confirmed partial-cup repair is a device action, not a second plan or manager.
+            barrel.getBrewingInventory().setItem(4, new ItemStack(lekavar.lma.drinkbeer.registries.ItemRegistry.EMPTY_BEER_MUG.get(), 2));
+            input.setStackInSlot(0, new ItemStack(lekavar.lma.drinkbeer.registries.ItemRegistry.EMPTY_BEER_MUG.get(), 2));
+            new com.github.wallev.maidsoulkitchen.task.cook.drinkbeer.beerbarrel.BeerBarrelCookRule().cookMake(cookBe, cm);
+            helper.assertTrue(barrel.getBrewingInventory().getItem(4).getCount() == 4 && input.getStackInSlot(0).isEmpty(),
+                    "existing native ingredients must receive only missing cups: cup=" + barrel.getBrewingInventory().getItem(4) + ", source=" + input.getStackInSlot(0) + ", modifiable=" + barrel.canModifyInputs() + ", matching=" + cookBe.recMatch());
+            barrel.getBrewingInventory().setItem(0, new ItemStack(Items.BUCKET));
+            helper.assertTrue(cookBe.takeReturnedBuckets(cm) && barrel.getBrewingInventory().getItem(0).isEmpty()
+                    && CookInventoryTransactions.count(input, stack -> stack.is(Items.BUCKET)) == 1,
+                    "native returned buckets must move through the owned physical inventory exactly once");
+        } finally { maid.discard(); }
+        helper.succeed();
+    }
+
+    @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID, batch = "cooking_architecture")
     public static void managerOwnsQueueAndInvalidation(GameTestHelper helper) {
         var recipes = helper.getLevel().getRecipeManager();
         var original = List.copyOf(recipes.getRecipes());
