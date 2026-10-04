@@ -19,41 +19,31 @@ import java.util.Set;
 import static com.github.wallev.maidsoulkitchen.MaidsoulKitchen.LOGGER;
 
 public interface IAddonMaid {
+    /** Source ICookTask creates one manager with the maid's brain. TLM 1.5.3 exposes no task-context
+     * accessor for UI/tests/native devices; this reference prevents beta getter-created owners.
+     * No inventory or work is stored here: the referenced MaidCookManager owns all state. */
+    com.github.wallev.maidsoulkitchen.task.cook.common.manager.MaidCookManager<?> tlmk$getCookManager();
+    void tlmk$setCookManager(com.github.wallev.maidsoulkitchen.task.cook.common.manager.MaidCookManager<?> manager);
     Set<Block> BLACK_LIST = new HashSet<>();
 
-    static ItemStack interactUseOnBlockWithItem(EntityMaid maid, BlockPos blockPos, ItemStack itemStack) {
-        IAddonMaid addonMaid = (IAddonMaid) maid;
-        WeakReference<FakePlayer> fakePlayer$tlma = addonMaid.tlmk$getFakePlayer();
-        FakePlayer fakePlayer = fakePlayer$tlma.get();
-        if (fakePlayer != null) {
-            try {
-                fakePlayer.setItemInHand(InteractionHand.MAIN_HAND, itemStack);
-                InteractionResult interactionResult = FakePlayerUtil.interactUseOnBlock(fakePlayer$tlma, maid.level(), blockPos, InteractionHand.MAIN_HAND, null);
+    static ItemUseOutcome tryInteractUseOnBlockWithItem(EntityMaid maid, BlockPos blockPos, ItemStack itemStack) {
+        WeakReference<FakePlayer> reference = ((IAddonMaid) maid).tlmk$getFakePlayer();
+        FakePlayer fakePlayer = reference == null ? null : reference.get();
+        if (fakePlayer == null) return new ItemUseOutcome(InteractionResult.FAIL, itemStack.copy());
 
-                if (interactionResult == InteractionResult.PASS) {
-                    BlockState blockState = maid.level().getBlockState(blockPos);
-                    Block block = blockState.getBlock();
-                    LOGGER.warn("FakePlayerUtil.interactUseOnBlock PASS: blockState:{} block: {}", blockState, block);
-                    BLACK_LIST.add(block);
-                    LOGGER.warn(BLACK_LIST.toString());
-                }
-
-                if (interactionResult != InteractionResult.PASS) {
-                    ItemStack itemInHandCopy = fakePlayer.getItemInHand(InteractionHand.MAIN_HAND).copy();
-                    ItemHandlerHelper.insertItemStacked(maid.getAvailableInv(true), itemInHandCopy, false);
-                    fakePlayer.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
-                    return itemInHandCopy;
-                } else {
-                    fakePlayer.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
-                    return ItemStack.EMPTY;
-                }
-
-            } catch (Exception e) {
-                return ItemStack.EMPTY;
-            }
+        fakePlayer.setItemInHand(InteractionHand.MAIN_HAND, itemStack.copy());
+        try {
+            InteractionResult result = FakePlayerUtil.interactUseOnBlock(
+                    reference, maid.level(), blockPos, InteractionHand.MAIN_HAND, null);
+            return new ItemUseOutcome(result, fakePlayer.getMainHandItem().copy());
+        } catch (RuntimeException exception) {
+            LOGGER.warn("Fake player item interaction failed at {}", blockPos, exception);
+            // Native use may have consumed the input before throwing. Recover the actual hand,
+            // never refund the pre-use copy as well as its native effect/container.
+            return new ItemUseOutcome(InteractionResult.FAIL, fakePlayer.getMainHandItem().copy());
+        } finally {
+            fakePlayer.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
         }
-
-        return ItemStack.EMPTY;
     }
 
     static ItemStack interactUseOnBlockWithoutItem(EntityMaid maid, BlockPos blockPos) {
@@ -97,6 +87,9 @@ public interface IAddonMaid {
     static void pickupAction(EntityMaid maid) {
         maid.swing(InteractionHand.MAIN_HAND);
         maid.playSound(SoundEvents.ITEM_PICKUP, 1.0F, maid.getRandom().nextFloat() * 0.1F + 1.0F);
+    }
+
+    record ItemUseOutcome(InteractionResult result, ItemStack remainder) {
     }
 
 }

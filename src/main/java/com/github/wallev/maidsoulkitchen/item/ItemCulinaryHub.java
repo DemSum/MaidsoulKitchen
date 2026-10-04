@@ -46,6 +46,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static net.minecraft.core.registries.Registries.DATA_COMPONENT_TYPE;
 
 public class ItemCulinaryHub extends Item implements MenuProvider {
+    public static final int INV_SLOT = 4;
     /** Official 1.20.1 interaction range multiplier. */
     public static final float WORK_RANGE = 2.5F;
     private static final int COOK_BAG_SIZE = getCookBagSize();
@@ -292,8 +293,24 @@ public class ItemCulinaryHub extends Item implements MenuProvider {
     }
 
     public static ItemStack getItem(EntityMaid maid) {
-        ItemStack stack = maid.getMaidInv().getStackInSlot(4);
-        return stack.is(MkItems.CULINARY_HUB.get()) ? stack : ItemStack.EMPTY;
+        // Keep the documented legacy slot authoritative, then fall back to a registered bauble slot.
+        ItemStack stack = maid.getMaidInv().getStackInSlot(INV_SLOT);
+        if (stack.is(MkItems.CULINARY_HUB.get())) {
+            return stack;
+        }
+
+        var baubles = maid.getMaidBauble();
+        if (!baubles.containsItem(MkItems.CULINARY_HUB.get())) {
+            return ItemStack.EMPTY;
+        }
+
+        for (int slot = 0; slot < baubles.getSlots(); slot++) {
+            stack = baubles.getStackInSlot(slot);
+            if (stack.is(MkItems.CULINARY_HUB.get())) {
+                return stack;
+            }
+        }
+        return ItemStack.EMPTY;
     }
 
     /** Any block inventory is bindable, matching the official 1.20.1 update. */

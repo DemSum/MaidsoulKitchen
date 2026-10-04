@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.function.Function;
 
 public class CookData implements ITaskData {
+    public static final int MAX_FILTER_ENTRIES = CookDataRules.MAX_FILTER_ENTRIES;
     public static final Codec<List<String>> LIST_CODEC = Codec.STRING.listOf().xmap(Lists::newArrayList, Function.identity());
     public static final Codec<CookData> CODEC = RecordCodecBuilder.create(instance -> instance.group(
             Codec.STRING.fieldOf("Mode").forGetter(CookData::mode),
@@ -34,53 +35,43 @@ public class CookData implements ITaskData {
     }
 
     public CookData(String mode, List<String> whitelistRecs, List<String> blacklistRecs) {
-        this.mode = mode;
-        this.whitelistRecs = whitelistRecs;
-        this.blacklistRecs = blacklistRecs;
+        this.mode = CookDataRules.normalizeMode(mode);
+        this.whitelistRecs = CookDataRules.normalizeRecipes(whitelistRecs);
+        this.blacklistRecs = CookDataRules.normalizeRecipes(blacklistRecs);
     }
 
     public void addRec(String rec, String mode) {
-        if (mode.equals(Mode.WHITELIST.name)) {
-            this.whitelistRecs.add(rec);
-        } else if (mode.equals(Mode.BLACKLIST.name)) {
-            this.blacklistRecs.add(rec);
+        List<String> recipes = mutableRecipes(mode);
+        if (recipes != null && !recipes.contains(rec) && recipes.size() < MAX_FILTER_ENTRIES) {
+            recipes.add(rec);
         }
     }
 
     public void removeRec(String rec, String mode) {
-        if (mode.equals(Mode.WHITELIST.name)) {
-            this.whitelistRecs.remove(rec);
-        } else if (mode.equals(Mode.BLACKLIST.name)) {
-            this.blacklistRecs.remove(rec);
-        }
+        List<String> recipes = mutableRecipes(mode);
+        if (recipes != null) recipes.removeIf(rec::equals);
     }
 
     public void addOrRemoveRec(String rec, String mode) {
-        if (mode.equals(Mode.WHITELIST.name)) {
-            if (this.whitelistRecs.contains(rec)) {
-                this.whitelistRecs.remove(rec);
-            } else {
-                this.whitelistRecs.add(rec);
-            }
-        } else if (mode.equals(Mode.BLACKLIST.name)) {
-            if (this.blacklistRecs.contains(rec)) {
-                this.blacklistRecs.remove(rec);
-            } else {
-                this.blacklistRecs.add(rec);
-            }
+        List<String> recipes = mutableRecipes(mode);
+        if (recipes == null) return;
+        if (recipes.contains(rec)) {
+            recipes.removeIf(rec::equals);
+        } else if (recipes.size() < MAX_FILTER_ENTRIES) {
+            recipes.add(rec);
         }
     }
 
     public void setWhitelistRecs(List<String> whitelistRecs) {
-        this.whitelistRecs = whitelistRecs;
+        this.whitelistRecs = CookDataRules.normalizeRecipes(whitelistRecs);
     }
 
     public void setBlacklistRecs(List<String> blacklistRecs) {
-        this.blacklistRecs = blacklistRecs;
+        this.blacklistRecs = CookDataRules.normalizeRecipes(blacklistRecs);
     }
 
     public void setMode(String mode) {
-        this.mode = mode;
+        this.mode = CookDataRules.normalizeMode(mode);
     }
 
     public List<String> recs(String mode) {
@@ -102,6 +93,16 @@ public class CookData implements ITaskData {
 
     public String mode() {
         return mode;
+    }
+
+    public static boolean isValidMode(String mode) {
+        return CookDataRules.isValidMode(mode);
+    }
+
+    private List<String> mutableRecipes(String mode) {
+        if (Mode.WHITELIST.name.equals(mode)) return this.whitelistRecs;
+        if (Mode.BLACKLIST.name.equals(mode)) return this.blacklistRecs;
+        return null;
     }
 
     public List<String> getRecs() {

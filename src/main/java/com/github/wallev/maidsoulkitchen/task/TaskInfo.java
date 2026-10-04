@@ -4,6 +4,7 @@ import com.github.wallev.maidsoulkitchen.MaidsoulKitchen;
 import net.minecraft.resources.ResourceLocation;
 
 public enum TaskInfo {
+    COOK("cook"),
     BERRY_FARM("berries_farm"),
     FRUIT_FARM("fruit_farm"),
     FEED_ANIMAL_T("feed_animal_t"),
@@ -34,6 +35,8 @@ public enum TaskInfo {
     KK_BREW_BARREL("kk_brew_barrel"),
     KK_AIR_COMPRESSOR("kk_air_compressor"),
     DB_BEER("drinkbeer_beerbarrel"),
+    KC_STEAMER("kaleidoscope_steamer"),
+    KC_STOCKPOT("kaleidoscope_stockpot"),
     CP_CROCK_POT("cp_crock_pot"),
 
     DBK_COOKING_POT("dkb_cooking_pot"),

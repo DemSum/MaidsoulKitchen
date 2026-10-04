@@ -14,6 +14,9 @@ license = "${mod_license}"
 [[mixins]]
     config = "${mod_id}.mixins.json"
 
+[[mixins]]
+    config = "${mod_id}-compat.mixins.json"
+
 [[accessTransformers]]
     file = "META-INF/accesstransformer.cfg"
 
@@ -33,6 +36,13 @@ license = "${mod_license}"
 [[dependencies.${mod_id}]]
     modId="touhou_little_maid"
     mandatory=true
-    versionRange="[1.1.13,)"
+    versionRange="[1.5.3,)"
+    ordering="AFTER"
+    side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="kaleidoscope_cookery"
+    type="optional"
+    versionRange="[1.4.1,2)"
     ordering="AFTER"
     side="BOTH"

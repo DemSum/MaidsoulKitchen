@@ -1,0 +1,92 @@
+package com.github.wallev.maidsoulkitchen.task.cook.common.task;
+
+import com.github.wallev.maidsoulkitchen.api.task.cook.ICookTask;
+import com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskInfo;
+import net.minecraft.resources.ResourceLocation;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import com.github.wallev.maidsoulkitchen.task.cook.barbequesdelight.basin.TaskBbqBasin;
+import com.github.wallev.maidsoulkitchen.task.cook.barbequesdelight.grill.TaskBbqGrill;
+import com.github.wallev.maidsoulkitchen.task.cook.cuisine.cuisine.TaskCdCuisine;
+import com.github.wallev.maidsoulkitchen.task.cook.drinkbeer.beerbarrel.TaskDbBeerBarrel;
+import com.github.wallev.maidsoulkitchen.task.cook.farmersdelight.cookingpot.TaskFdCookingPot;
+import com.github.wallev.maidsoulkitchen.task.cook.farmersdelight.cuttingboard.TaskFdCuttingBoard;
+import com.github.wallev.maidsoulkitchen.task.cook.farmersdelight.skillet.TaskFdSkillet;
+import com.github.wallev.maidsoulkitchen.task.cook.minecraft.furnace.TaskFurnace;
+import com.github.wallev.maidsoulkitchen.task.cook.kaleidoscopecookery.TaskKcSteamer;
+import com.github.wallev.maidsoulkitchen.task.cook.kaleidoscopecookery.TaskKcStockpot;
+import com.github.wallev.maidsoulkitchen.task.cook.youkaishomecoming.dryingrack.TaskYhcDryingRack;
+import com.github.wallev.maidsoulkitchen.task.cook.youkaishomecoming.ferment.TaskYhcFermentationTank;
+import com.github.wallev.maidsoulkitchen.task.cook.youkaishomecoming.moka.TaskYhcMoka;
+import com.github.wallev.maidsoulkitchen.task.cook.youkaishomecoming.kettle.TaskYhcKettle;
+/**
+ * Source: 58ec08ec task/cook/common/task/CookTaskManager.java (MIT).
+ * Keeps UID lookup and ordered task index. Current NeoForge canLoad/signature gates replace upstream Mods;
+ * the catalog contains only currently registered devices, including KC devices absent from the old implementation.
+ * Replaces the cooking constructor branches in TaskRegister; does not own per-maid plans or execution state.
+ */
+public final class CookTaskManager {
+    private static Map<ResourceLocation, ICookTask<?, ?>> taskMap = Map.of();
+    private static long recipeGeneration;
+    /** NeoForge reload boundary for the shared recipe catalog, not per-maid work state. */
+    public static void recipesReloaded() { recipeGeneration++; }
+    public static long getRecipeGeneration() { return recipeGeneration; }
+    private CookTaskManager() { }
+    public static void init() {
+        Map<ResourceLocation, ICookTask<?, ?>> tasks = new LinkedHashMap<>();
+        if (TaskInfo.FURNACE.canLoad()) {
+            add(tasks, new TaskFurnace());
+        }
+
+        if (TaskInfo.FD_COOK_POT.canLoad()) {
+            add(tasks, new TaskFdCookingPot());
+        }
+        if (TaskInfo.FD_CUTTING_BOARD.canLoad()) {
+            add(tasks, new TaskFdCuttingBoard());
+        }
+        if (TaskInfo.FD_SKILLET.canLoad()) {
+            add(tasks, new TaskFdSkillet());
+        }
+        if (TaskInfo.CD_CUISINE_SKILLET.canLoad()) {
+            add(tasks, new TaskCdCuisine());
+        }
+        if (TaskInfo.BD_BASIN.canLoad()) {
+            add(tasks, new TaskBbqBasin());
+        }
+        if (TaskInfo.BD_GRILL.canLoad()) {
+            add(tasks, new TaskBbqGrill());
+        }
+        if (TaskInfo.YHC_MOKA.canLoad()) {
+            add(tasks, new TaskYhcMoka());
+        }
+        if (TaskInfo.YHC_TEA_KETTLE.canLoad()) {
+            add(tasks, new TaskYhcKettle());
+        }
+        if (TaskInfo.YHC_DRYING_RACK.canLoad()) {
+            add(tasks, new TaskYhcDryingRack());
+        }
+        if (TaskInfo.YHC_FERMENTATION_TANK.canLoad()) {
+            add(tasks, new TaskYhcFermentationTank());
+        }
+
+        if (TaskInfo.DB_BEER.canLoad()) {
+            add(tasks, new TaskDbBeerBarrel());
+        }
+        if (TaskInfo.KC_STEAMER.canLoad()) {
+            add(tasks, new TaskKcSteamer());
+        }
+        if (TaskInfo.KC_STOCKPOT.canLoad()) {
+            add(tasks, new TaskKcStockpot());
+        }
+
+        taskMap = java.util.Collections.unmodifiableMap(tasks);
+    }
+    private static void add(Map<ResourceLocation, ICookTask<?, ?>> tasks, ICookTask<?, ?> task) {
+        if (tasks.putIfAbsent(task.getUid(), task) != null) throw new IllegalStateException("Duplicate cooking task " + task.getUid());
+    }
+    public static Optional<ICookTask<?, ?>> findTask(ResourceLocation uid) { return Optional.ofNullable(taskMap.get(uid)); }
+    public static Map<ResourceLocation, ICookTask<?, ?>> getTaskMap() { return taskMap; }
+    public static List<ICookTask<?, ?>> getTaskIndex() { return List.copyOf(taskMap.values()); }
+}

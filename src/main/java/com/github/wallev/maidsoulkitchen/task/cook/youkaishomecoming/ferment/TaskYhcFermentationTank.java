@@ -1,0 +1,47 @@
+package com.github.wallev.maidsoulkitchen.task.cook.youkaishomecoming.ferment;
+
+import com.github.tartaricacid.touhoulittlemaid.entity.passive.EntityMaid;
+import com.github.wallev.maidsoulkitchen.api.task.cook.ICookTask;
+
+import com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskInfo;
+import com.github.wallev.maidsoulkitchen.task.cook.common.cook.be.CookBeBase;
+import com.github.wallev.maidsoulkitchen.task.cook.common.rule.cook.AbstractCookRule;
+import com.github.wallev.maidsoulkitchen.task.cook.common.rule.cook.FluidPotCookRule2;
+import com.github.wallev.maidsoulkitchen.task.cook.common.rule.rec.RecSerializerManager;
+import com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskClassAnalyzer;
+import dev.xkmc.youkaishomecoming.content.pot.ferment.FermentationRecipe;
+import dev.xkmc.youkaishomecoming.content.pot.ferment.FermentationTankBlockEntity;
+import dev.xkmc.youkaishomecoming.init.registrate.YHBlocks;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
+
+/** Source: 58ec08ec TaskYhcFermentationTank.java (MIT), direct Be/FluidRule2/RSM port. Deletes beta native execution; legacy settings migrate once. */
+@TaskClassAnalyzer(TaskInfo.YHC_FERMENTATION_TANK)
+public class TaskYhcFermentationTank extends ICookTask<FermentationTankBlockEntity, FermentationRecipe<?>> {
+
+    @Override
+    protected CookBeBase<FermentationTankBlockEntity> createCookBe(EntityMaid maid) {
+        return new FermentationCookBe(maid);
+    }
+
+    @Override
+    protected AbstractCookRule<FermentationTankBlockEntity, FermentationRecipe<?>> createCookRule() {
+        return FluidPotCookRule2.getInstance();
+    }
+
+    @Override
+    protected RecSerializerManager<FermentationRecipe<?>> createRecSerializerManager() {
+        return FermentationRecSerializerManager.getInstance();
+    }
+
+    @Override
+    public ResourceLocation getUid() {
+        return com.github.wallev.maidsoulkitchen.task.TaskInfo.YHC_FERMENTATION_TANK.uid;
+    }
+
+    @Override
+    public ItemStack getIcon() {
+        return YHBlocks.FERMENT.asStack();
+    }
+    @Override public com.github.tartaricacid.touhoulittlemaid.api.entity.data.TaskDataKey<com.github.wallev.maidsoulkitchen.entity.data.inner.task.CookData> getCookDataKey() { return com.github.wallev.maidsoulkitchen.init.touhoulittlemaid.DataRegister.YHC_FERMENTATION_TANK; }
+}

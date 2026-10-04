@@ -1,7 +1,11 @@
 // 直属依赖项
 dependencies {
-    if (!touhou_little_maid_version.isEmpty())
-        implementation "maven.modrinth:touhou-little-maid:${touhou_little_maid_version}-${mod_loader},${minecraft_version}"
+    if (!touhou_little_maid_version.isEmpty()) {
+        def tlmArtifact = project.findProperty("touhou_little_maid_maven_artifact") ?: "touhou-little-maid"
+        def tlmMavenVersion = project.findProperty("touhou_little_maid_maven_version")
+                ?: "${touhou_little_maid_version}-${mod_loader},${minecraft_version}"
+        implementation "maven.modrinth:${tlmArtifact}:${tlmMavenVersion}"
+    }
 
 }
 
@@ -32,8 +36,16 @@ dependencies {
         implementation "maven.modrinth:barbeques-delight-forge:${barbeques_delight_forge_version}-${mod_loader},${minecraft_version}"
     if (!kitchen_karrot_version.isEmpty())
         implementation "maven.modrinth:kitchen-karrot:${kitchen_karrot_version}-${mod_loader},${minecraft_version}"
-    if (!drink_beer_refill_version.isEmpty())
-        implementation "maven.modrinth:drink-beer-refill:${drink_beer_refill_version}-${mod_loader},${minecraft_version}"
+    if (!drink_beer_refill_version.isEmpty()) {
+        if (project.hasProperty('drink_beer_refill_maven_project')
+                && project.hasProperty('drink_beer_refill_maven_version')) {
+            implementation "maven.modrinth:${drink_beer_refill_maven_project}:${drink_beer_refill_maven_version}"
+        } else {
+            implementation "maven.modrinth:drink-beer-refill:${drink_beer_refill_version}-${mod_loader},${minecraft_version}"
+        }
+    }
+    if (!kaleidoscope_cookery_version.isEmpty())
+        implementation "maven.modrinth:v17FatAc:${kaleidoscope_cookery_version}"
     if (!crock_pot_file_id.isEmpty())
         implementation "curse.maven:crock-pot-404523:${crock_pot_file_id}"
 

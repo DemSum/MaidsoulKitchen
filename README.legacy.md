@@ -1,0 +1,129 @@
+# [农耕与烹饪：车万女仆拓展](./readme.zh.md) | Farm And Cook: Touhou Little Maid Addon
+ A [touhoulittlemaid](https://github.com/TartaricAcid/TouhouLittleMaid) addon mod, is designed to teach maids how to use other mods for cooking and farming.
+
+The maintained `1.21.1neo` branch requires Touhou Little Maid 1.5.3 or newer.
+
+## Maintenance and releases
+  - This fork is independently maintained and released by DemSum with permission from the original MaidsoulKitchen author.
+  - Releases from this repository are authorized independent fork releases. They do not mean that these changes have been merged into upstream MaidsoulKitchen, and they should not be presented as official upstream releases.
+  - The project is actively maintained; the previous abandonment and takeover notice no longer applies.
+  - Stable builds and their release notes will be published on this repository's [Releases](https://github.com/DemSum/MaidsoulKitchen/releases) page. Back up worlds before testing development builds.
+
+## Credits
+  - This 1.21.1 fork is synchronized with the official MaidsoulKitchen `1.21.1-beta-v0.1.4` source release. The exact source artifact, checksums, merge boundary, and retained fork changes are recorded in [the upstream sync note](./docs/upstream-sync/0.1.4.md).
+  - The native dual-coordinate cooking state in the 1.21.1 fork is adapted from MaidsoulKitchen's own `1.20.1-1.0-dev` design. Reachable side-position search is an independent implementation using Minecraft pathfinding APIs; no SimplePathfinder source is included.
+  - The native DrinkBeer barrel safeguards and compatibility recipes are adapted from MaidSoul Brewery Public commits `ca84cf4`, `0a0a46b`, and `f5e0fa9`; the restored altar recipes come from `de47e15` and were originally migrated from MaidsoulKitchen 1.20.1 data.
+  - Native Kaleidoscope Cookery steamer task, filter UI, Culinary Hub storage support, and the TLM 1.5.3 berry-task reachability correction are adapted from MaidSoul Brewery Public commit `de47e15`. Kaleidoscope Cookery is by ysbbbbbb, tartaric_acid, and Azumic; this integration calls its public API and does not copy its source.
+  - Farmer's Delight mushroom-colony farming is adapted from MaidSoul Brewery Public commits `f5e0fa9` and `de47e15`, and is registered through Touhou Little Maid 1.5.3's official `registerSpecialCropHandler` extension API.
+
+## Progress
+- [ ] Cook
+    - [x] Farmer's Delight
+        - [x] Cooking Pot
+        - [x] Cutting Board
+    - [x] Miner's Delight
+        - [x] Copper Pot
+    - [x] Brewin' And Chewin'
+        - [x] Key
+    - [x] Youkai's Homecoming
+        - [x] Moka Pot
+        - [x] Kettle 
+        - [x] Fermentation Tank 
+        - [x] Drying Rack 
+    - [ ] Cuisine Delight
+    - [ ] My Nether's Delight
+    - [x] Vinery
+        - [x] Fermentation Barrel
+    - [x] Candelight
+        - [x] Cooking Pot
+        - [x] Cooking Pan
+    - [x] Beach Party
+        - [x] Mini Fridge
+        - [x] Cabinet
+    - [x] Bakery
+        - [x] Small Cooking Pot
+        - [x] Stove
+    - [x] Herbalbrews
+        - [x] Tea Kettle 
+        - [x] Cauldron
+    - [x] DrinkBeer
+        - [x] Beer Barrel
+    - [x] Kaleidoscope Cookery
+        - [x] Steamer (native integration; in-game validation pending)
+    - [x] Crock Pot
+        - [x] Crock Pot
+    - [ ] Fruit Stack
+    - [x] Kitchen Karrot
+        - [x] Air Compressor
+        - [x] Brewing Barrel
+    - [ ] Minecraft
+        - [x] Furnace
+        - [ ] Brewing Stand
+- [ ] Farm
+    - [x] Farmer's Delight mushroom colonies
+    - [x] Berry
+        - [x] Simple Farming
+        - [x] Vinery
+    - [x] Fruit
+        - [x] Simple Farming
+        - [x] Fruit Stack
+        - [x] Vinery
+- [ ] Other
+    - [x] Serene Seasons
+    - [x] Thirst
+- [ ] Backpack Renderer
+    - [x] let'do banner
+
+## 1.21 迁移进度
+- [ ] Cook
+    - [x] Farmer's Delight
+        - [x] Cooking Pot 配置正常，工作正常
+        - [x] Cutting Board 配置正常，工作正常
+    - [ ] Miner's Delight
+        - [ ] Copper Pot 不兼容 1.21
+    - [ ] Brewin' And Chewin'
+        - [ ] Key 不兼容 1.21
+    - [x] Youkai's Homecoming
+        - [x] Moka Pot 配置正常，工作未测试
+        - [x] Kettle 配置正常，工作未测试
+        - [x] Fermentation Tank 配置正常，工作未测试
+        - [x] Drying Rack 配置正常，工作未测试
+    - [ ] Cuisine Delight 未测试
+    - [x] My Nether's Delight 未测试
+    - [ ] Vinery
+        - [ ] Fermentation Barrel 不兼容 1.21
+    - [x] Candelight
+        - [x] Cooking Pot 不兼容 1.21
+        - [x] Cooking Pan 不兼容 1.21
+    - [x] Beach Party
+        - [x] Mini Fridge 不兼容 1.21
+        - [x] Cabinet 不兼容 1.21
+    - [x] Bakery
+        - [x] Small Cooking Pot 不兼容 1.21
+        - [x] Stove 不兼容 1.21
+    - [x] Herbalbrews
+        - [x] Tea Kettle 不兼容 1.21
+        - [x] Cauldron 不兼容 1.21
+    - [x] DrinkBeer 
+        - [x] Beer Barrel 未测试
+    - [ ] Crock Pot 不兼容 1.21
+        - [ ] Crock Pot 不兼容 1.21(存在1.21.1版本，未发布)
+    - [ ] Fruit Stack 有这玩意？
+    - [x] Kitchen Karrot
+        - [x] Air Compressor 不兼容 1.21
+        - [x] Brewing Barrel 不兼容 1.21
+    - [ ] Minecraft
+        - [x] Furnace 未测试
+        - [ ] Brewing Stand
+- [ ] Farm
+    - [x] Farmer's Delight mushroom colonies (TLM 1.5.3 official special-crop API)
+    - [x] Berry
+        - [x] Simple Farming 不兼容 1.21
+        - [x] Vinery 不兼容 1.21
+    - [x] Fruit
+        - [x] Simple Farming 不兼容 1.21
+        - [x] Fruit Stack 不兼容 1.21
+        - [x] Vinery 不兼容 1.21
+- [ ] Other
+    - [ ] Serene Seasons
+    - [ ] Thirst 未测试

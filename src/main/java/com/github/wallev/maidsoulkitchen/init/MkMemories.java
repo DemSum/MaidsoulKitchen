@@ -2,6 +2,7 @@ package com.github.wallev.maidsoulkitchen.init;
 
 import com.github.wallev.maidsoulkitchen.MaidsoulKitchen;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.ai.behavior.PositionTracker;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
 import net.neoforged.neoforge.registries.DeferredHolder;
@@ -20,5 +21,7 @@ public final class MkMemories {
      * <p>Ported from the official MSK 1.20.1 development line.</p>
      */
     public static final DeferredHolder<MemoryModuleType<?>, MemoryModuleType<PositionTracker>> WORK_POS = MEMORY_MODULE_TYPES.register("work_pos", () -> new MemoryModuleType<>(Optional.empty()));
+    public static final DeferredHolder<MemoryModuleType<?>, MemoryModuleType<PositionTracker>> COOK_WALK_POS = MEMORY_MODULE_TYPES.register("cook_walk_pos", () -> new MemoryModuleType<>(Optional.empty()));
+    public static final DeferredHolder<MemoryModuleType<?>, MemoryModuleType<ResourceLocation>> COOK_TASK_UID = MEMORY_MODULE_TYPES.register("cook_task_uid", () -> new MemoryModuleType<>(Optional.empty()));
 
 }

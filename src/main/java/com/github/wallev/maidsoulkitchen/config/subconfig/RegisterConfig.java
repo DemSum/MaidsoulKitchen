@@ -20,20 +20,16 @@ public class RegisterConfig {
     public static ModConfigSpec.BooleanValue FD_CUTTING_BOARD_TASK_ENABLED;
     public static ModConfigSpec.BooleanValue FD_SKILLET_TASK_ENABLED;
     public static ModConfigSpec.BooleanValue CD_CUISINE_SKILLET_TASK_ENABLED;
-    public static ModConfigSpec.BooleanValue MD_COOK_POT_TASK_ENABLED;
-    public static ModConfigSpec.BooleanValue BNC_KEY_TASK_ENABLED;
     public static ModConfigSpec.BooleanValue YHC_MOKA_TASK_ENABLED;
     public static ModConfigSpec.BooleanValue YHC_TEA_KETTLE_TASK_ENABLED;
     public static ModConfigSpec.BooleanValue YHC_DRYING_RACK_TASK_ENABLED;
     public static ModConfigSpec.BooleanValue YHC_FERMENTATION_TANK_TASK_ENABLED;
     public static ModConfigSpec.BooleanValue BD_BASIN_TASK_ENABLED;
     public static ModConfigSpec.BooleanValue BD_GRILL_TASK_ENABLED;
-    public static ModConfigSpec.BooleanValue FR_KETTLE_TASK_ENABLED;
 
-    public static ModConfigSpec.BooleanValue KK_BREW_BARREL;
-    public static ModConfigSpec.BooleanValue KK_AIR_COMPRESSOR;
     public static ModConfigSpec.BooleanValue DB_BEER_TASK_ENABLED;
-    public static ModConfigSpec.BooleanValue CP_CROk_POT_TASK_ENABLED;
+    public static ModConfigSpec.BooleanValue KC_STEAMER_TASK_ENABLED;
+    public static ModConfigSpec.BooleanValue KC_STOCKPOT_TASK_ENABLED;
 
     public static void init(ModConfigSpec.Builder builder) {
         builder.push("Register");
@@ -66,16 +62,10 @@ public class RegisterConfig {
         FD_SKILLET_TASK_ENABLED = builder.define("FdSkilletTaskEnabled", true);
         builder.comment("This can make the cd cuisine skillet task enabled or not.");
         CD_CUISINE_SKILLET_TASK_ENABLED = builder.define("CdCuisineSkilletTaskEnabled", true);
-        builder.comment("This can make the md cook pot task enabled or not.");
-        MD_COOK_POT_TASK_ENABLED = builder.define("MdCookPotTaskEnabled", true);
-        builder.comment("This can make the bnc key task enabled or not.");
-        BNC_KEY_TASK_ENABLED = builder.define("BncKeyTaskEnabled", true);
         builder.comment("This can make the cd basin task enabled or not.");
         BD_BASIN_TASK_ENABLED = builder.define("CdBasinTaskEnabled", true);
         builder.comment("This can make the cd grill task enabled or not.");
         BD_GRILL_TASK_ENABLED = builder.define("CdGrillTaskEnabled", true);
-        builder.comment("This can make the fr kettle task enabled or not.");
-        FR_KETTLE_TASK_ENABLED = builder.define("FrKettleTaskEnabled", true);
         builder.comment("This can make the yhc moka task enabled or not.");
         YHC_MOKA_TASK_ENABLED = builder.define("YhcMokaTaskEnabled", true);
         builder.comment("This can make the yhc tea kettle task enabled or not.");
@@ -85,14 +75,12 @@ public class RegisterConfig {
         builder.comment("This can make the yhc fermentation tank task enabled or not.");
         YHC_FERMENTATION_TANK_TASK_ENABLED = builder.define("YhcFermentationTaskEnabled", true);
 
-        builder.comment("This can make the ck crock pot task enabled or not.");
-        CP_CROk_POT_TASK_ENABLED = builder.define("CkCrockPotTaskEnabled", true);
         builder.comment("This can make the db beer task enabled or not.");
         DB_BEER_TASK_ENABLED = builder.define("DbBeerTaskEnabled", true);
-        builder.comment("This can make the kc brew barrel task enabled or not.");
-        KK_BREW_BARREL = builder.define("KkBrewBarrelTaskEnabled", true);
-        builder.comment("This can make the kc air compressor task enabled or not.");
-        KK_AIR_COMPRESSOR = builder.define("KkAirCompressorTaskEnabled", true);
+        builder.comment("This can make the Kaleidoscope Cookery steamer task enabled or not.");
+        KC_STEAMER_TASK_ENABLED = builder.define("KcSteamerTaskEnabled", true);
+        builder.comment("Enable the Kaleidoscope Cookery stockpot maid task.");
+        KC_STOCKPOT_TASK_ENABLED = builder.define("KcStockpotTaskEnabled", true);
 
         builder.pop();
     }

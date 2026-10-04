@@ -1,6 +1,7 @@
 package com.github.wallev.maidsoulkitchen.network.message;
 
 import com.github.wallev.maidsoulkitchen.entity.data.inner.task.CookData;
+import com.github.wallev.maidsoulkitchen.api.task.cook.ICookTask;
 import com.github.tartaricacid.touhoulittlemaid.api.entity.data.TaskDataKey;
 import com.github.tartaricacid.touhoulittlemaid.entity.data.TaskDataRegister;
 import com.github.tartaricacid.touhoulittlemaid.entity.passive.EntityMaid;
@@ -40,12 +41,18 @@ public record ActionCookDataRecC2SPackage(int entityId, ResourceLocation dataKey
         if (context.flow().isServerbound()) {
             context.enqueueWork(() -> {
                 ServerPlayer sender = (ServerPlayer) context.player();
+                if (sender == null || !CookData.isValidMode(message.mode)) return;
                 Entity entity = sender.level.getEntity(message.entityId);
-                if (entity instanceof EntityMaid maid && maid.isOwnedBy(sender)) {
-                    TaskDataKey<CookData> value = TaskDataRegister.getValue(message.dataKey);
-                    CookData cookData = maid.getOrCreateData(value, new CookData());
+                ResourceLocation recipeId = ResourceLocation.tryParse(message.rec);
+                if (recipeId == null) return;
+                ICookTask<?, ?> cookTask = entity instanceof EntityMaid candidate ? com.github.wallev.maidsoulkitchen.task.cook.common.task.TaskCook.resolve(candidate).orElse(null) : null;
+                if (entity instanceof EntityMaid maid && maid.isOwnedBy(sender)
+                        && cookTask != null
+                        && cookTask.getUid().equals(message.dataKey)
+                        && cookTask.getRecipeHolders(maid.level).stream().anyMatch(holder -> holder.id().equals(recipeId))) {
+                    CookData cookData = cookTask.getTaskData(maid);
                     cookData.addOrRemoveRec(message.rec, message.mode);
-                    maid.setAndSyncData(value, cookData);
+                    com.github.wallev.maidsoulkitchen.entity.data.inner.task.KitchenData.sync(maid);
                 }
             });
         }

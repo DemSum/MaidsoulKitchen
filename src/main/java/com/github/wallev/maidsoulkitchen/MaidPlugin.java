@@ -1,10 +1,11 @@
 package com.github.wallev.maidsoulkitchen;
 
 import com.github.tartaricacid.touhoulittlemaid.entity.ai.brain.ExtraMaidBrainManager;
-import com.github.wallev.maidsoulkitchen.chest.FarmDelightCabinet;
 import com.github.wallev.maidsoulkitchen.entity.ai.brain.MaidBrain;
+import com.github.wallev.maidsoulkitchen.api.ILittleMaidBauble;
 import com.github.wallev.maidsoulkitchen.foundation.utility.Mods;
 import com.github.wallev.maidsoulkitchen.init.MkItems;
+import com.github.wallev.maidsoulkitchen.init.registry.CommonRegistry;
 import com.github.wallev.maidsoulkitchen.init.touhoulittlemaid.DataRegister;
 import com.github.wallev.maidsoulkitchen.init.touhoulittlemaid.TaskRegister;
 import com.github.wallev.maidsoulkitchen.item.bauble.BurnProtectBauble;
@@ -17,9 +18,11 @@ import com.github.tartaricacid.touhoulittlemaid.client.renderer.entity.GeckoEnti
 import com.github.tartaricacid.touhoulittlemaid.entity.backpack.BackpackManager;
 import com.github.tartaricacid.touhoulittlemaid.entity.data.TaskDataRegister;
 import com.github.tartaricacid.touhoulittlemaid.entity.task.TaskManager;
+import com.github.tartaricacid.touhoulittlemaid.entity.task.crop.SpecialCropManager;
 import com.github.tartaricacid.touhoulittlemaid.entity.task.meal.MaidMealManager;
 import com.github.tartaricacid.touhoulittlemaid.inventory.chest.ChestManager;
 import com.github.tartaricacid.touhoulittlemaid.item.bauble.BaubleManager;
+import com.github.wallev.maidsoulkitchen.compat.farmersdelight.FarmersDelightMushroomColonyCompat;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.world.entity.Mob;
 import net.neoforged.api.distmarker.Dist;
@@ -28,6 +31,10 @@ import net.neoforged.api.distmarker.OnlyIn;
 @LittleMaidExtension
 public final class MaidPlugin implements ILittleMaid {
 
+    public MaidPlugin() {
+        CommonRegistry.mccInit();
+    }
+
     @Override
     public void addMaidTask(TaskManager manager) {
         TaskRegister.init(manager);
@@ -35,6 +42,8 @@ public final class MaidPlugin implements ILittleMaid {
 
     @Override
     public void bindMaidBauble(BaubleManager manager) {
+        manager.bind(MkItems.CULINARY_HUB, new ILittleMaidBauble() {
+        });
         if (Mods.MC.isLoaded()) {
             manager.bind(MkItems.BURN_PROTECT_BAUBLE, new BurnProtectBauble());
         }
@@ -52,10 +61,6 @@ public final class MaidPlugin implements ILittleMaid {
 
     @Override
     public void addChestType(ChestManager manager) {
-        if (Mods.FD.isLoaded()) {
-            // 农夫乐事的橱柜并没有实现 NeoForge 的 Cap 系统 ，故禁用
-//            manager.add(new FarmDelightCabinet());
-        }
     }
 
     @Override
@@ -66,6 +71,13 @@ public final class MaidPlugin implements ILittleMaid {
     @Override
     public void registerTaskData(TaskDataRegister register) {
         DataRegister.init(register);
+    }
+
+    @Override
+    public void registerSpecialCropHandler(SpecialCropManager manager) {
+        if (Mods.FD.isLoaded()) {
+            FarmersDelightMushroomColonyCompat.register(manager);
+        }
     }
 
     @OnlyIn(Dist.CLIENT)

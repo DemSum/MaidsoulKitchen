@@ -1,0 +1,21 @@
+{
+  "neoforge:conditions": [{ "type": "neoforge:mod_loaded", "modid": "drinkbeer" }],
+  "type": "drinkbeer:brewing",
+  "ingredients": [
+    [
+      { "item": "minecraft:wheat" },
+      { "tag": "c:crops/wheat" },
+      { "tag": "maidsoulkitchen:drinkbeer_wheat_inputs" }
+    ],
+    [
+      { "item": "minecraft:wheat" },
+      { "tag": "c:crops/wheat" },
+      { "tag": "maidsoulkitchen:drinkbeer_wheat_inputs" }
+    ],
+    { "item": "minecraft:apple" },
+    { "tag": "maidsoulkitchen:drinkbeer_water_inputs" }
+  ],
+  "cup": { "id": "drinkbeer:empty_beer_mug", "count": 4 },
+  "brewing_time": 24000,
+  "result": { "id": "drinkbeer:beer_mug_apple_lambic", "count": 4 }
+}
