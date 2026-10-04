@@ -36,6 +36,44 @@ public final class CookingArchitectureGameTests {
     private static ResourceLocation id(String name) { return ResourceLocation.fromNamespaceAndPath(MaidsoulKitchen.MOD_ID, name); }
 
     @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID)
+    public static void incrementalScanAndFilteredGeneration(GameTestHelper helper) {
+        var handler = new ItemStackHandler(23);
+        for (int i = 0; i < 23; i++) handler.setStackInSlot(i, new ItemStack(Items.CARROT, 1));
+        var scanner = new com.github.wallev.maidsoulkitchen.task.cook.common.inv.chest.ChestInventory();
+        var data = new com.github.wallev.maidsoulkitchen.task.cook.common.inv.chest.ChestInvsData(
+                List.of(), List.of(), List.of(handler), 23);
+        scanner.init(data); scanner.tickScan();
+        helper.assertTrue(!scanner.done() && scanner.getAvailable().get(ItemDefinition.of(Items.CARROT)) == 10,
+                "one chest scan tick must inspect at most ten slots");
+        scanner.tickScan(); scanner.tickScan();
+        helper.assertTrue(scanner.done() && scanner.getAvailable().get(ItemDefinition.of(Items.CARROT)) == 23,
+                "incremental scanning must finish without skipping the final partial page");
+        scanner.init(data); scanner.tickScan();
+        helper.assertTrue(scanner.getAvailable().get(ItemDefinition.of(Items.CARROT)) == 10,
+                "a fresh scan must reset both handler cursors and accumulated counts");
+        scanner.init(new com.github.wallev.maidsoulkitchen.task.cook.common.inv.chest.ChestInvsData(
+                List.of(), List.of(), List.of(), 0));
+        helper.assertTrue(scanner.done() && scanner.getAvailable().isEmpty(), "removed input devices must leave no cached material");
+        var holder = new RecipeHolder<>(id("scan_page"), new SmokingRecipe("", CookingBookCategory.MISC,
+                Ingredient.of(Items.CARROT), new ItemStack(Items.BAKED_POTATO), 0, 20));
+        var description = new MKRecipe<>(holder, false, List.of(RecIngredient.of(Ingredient.of(Items.CARROT))),
+                new ItemStack(Items.BAKED_POTATO));
+        var generator = new com.github.wallev.maidsoulkitchen.task.cook.common.manager.RecsGenerate<SmokingRecipe>();
+        generator.setRecs(java.util.Collections.nCopies(23, description));
+        generator.setCurrentRecs(java.util.Collections.nCopies(3, description));
+        helper.assertTrue(generator.tickRun().size() == 3 && generator.done() && generator.tickRun().isEmpty(),
+                "filtered recipe pagination must use the current list's size and be safe after completion");
+        generator.setCurrentRecs(java.util.Collections.nCopies(23, description));
+        helper.assertTrue(generator.tickRun().size() == 10 && !generator.done()
+                && generator.tickRun().size() == 10 && generator.tickRun().size() == 3 && generator.done(),
+                "recipe generation must keep the upstream ten-recipe tick budget");
+        generator.clear();
+        helper.assertTrue(generator.done() && generator.getCurrentRecs().isEmpty() && generator.getRecs().size() == 23,
+                "clear must discard the generation page while retaining the recipe catalog");
+        helper.succeed();
+    }
+
+    @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID)
     public static void inventoryViewsPreserveComponentsAndTransfers(GameTestHelper helper) {
         var maid = helper.spawnWithNoFreeWill(InitEntities.MAID.get(), new net.minecraft.core.BlockPos(1, 1, 1));
         maid.setNoAi(true);
