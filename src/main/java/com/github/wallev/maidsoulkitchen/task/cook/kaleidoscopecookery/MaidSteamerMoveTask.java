@@ -140,7 +140,7 @@ final class MaidSteamerMoveTask extends MaidCheckRateTask {
     }
 
     private static RecipeFilterData filter(EntityMaid maid) {
-        return maid.getOrCreateData(DataRegister.KC_STEAMER, RecipeFilterData.DEFAULT);
+        return com.github.wallev.maidsoulkitchen.entity.data.inner.task.KitchenData.getSteamerFilter(maid);
     }
 
     /*

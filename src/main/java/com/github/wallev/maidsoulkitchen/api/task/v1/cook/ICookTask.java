@@ -150,6 +150,10 @@ public interface ICookTask<B extends BlockEntity, R extends Recipe<? extends Rec
         return new CookData();
     }
 
+    @Override
+    default CookData getTaskData(EntityMaid maid) {
+        return com.github.wallev.maidsoulkitchen.entity.data.inner.task.KitchenData.get(maid, this);
+    }
     default NonNullList<Ingredient> getIngredients(Recipe<?> recipe) {
         return recipe.getIngredients();
     }

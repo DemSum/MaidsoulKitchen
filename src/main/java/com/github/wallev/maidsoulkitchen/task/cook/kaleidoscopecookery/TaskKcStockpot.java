@@ -44,13 +44,13 @@ public final class TaskKcStockpot implements ICookTargetTask {
     }
     @Override public MenuProvider getTaskConfigGuiProvider(EntityMaid maid) {
         // The persisted flag is only a server snapshot for the menu; the global config owns permission.
-        if (!maid.level().isClientSide) maid.setAndSyncData(DataRegister.KC_STOCKPOT, settings(maid));
+        if (!maid.level().isClientSide) com.github.wallev.maidsoulkitchen.entity.data.inner.task.KitchenData.sync(maid);
         return new SimpleMenuProvider((id, inventory, player) ->
                 new StockpotRecipeFilterContainer(id, inventory, maid.getId()), getName());
     }
 
     static StockpotTaskData settings(EntityMaid maid) {
-        var stored = maid.getOrCreateData(DataRegister.KC_STOCKPOT, StockpotTaskData.DEFAULT);
+        var stored = com.github.wallev.maidsoulkitchen.entity.data.inner.task.KitchenData.getStockpotSettings(maid);
         return new StockpotTaskData(stored.filter(),
                 com.github.wallev.maidsoulkitchen.config.subconfig.TaskConfig.EXPERIMENTAL_FEATURES.get());
     }

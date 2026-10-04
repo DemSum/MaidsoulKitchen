@@ -19,7 +19,7 @@ public final class StockpotRecipeFilterContainer extends TaskConfigContainer {
     public StockpotTaskData getSettings() {
         EntityMaid maid = getMaid();
         return maid == null ? StockpotTaskData.DEFAULT
-                : maid.getOrCreateData(DataRegister.KC_STOCKPOT, StockpotTaskData.DEFAULT);
+                : com.github.wallev.maidsoulkitchen.entity.data.inner.task.KitchenData.getStockpotSettings(maid);
     }
     public List<RecipeOption> getRecipeOptions() {
         return getMaid() == null ? List.of()

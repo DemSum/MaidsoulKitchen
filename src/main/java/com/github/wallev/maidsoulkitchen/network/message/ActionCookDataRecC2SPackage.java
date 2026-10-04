@@ -51,9 +51,9 @@ public record ActionCookDataRecC2SPackage(int entityId, ResourceLocation dataKey
                         && cookTask.getRecipeHolders(maid.level).stream().anyMatch(holder -> holder.id().equals(recipeId))) {
                     TaskDataKey<CookData> value = TaskDataRegister.getValue(message.dataKey);
                     if (value == null || value != cookTask.getCookDataKey()) return;
-                    CookData cookData = maid.getOrCreateData(value, new CookData());
+                    CookData cookData = cookTask.getTaskData(maid);
                     cookData.addOrRemoveRec(message.rec, message.mode);
-                    maid.setAndSyncData(value, cookData);
+                    com.github.wallev.maidsoulkitchen.entity.data.inner.task.KitchenData.sync(maid);
                 }
             });
         }

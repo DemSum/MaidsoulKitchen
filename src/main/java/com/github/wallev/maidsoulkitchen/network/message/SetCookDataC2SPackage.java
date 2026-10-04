@@ -49,9 +49,9 @@ public record SetCookDataC2SPackage(int entityId, ResourceLocation dataKey, Stri
                         && cookTask.getCookDataKey().getKey().equals(message.dataKey)) {
                     TaskDataKey<CookData> value = TaskDataRegister.getValue(message.dataKey);
                     if (value == null || value != cookTask.getCookDataKey()) return;
-                    CookData cookData = maid.getOrCreateData(value, new CookData());
+                    CookData cookData = cookTask.getTaskData(maid);
                     cookData.setMode(message.mode);
-                    maid.setAndSyncData(value, cookData);
+                    com.github.wallev.maidsoulkitchen.entity.data.inner.task.KitchenData.sync(maid);
                 }
             });
         }

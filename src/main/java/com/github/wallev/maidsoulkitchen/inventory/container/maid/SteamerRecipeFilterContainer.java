@@ -34,7 +34,7 @@ public final class SteamerRecipeFilterContainer extends TaskConfigContainer {
         EntityMaid maid = getMaid();
         return maid == null
                 ? RecipeFilterData.DEFAULT
-                : maid.getOrCreateData(DataRegister.KC_STEAMER, RecipeFilterData.DEFAULT);
+                : com.github.wallev.maidsoulkitchen.entity.data.inner.task.KitchenData.getSteamerFilter(maid);
     }
 
     public int getMaidEntityId() {

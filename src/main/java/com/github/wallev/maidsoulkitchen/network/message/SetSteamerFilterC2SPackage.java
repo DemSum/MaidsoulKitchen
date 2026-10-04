@@ -87,7 +87,7 @@ public record SetSteamerFilterC2SPackage(int maidId, RecipeFilterData filter) im
                 sanitize(payload.filter().whitelist(), knownRecipes),
                 sanitize(payload.filter().blacklist(), knownRecipes)
         );
-        maid.setAndSyncData(DataRegister.KC_STEAMER, sanitized);
+        com.github.wallev.maidsoulkitchen.entity.data.inner.task.KitchenData.setFilter(maid, com.github.wallev.maidsoulkitchen.task.TaskInfo.KC_STEAMER.uid, sanitized);
     }
 
     static List<ResourceLocation> sanitize(

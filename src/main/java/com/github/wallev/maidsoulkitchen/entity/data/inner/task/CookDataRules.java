@@ -6,7 +6,8 @@ import java.util.List;
 
 /** Pure validation rules shared by serialized cooking data and server packet handling. */
 public final class CookDataRules {
-    public static final int MAX_FILTER_ENTRIES = 2048;
+    // Unified KitchenData must preserve existing KC filters accepted by its 4096-entry protocol.
+    public static final int MAX_FILTER_ENTRIES = 4096;
     public static final String WHITELIST = "whitelist";
     public static final String BLACKLIST = "blacklist";
 

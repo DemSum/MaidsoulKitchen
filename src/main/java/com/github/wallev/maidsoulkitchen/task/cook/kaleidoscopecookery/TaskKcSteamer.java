@@ -84,7 +84,7 @@ public final class TaskKcSteamer implements ICookTargetTask {
         try {
             storage.flushOutputs();
             BlockEntity blockEntity = level.getBlockEntity(pos);
-            RecipeFilterData filter = maid.getOrCreateData(DataRegister.KC_STEAMER, RecipeFilterData.DEFAULT);
+            RecipeFilterData filter = com.github.wallev.maidsoulkitchen.entity.data.inner.task.KitchenData.getSteamerFilter(maid);
             boolean worked = SteamerAdapter.inspect(blockEntity, level)
                     .filter(snapshot -> snapshot.accessible() && snapshot.covered())
                     .map(snapshot -> {

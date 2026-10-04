@@ -175,7 +175,7 @@ public final class StockpotGameTests {
                     rawAndStorageCases(helper, maids, maid, hub);
                     EntityMaid reuse = maid(helper, maids);
                     var reusePot = pot(helper, new BlockPos(5, 2, 4));
-                    reuse.setAndSyncData(DataRegister.KC_STOCKPOT, new StockpotTaskData(
+                    setSettings(reuse, new StockpotTaskData(
                             new RecipeFilterData(RecipeFilterData.Mode.WHITELIST, List.of(RETURNED_CARRIER), List.of()), false));
                     reuse.getMaidInv().setStackInSlot(0, new ItemStack(Items.WATER_BUCKET));
                     reuse.getMaidInv().setStackInSlot(1, new ItemStack(Items.MUSHROOM_STEW));
@@ -186,13 +186,13 @@ public final class StockpotGameTests {
                     navigationCases(helper, maids);
                     supply(maid, hub, new ItemStack(Items.WATER_BUCKET), new ItemStack(Items.APPLE),
                             new ItemStack(Items.WHEAT), new ItemStack(Items.BOWL, 2), lid.copy());
-                    maid.setAndSyncData(DataRegister.KC_STOCKPOT, new StockpotTaskData(
+                    setSettings(maid, new StockpotTaskData(
                             new RecipeFilterData(RecipeFilterData.Mode.WHITELIST, List.of(FLEX), List.of()), true));
                     TaskKcStockpot.workAt(maid, pos);
                     helper.assertTrue(pot.getStatus() == IStockpot.PUT_SOUP_BASE,
                             "global Flex off must override a legacy per-maid true flag and consume nothing");
                     experimental.set(true);
-                    maid.setAndSyncData(DataRegister.KC_STOCKPOT, new StockpotTaskData(
+                    setSettings(maid, new StockpotTaskData(
                             new RecipeFilterData(RecipeFilterData.Mode.WHITELIST, List.of(FLEX), List.of()), false));
                     helper.assertTrue(TaskKcStockpot.settings(maid).allowFlexRecipes()
                                     && TaskKcStockpot.settings(reuse).allowFlexRecipes(),
@@ -208,7 +208,7 @@ public final class StockpotGameTests {
                                             && CookInventoryTransactions.count(reuse.getAvailableBackpackInv(), stack -> stack.is(Items.BEETROOT_SOUP)) == 1
                                             && CookInventoryTransactions.count(reuse.getAvailableBackpackInv(), stack -> stack.is(Items.BOWL)) == 0,
                                     "returned carrier must be reused and consumed exactly once");
-                            maid.setAndSyncData(DataRegister.KC_STOCKPOT, StockpotTaskData.DEFAULT);
+                            setSettings(maid, StockpotTaskData.DEFAULT);
                             helper.setBlock(6, 1, 6, Blocks.CHEST);
                             var warehouse = (ChestBlockEntity) level.getBlockEntity(helper.absolutePos(new BlockPos(6, 1, 6)));
                             ItemCulinaryHub.actionModePos(hub, BagType.OUTPUT.name, warehouse.getBlockPos());
@@ -234,11 +234,15 @@ public final class StockpotGameTests {
         } catch (RuntimeException | Error error) { cleanup.run(); throw error; }
     }
 
+    private static void setSettings(EntityMaid maid, StockpotTaskData settings) {
+        com.github.wallev.maidsoulkitchen.entity.data.inner.task.KitchenData.setFilter(maid, com.github.wallev.maidsoulkitchen.task.TaskInfo.KC_STOCKPOT.uid, settings.filter());
+    }
+
     private static void rawAndStorageCases(GameTestHelper h, List<EntityMaid> maids, EntityMaid maid, ItemStack hub) {
         var level = h.getLevel();
         var raw = pot(h, new BlockPos(4, 2, 2));
         EntityMaid worker = maid(h, maids);
-        worker.setAndSyncData(DataRegister.KC_STOCKPOT, new StockpotTaskData(
+        setSettings(worker, new StockpotTaskData(
                 new RecipeFilterData(RecipeFilterData.Mode.WHITELIST, List.of(), List.of()), false));
         h.assertTrue(StockpotAdapter.soupBaseFor(new ItemStack(Items.WATER_BUCKET)).orElseThrow().equals(ModSoupBases.WATER),
                 "soup IDs must map through native item predicates");
@@ -372,7 +376,7 @@ public final class StockpotGameTests {
             worker.getMaidInv().setStackInSlot(4, hub);
             ItemCulinaryHub.actionModePos(hub, BagType.INGREDIENT.name, source.getBlockPos());
             source.setItem(0, new ItemStack(Items.CARROT, 9)); source.setItem(1, new ItemStack(Items.BOWL, 9));
-            worker.setAndSyncData(DataRegister.KC_STOCKPOT, settings);
+            setSettings(worker, settings);
             if (com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskInfo.FD_COOK_POT.canLoad()) {
                 var stove = net.minecraft.core.registries.BuiltInRegistries.BLOCK.getOptional(
                         ResourceLocation.parse("farmersdelight:stove")).orElseThrow();

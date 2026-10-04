@@ -10,6 +10,7 @@ import com.github.wallev.maidsoulkitchen.entity.data.inner.task.StockpotTaskData
 import com.github.wallev.maidsoulkitchen.task.TaskInfo;
 
 public final class DataRegister {
+    public static TaskDataKey<com.github.wallev.maidsoulkitchen.entity.data.inner.task.KitchenData> KITCHEN;
     public static TaskDataKey<BerryData> BERRY_FARM;
     public static TaskDataKey<FruitData> FRUIT_FARM;
     public static TaskDataKey<CookData> MC_FURNACE;
@@ -37,6 +38,7 @@ public final class DataRegister {
     }
 
     public static void init(TaskDataRegister data) {
+        KITCHEN = data.register(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("maidsoulkitchen", "cook"), com.github.wallev.maidsoulkitchen.entity.data.inner.task.KitchenData.CODEC);
         BERRY_FARM = data.register(TaskInfo.BERRY_FARM.uid, BerryData.CODEC);
         FRUIT_FARM = data.register(TaskInfo.FRUIT_FARM.uid, FruitData.CODEC);
 
