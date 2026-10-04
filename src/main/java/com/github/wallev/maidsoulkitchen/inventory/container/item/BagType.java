@@ -9,7 +9,7 @@ public enum BagType {
 
     /** Persisted legacy sections retained for 0.1.x item-data compatibility. */
     public static final BagType[] VALS = values();
-    /** The two categories exposed by the simplified official UI. */
+    /** The two categories exposed by the simplified official 0.1.4+ UI. */
     public static final BagType[] DISPLAY_VALS = {INGREDIENT, OUTPUT};
     /** Legacy internal sections that now form one logical input inventory. */
     public static final BagType[] INPUT_VALS = {INGREDIENT, START_ADDITION, INGREDIENT_ADDITION, OUTPUT_ADDITION};
