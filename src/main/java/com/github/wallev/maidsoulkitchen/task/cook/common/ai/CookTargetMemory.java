@@ -43,6 +43,10 @@ public final class CookTargetMemory {
         BlockPos immutableWalkPos = walkPos.immutable();
         BlockPos immutableWorkPos = workPos.immutable();
 
+        // Adapt 1.20.1 MemoryUtil.rememberWorkPos's exclusive cooking assignment:
+        // TLM 1.5.3's edible use goal ignores enableEating and can erase TARGET_POS
+        // when WORK_POS differs from WALK_POS. Revoke its stale action before assigning work.
+        brain.eraseMemory(InitEntities.MAID_EDIBLE_BLOCK_ACTION.get());
         brain.setMemory(MemoryModuleType.WALK_TARGET,
                 new WalkTarget(immutableWalkPos, speed, closeEnoughDistance));
         brain.setMemory(MemoryModuleType.LOOK_TARGET, new BlockPosTracker(immutableWorkPos));

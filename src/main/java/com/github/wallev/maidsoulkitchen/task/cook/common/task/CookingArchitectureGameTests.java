@@ -33,6 +33,29 @@ import java.util.Map;
 /** Native registry tests: ordinary JUnit cannot initialize Minecraft recipes/components or TLM data keys. */
 @PrefixGameTestTemplate(false)
 public final class CookingArchitectureGameTests {
+    @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID, batch = "cooking_architecture")
+    public static void nativeEdibleGoalCannotRevokeCookingSideTarget(GameTestHelper helper) {
+        var maid = helper.spawnWithNoFreeWill(InitEntities.MAID.get(), new net.minecraft.core.BlockPos(1, 1, 1));
+        maid.setNoAi(true);
+        try {
+            maid.setTask(new com.github.wallev.maidsoulkitchen.task.cook.minecraft.furnace.TaskFurnace());
+            var work = helper.absolutePos(new net.minecraft.core.BlockPos(4, 1, 4));
+            helper.setBlock(new net.minecraft.core.BlockPos(4, 1, 4), net.minecraft.world.level.block.Blocks.FURNACE);
+            // TLM's edible scan leaves this action even when it found no food destination.
+            maid.getBrain().setMemory(InitEntities.MAID_EDIBLE_BLOCK_ACTION.get(),
+                    com.github.tartaricacid.touhoulittlemaid.entity.ai.edible.MaidEdibleBlockAction.TRY_STEAL);
+            com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookTargetMemory.remember(maid, work.west(), work, 0.5f, 0);
+            var edible = new com.github.tartaricacid.touhoulittlemaid.entity.ai.brain.task.MaidStealEdibleUseTask(2.0);
+            helper.assertTrue(!edible.tryStart(helper.getLevel(), maid, helper.getLevel().getGameTime()),
+                    "native edible goal must not start during cooking");
+            helper.assertTrue(com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookTargetMemory.hasValidWorkTarget(
+                    helper.getLevel(), maid, entity -> entity instanceof net.minecraft.world.level.block.entity.FurnaceBlockEntity),
+                    "native TLM edible goal must not erase the real device target because its reachable side differs");
+        } finally {
+            com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookTargetMemory.clear(maid); maid.discard();
+        }
+        helper.succeed();
+    }
     private static ResourceLocation id(String name) { return ResourceLocation.fromNamespaceAndPath(MaidsoulKitchen.MOD_ID, name); }
 
     @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID, batch = "cooking_architecture")
