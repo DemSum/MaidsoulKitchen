@@ -22,16 +22,23 @@ public class MaidInventory extends IMaidCookInventory {
     private final Map<Item, Integer> inventoryItem = new HashMap<>();
     private final Map<Item, List<ItemStack>> inventoryStack = new HashMap<>();
     private final List<ItemStack> lastInvStack = new ArrayList<>();
-    private CombinedInvWrapper inv;
+    private IItemHandlerModifiable inv;
+    private final boolean includeHands;
 
     public MaidInventory(EntityMaid maid) {
+        this(maid, true);
+    }
+    /** Verified KC direct-LivingEntity interactions borrow the main hand temporarily. Keep that
+     * physical equipment outside the device's source/destination view, as the old KC Storage did. */
+    public MaidInventory(EntityMaid maid, boolean includeHands) {
         super(maid);
+        this.includeHands = includeHands;
         this.initInvData();
     }
 
     @Override
     protected void initInvData() {
-        this.inv = maid.getAvailableInv(true);
+        this.inv = includeHands ? maid.getAvailableInv(true) : maid.getAvailableBackpackInv();
     }
 
     public void refreshInv() {

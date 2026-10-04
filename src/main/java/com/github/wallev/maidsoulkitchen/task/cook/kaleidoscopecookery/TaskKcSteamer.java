@@ -20,6 +20,16 @@ public final class TaskKcSteamer extends ICookTask<SteamerBlockEntity, SteamerRe
     @Override protected CookBeBase<SteamerBlockEntity> createCookBe(EntityMaid maid) { return new SteamerBe(maid); }
     @Override protected AbstractCookRule<SteamerBlockEntity, SteamerRecipe> createCookRule() { return SteamerCookRule.INSTANCE; }
     @Override protected RecSerializerManager<SteamerRecipe> createRecSerializerManager() { return SteamerRecSerializerManager.INSTANCE; }
+    /** Preserve the old native KC backpack view: takeFood temporarily owns the main hand.
+     * Including that hand in its output view would overwrite an inserted result on restoration. */
+    @Override protected com.github.wallev.maidsoulkitchen.task.cook.common.manager.MaidCookManager<SteamerRecipe> createRecipesManager(EntityMaid maid, CookBeBase<SteamerBlockEntity> be) {
+        return new com.github.wallev.maidsoulkitchen.task.cook.common.manager.MaidCookManager<>(recSerializerManager, maid, this) {
+            @Override protected com.github.wallev.maidsoulkitchen.task.cook.common.inv.maid.IMaidCookInventory createCookInventory(ItemStack hub) {
+                return hub.isEmpty() ? new com.github.wallev.maidsoulkitchen.task.cook.common.inv.maid.MaidInventory(maid, false)
+                        : new com.github.wallev.maidsoulkitchen.task.cook.common.inv.maid.MaidCookBagInventory(maid, hub);
+            }
+        };
+    }
     @Override public ResourceLocation getUid() { return com.github.wallev.maidsoulkitchen.task.TaskInfo.KC_STEAMER.uid; }
     @Override public ItemStack getIcon() { return ModItems.STEAMER.get().getDefaultInstance(); }
     @Override public boolean isCookBE(net.minecraft.world.level.block.entity.BlockEntity be) { return SteamerAdapter.supports(be); }

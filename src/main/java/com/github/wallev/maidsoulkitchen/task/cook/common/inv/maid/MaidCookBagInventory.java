@@ -23,6 +23,7 @@ import java.util.Map;
  */
 public class MaidCookBagInventory extends IMaidCookInventory {
     private final ItemStack stack;
+    private final boolean includeBackpack;
     private final Map<Item, Integer> inventoryItem = new HashMap<>();
     private final Map<Item, List<ItemStack>> inventoryStack = new HashMap<>();
     private final List<ItemStack> lastInvStack = new ArrayList<>();
@@ -34,8 +35,14 @@ public class MaidCookBagInventory extends IMaidCookInventory {
     private CompoundTag lastSerializedContainers;
 
     public MaidCookBagInventory(EntityMaid maid, ItemStack stack) {
+        this(maid, stack, false);
+    }
+    /** Verified KC hub + backpack input view, moved from StockpotWorkStorage. Both components
+     * are physical inventory views tracked and synchronized by the same manager-owned cookInv. */
+    public MaidCookBagInventory(EntityMaid maid, ItemStack stack, boolean includeBackpack) {
         super(maid);
         this.stack = stack;
+        this.includeBackpack = includeBackpack;
         this.initInvData();
     }
 
@@ -46,6 +53,7 @@ public class MaidCookBagInventory extends IMaidCookInventory {
 
 
         IItemHandlerModifiable inputInv = logicalInput(containers);
+        if (includeBackpack) inputInv = new CombinedInvWrapper(inputInv, maid.getAvailableBackpackInv());
         Map<BagType, IItemHandlerModifiable> itemStackHandlers = new HashMap<>();
         for (BagType inputBagType : BagType.INPUT_VALS) {
             itemStackHandlers.put(inputBagType, inputInv);

@@ -8,7 +8,9 @@ import com.github.wallev.maidsoulkitchen.task.cook.common.inv.item.ItemDefinitio
  * No CODEC: runtime queues rebuild after load. P2 removes beta live inventory stack references.
  */
 public record MaidItem(ItemDefinition item, int count, Role role) {
-    public enum Role { INGREDIENT, TOOL, CONTAINER, FUEL, OIL, WATER, FLUID }
+    /** KC half-pot native contents are immutable work preconditions, never input reservations.
+     * No 1.20 device had this state; this replaces Plan snapshots inside the sole MaidRec. */
+    public enum Role { INGREDIENT, TOOL, CONTAINER, FUEL, OIL, WATER, FLUID, DEVICE_INPUT }
     public static final MaidItem EMPTY = new MaidItem(ItemDefinition.EMPTY, 0, Role.INGREDIENT);
     public MaidItem(ItemDefinition item, int count) { this(item, count, Role.INGREDIENT); }
     public MaidItem {

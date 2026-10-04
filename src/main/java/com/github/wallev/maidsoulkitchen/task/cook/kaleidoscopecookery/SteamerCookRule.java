@@ -15,7 +15,7 @@ public final class SteamerCookRule extends AbstractCookRule<SteamerBlockEntity, 
     public static final SteamerCookRule INSTANCE = new SteamerCookRule();
     @Override public boolean canMoveTo(CookBeBase<SteamerBlockEntity> device, MaidCookManager<SteamerRecipe> cm) {
         var be = (SteamerBe) device;
-        if (be.hasResult()) return CookInventoryTransactions.canFitAll(cm.getOutputInv(), be.snapshot().items());
+        if (be.hasResult()) return cm.canAcceptNativeResults(be.snapshot().items());
         return be.cookStateMatch() && cm.hasMaidRecs(be);
     }
     @Override public void cookMake(CookBeBase<SteamerBlockEntity> device, MaidCookManager<SteamerRecipe> cm) {

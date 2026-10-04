@@ -48,6 +48,58 @@ public final class StockpotGameTests {
     private static final ResourceLocation RETURNED_CARRIER = id("test_stockpot_returned_carrier");
     private static ResourceLocation id(String name) { return ResourceLocation.fromNamespaceAndPath(MaidsoulKitchen.MOD_ID, name); }
 
+    @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID, batch = "cooking_architecture")
+    public static void halfPotUsesOnlyMissingComponentsAndRevokesEditedConditions(GameTestHelper h) {
+        var level = h.getLevel(); var recipes = level.getRecipeManager(); var original = List.copyOf(recipes.getRecipes());
+        List<EntityMaid> maids = new ArrayList<>();
+        try {
+            var holder = new RecipeHolder<>(id("half_pot_components"), new StockpotRecipe(ingredients(Items.CARROT, Items.POTATO), ModSoupBases.WATER,
+                    new ItemStack(Items.BEETROOT_SOUP, 2), 20, Ingredient.of(Items.BOWL), StockpotVisuals.DEFAULT));
+            recipes.replaceRecipes(List.of(holder)); com.github.wallev.maidsoulkitchen.task.cook.common.task.CookTaskManager.recipesReloaded();
+            var maid = maid(h, maids); var task = (TaskKcStockpot) maid.getTask();
+            setSettings(maid, new StockpotTaskData(new RecipeFilterData(RecipeFilterData.Mode.WHITELIST, List.of(holder.id()), List.of()), false));
+            var nativeBe = pot(h, new BlockPos(2, 2, 2));
+            StockpotAdapter.addSoupBase(nativeBe, level, maid, new ItemStack(Items.WATER_BUCKET)); maid.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+            var existing = new ItemStack(Items.CARROT); existing.set(net.minecraft.core.component.DataComponents.CUSTOM_NAME, net.minecraft.network.chat.Component.literal("existing native half pot"));
+            StockpotAdapter.addIngredient(nativeBe, level, maid, existing.copy());
+            maid.getMaidBauble().setStackInSlot(0, MkItems.CULINARY_HUB.get().getDefaultInstance());
+            var cm = task.getRecipesManager(maid); cm.checkAndInit(); var input = cm.getInputInv();
+            var lid = ModItems.STOCKPOT_LID.get().getDefaultInstance(); lid.setDamageValue(23);
+            input.setStackInSlot(0, lid.copy()); input.setStackInSlot(1, new ItemStack(Items.BOWL, 2)); cm.syncInv(); finishPlanning(cm);
+            var be = new StockpotBe(maid); be.setBe(nativeBe);
+            h.assertTrue(cm.peekMaidRec(be) == null && !be.canTakeInputs(cm) && nativeBe.getInputs().stream().filter(stack -> !stack.isEmpty()).count() == 1,
+                    "a missing half-pot ingredient must wait without removing its existing native material");
+            var missing = new ItemStack(Items.POTATO); missing.set(net.minecraft.core.component.DataComponents.CUSTOM_NAME, net.minecraft.network.chat.Component.literal("missing component material"));
+            input.setStackInSlot(2, missing.copy()); cm.syncInv(); finishPlanning(cm); var work = cm.peekMaidRec(be);
+            h.assertTrue(work != null && work.maidItems().stream().filter(item -> item.role() == com.github.wallev.maidsoulkitchen.task.cook.common.rule.rec.MaidItem.Role.INGREDIENT)
+                    .mapToInt(item -> item.count()).sum() == 1 && work.maidItems().stream().anyMatch(item -> item.role() == com.github.wallev.maidsoulkitchen.task.cook.common.rule.rec.MaidItem.Role.DEVICE_INPUT && item.item().is(existing)),
+                    "MaidRec must reserve exactly the one missing component and retain the native half-pot condition");
+            var actualExisting = nativeBe.getInputs().stream().filter(stack -> !stack.isEmpty()).findFirst().orElseThrow();
+            actualExisting.set(net.minecraft.core.component.DataComponents.CUSTOM_NAME, net.minecraft.network.chat.Component.literal("player changed input"));
+            h.assertTrue(cm.peekMaidRec(be) == null && !be.insertInputs(work, cm) && input.getStackInSlot(2).getCount() == 1,
+                    "component-only edits to the native half pot must revoke stale work before consuming a missing ingredient");
+            actualExisting.set(net.minecraft.core.component.DataComponents.CUSTOM_NAME, existing.get(net.minecraft.core.component.DataComponents.CUSTOM_NAME));
+            finishPlanning(cm); work = cm.peekMaidRec(be);
+            var refused = new ItemStackHandler(1) {
+                @Override public ItemStack extractItem(int slot, int amount, boolean simulate) { return simulate ? super.extractItem(slot, amount, true) : ItemStack.EMPTY; }
+            }; refused.setStackInSlot(0, missing.copy()); int[] nativeCalls = {0};
+            h.assertTrue(!cm.useNativeItem(new com.github.wallev.maidsoulkitchen.task.cook.common.manager.GatherResult(refused, 0), cm.getInputInv(), work, false,
+                    stack -> { nativeCalls[0]++; return StockpotAdapter.addIngredient(nativeBe, level, maid, stack); }) && nativeCalls[0] == 0 && refused.getStackInSlot(0).getCount() == 1,
+                    "real extraction refusal must not reach KC or copy its native effect");
+            for (int slot=0; slot<cm.getOutputInv().getSlots(); slot++) cm.getOutputInv().setStackInSlot(slot, new ItemStack(Items.DIRT, 64));
+            h.assertTrue(!be.insertInputs(work, cm) && !nativeBe.hasLid() && input.getStackInSlot(2).getCount() == 1,
+                    "a full output buffer must preserve the actual half pot, lid and missing component");
+            for (int slot=0; slot<cm.getOutputInv().getSlots(); slot++) cm.getOutputInv().setStackInSlot(slot, ItemStack.EMPTY);
+            h.assertTrue(be.insertInputs(work, cm) && cm.commitMaidRec(work) && cm.getMaidRecs().isEmpty() && nativeBe.hasLid()
+                    && nativeBe.getLidItem().getDamageValue() == 23 && nativeBe.getInputs().stream().filter(stack -> !stack.isEmpty()).count() == 2
+                    && nativeBe.getInputs().stream().anyMatch(stack -> ItemStack.isSameItemSameComponents(stack, existing))
+                    && nativeBe.getInputs().stream().anyMatch(stack -> ItemStack.isSameItemSameComponents(stack, missing))
+                    && input.getStackInSlot(2).isEmpty() && CookInventoryTransactions.count(input, stack -> stack.is(Items.BOWL)) == 2,
+                    "native cover must acknowledge the completed half pot once, preserve components, and keep carriers for actual serving");
+        } finally { recipes.replaceRecipes(original); com.github.wallev.maidsoulkitchen.task.cook.common.task.CookTaskManager.recipesReloaded(); maids.forEach(EntityMaid::discard); }
+        h.succeed();
+    }
+
     @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID, timeoutTicks = 160)
     public static void transactionsAndLifecycle(GameTestHelper helper) {
         var level = helper.getLevel();
@@ -107,35 +159,33 @@ public final class StockpotGameTests {
             maid.getMaidInv().setStackInSlot(4, hub);
             supply(maid, hub, new ItemStack(Items.WATER_BUCKET), new ItemStack(Items.CARROT),
                     new ItemStack(Items.POTATO), new ItemStack(Items.BOWL, 2));
-            TaskKcStockpot.workAt(maid, pos);
+            workAt(maid, pos);
             helper.assertTrue(pot.getStatus() == IStockpot.PUT_SOUP_BASE, "missing lid must not pour soup");
             ItemStack lid = ModItems.STOCKPOT_LID.get().getDefaultInstance();
             lid.setDamageValue(17);
             var storage = CulinaryHubWorkStorage.open(maid).orElseThrow();
             CookInventoryTransactions.insertAll(storage.ingredients(), lid.copy()); storage.sync();
             helper.setBlock(2, 1, 2, Blocks.AIR);
-            TaskKcStockpot.workAt(maid, pos);
+            workAt(maid, pos);
             helper.assertTrue(pot.getStatus() == IStockpot.PUT_SOUP_BASE, "missing heat must leave all supplies intact");
             helper.setBlock(2, 1, 2, Blocks.CAMPFIRE);
             maid.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Items.IRON_SWORD));
             var before = StockpotAdapter.inspect(pot, level).orElseThrow();
-            var debugStorage = new StockpotWorkStorage(maid);
+            var debugStorage = ((TaskKcStockpot) maid.getTask()).getRecipesManager(maid); debugStorage.checkAndInit();
             var noFoodRecipes = new StockpotTaskData(new RecipeFilterData(RecipeFilterData.Mode.WHITELIST,
                     List.of(), List.of()), false);
-            var unusedFood = new StockpotRecipePlanner(level, noFoodRecipes, List.of());
-            helper.assertTrue(!unusedFood.retain(new ItemStack(Items.MUSHROOM_STEW)) && unusedFood.retain(lid),
+            var unusedFood = StockpotRecSerializerManager.INSTANCE;
+            helper.assertTrue(!unusedFood.retain(new ItemStack(Items.MUSHROOM_STEW), level, noFoodRecipes) && unusedFood.retain(lid, level, noFoodRecipes),
                     "nonstackable unused meals must not be classified as reusable lids or tools");
             ResourceLocation duplicate = id("test_stockpot_overlap");
             manager.replaceRecipes(List.of(new RecipeHolder<>(NORMAL, ordinary), new RecipeHolder<>(duplicate, ordinary),
                     new RecipeHolder<>(FLEX, flex)));
-            helper.assertTrue(new StockpotRecipePlanner(level, StockpotTaskData.DEFAULT, debugStorage.available()).plan(before).outcome()
-                            == StockpotRecipePlanner.Outcome.READY, "synthetic overlapping allowed recipes must remain usable");
+            helper.assertTrue(plan(level, StockpotTaskData.DEFAULT, stacks(debugStorage.getInputInv()), before, pot) != null, "synthetic overlapping allowed recipes must remain usable");
             var onlyNormal = new StockpotTaskData(new RecipeFilterData(RecipeFilterData.Mode.WHITELIST,
                     List.of(NORMAL), List.of()), false);
-            helper.assertTrue(new StockpotRecipePlanner(level, onlyNormal, debugStorage.available()).plan(before).outcome()
-                            == StockpotRecipePlanner.Outcome.UNCERTAIN, "synthetic allowed/forbidden ambiguity must not clear raw ingredients");
+            helper.assertTrue(plan(level, onlyNormal, stacks(debugStorage.getInputInv()), before, pot) == null, "synthetic allowed/forbidden ambiguity must not clear raw ingredients");
             manager.replaceRecipes(fixtures);
-            TaskKcStockpot.workAt(maid, pos);
+            workAt(maid, pos);
             helper.assertTrue(pot.hasLid() && pot.getStatus() == IStockpot.PUT_INGREDIENT, "ordinary plan must load and cover");
             helper.assertTrue(pot.getLidItem().getDamageValue() == 17, "cover must preserve actual lid components");
             helper.assertTrue(maid.getMainHandItem().is(Items.IRON_SWORD), "original main hand must be restored");
@@ -152,18 +202,18 @@ public final class StockpotGameTests {
                     var live = CulinaryHubWorkStorage.open(maid).orElseThrow();
                     for (int slot = 0; slot < live.ingredients().getSlots(); slot++) live.ingredients().setStackInSlot(slot, new ItemStack(Items.DIRT, 64));
                     live.sync();
-                    TaskKcStockpot.workAt(maid, pos);
+                    workAt(maid, pos);
                     helper.assertTrue(pot.hasLid() && pot.getTakeoutCount() == 2, "full input must prevent uncovering");
                     supply(maid, hub, new ItemStack(Items.BOWL, 2));
                     live = CulinaryHubWorkStorage.open(maid).orElseThrow();
                     for (int slot = 0; slot < live.outputs().getSlots(); slot++) live.outputs().setStackInSlot(slot, new ItemStack(Items.DIRT, 64));
                     live.sync();
-                    TaskKcStockpot.workAt(maid, pos);
+                    workAt(maid, pos);
                     helper.assertTrue(pot.hasLid() && pot.getTakeoutCount() == 2, "full output must preserve finished pot");
                     live = CulinaryHubWorkStorage.open(maid).orElseThrow();
                     for (int slot = 0; slot < live.outputs().getSlots(); slot++) live.outputs().setStackInSlot(slot, ItemStack.EMPTY);
                     live.sync();
-                    TaskKcStockpot.workAt(maid, pos);
+                    workAt(maid, pos);
                     live = CulinaryHubWorkStorage.open(maid).orElseThrow();
                     helper.assertTrue(pot.getStatus() == IStockpot.PUT_SOUP_BASE && !pot.hasLid(), "last serving must reset native state");
                     helper.assertTrue(CookInventoryTransactions.count(live.outputs(), stack -> stack.is(Items.BEETROOT_SOUP)) == 2,
@@ -180,7 +230,7 @@ public final class StockpotGameTests {
                     reuse.getMaidInv().setStackInSlot(0, new ItemStack(Items.WATER_BUCKET));
                     reuse.getMaidInv().setStackInSlot(1, new ItemStack(Items.MUSHROOM_STEW));
                     reuse.getMaidInv().setStackInSlot(2, lid.copy());
-                    TaskKcStockpot.workAt(reuse, reusePot.getBlockPos());
+                    workAt(reuse, reusePot.getBlockPos());
                     helper.assertTrue(reusePot.hasLid() && CookInventoryTransactions.count(reuse.getAvailableBackpackInv(),
                             stack -> stack.is(Items.BOWL)) == 1, "native ingredient return must supply the carrier without an extra empty bowl");
                     navigationCases(helper, maids);
@@ -188,7 +238,7 @@ public final class StockpotGameTests {
                             new ItemStack(Items.WHEAT), new ItemStack(Items.BOWL, 2), lid.copy());
                     setSettings(maid, new StockpotTaskData(
                             new RecipeFilterData(RecipeFilterData.Mode.WHITELIST, List.of(FLEX), List.of()), true));
-                    TaskKcStockpot.workAt(maid, pos);
+                    workAt(maid, pos);
                     helper.assertTrue(pot.getStatus() == IStockpot.PUT_SOUP_BASE,
                             "global Flex off must override a legacy per-maid true flag and consume nothing");
                     experimental.set(true);
@@ -197,13 +247,13 @@ public final class StockpotGameTests {
                     helper.assertTrue(TaskKcStockpot.settings(maid).allowFlexRecipes()
                                     && TaskKcStockpot.settings(reuse).allowFlexRecipes(),
                             "one global experimental switch must apply to both maids regardless of legacy flags");
-                    TaskKcStockpot.workAt(maid, pos);
+                    workAt(maid, pos);
                     helper.assertTrue(pot.hasLid(), "enabled native Flex plan must load and cover");
                     experimental.set(false);
                     helper.runAfterDelay(30, () -> {
                         try {
                             helper.assertTrue(pot.getStatus() == IStockpot.FINISHED, "Flex native ticking must finish");
-                            TaskKcStockpot.workAt(reuse, reusePot.getBlockPos());
+                            workAt(reuse, reusePot.getBlockPos());
                             helper.assertTrue(reusePot.getStatus() == IStockpot.PUT_SOUP_BASE
                                             && CookInventoryTransactions.count(reuse.getAvailableBackpackInv(), stack -> stack.is(Items.BEETROOT_SOUP)) == 1
                                             && CookInventoryTransactions.count(reuse.getAvailableBackpackInv(), stack -> stack.is(Items.BOWL)) == 0,
@@ -213,11 +263,11 @@ public final class StockpotGameTests {
                             var warehouse = (ChestBlockEntity) level.getBlockEntity(helper.absolutePos(new BlockPos(6, 1, 6)));
                             ItemCulinaryHub.actionModePos(hub, BagType.OUTPUT.name, warehouse.getBlockPos());
                             for (int slot = 0; slot < warehouse.getContainerSize(); slot++) warehouse.setItem(slot, new ItemStack(Items.DIRT, 64));
-                            TaskKcStockpot.workAt(maid, pos);
+                            workAt(maid, pos);
                             helper.assertTrue(pot.hasLid() && pot.getStatus() == IStockpot.FINISHED,
                                     "full bound output warehouse must preserve the lid and servings");
                             for (int slot = 0; slot < warehouse.getContainerSize(); slot++) warehouse.setItem(slot, ItemStack.EMPTY);
-                            TaskKcStockpot.workAt(maid, pos);
+                            workAt(maid, pos);
                             helper.assertTrue(pot.getStatus() == IStockpot.PUT_SOUP_BASE,
                                     "finished Flex must collect even after disabling the option: " + StockpotAdapter.inspect(pot, level));
                             helper.assertTrue(CookInventoryTransactions.count(ItemCulinaryHub.getBeInv(level, warehouse),
@@ -252,10 +302,10 @@ public final class StockpotGameTests {
         worker.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
         StockpotAdapter.addIngredient(raw, level, worker, new ItemStack(Items.MUSHROOM_STEW));
         worker.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
-        TaskKcStockpot.workAt(worker, raw.getBlockPos());
+        workAt(worker, raw.getBlockPos());
         h.assertTrue(!raw.isEmpty(), "raw container shortage must preserve input");
         worker.getMaidInv().setStackInSlot(0, new ItemStack(Items.BOWL));
-        TaskKcStockpot.workAt(worker, raw.getBlockPos());
+        workAt(worker, raw.getBlockPos());
         h.assertTrue(raw.isEmpty() && raw.getStatus() == IStockpot.PUT_INGREDIENT && raw.getSoupBaseId().equals(ModSoupBases.WATER),
                 "unsatisfiable raw ingredients must return while retaining soup");
         h.assertTrue(CookInventoryTransactions.count(worker.getAvailableBackpackInv(), stack -> stack.is(Items.MUSHROOM_STEW)) == 1,
@@ -264,12 +314,12 @@ public final class StockpotGameTests {
         StockpotAdapter.addSoupBase(hot, level, worker, new ItemStack(Items.LAVA_BUCKET));
         worker.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
         StockpotAdapter.addIngredient(hot, level, worker, new ItemStack(Items.CARROT));
-        TaskKcStockpot.workAt(worker, hot.getBlockPos());
+        workAt(worker, hot.getBlockPos());
         h.assertTrue(!hot.isEmpty(), "hot raw retrieval without protection must wait");
         ItemStack protection = MkItems.BURN_PROTECT_BAUBLE.get().getDefaultInstance();
         worker.getMaidBauble().setStackInSlot(0, protection);
         float health = worker.getHealth();
-        TaskKcStockpot.workAt(worker, hot.getBlockPos());
+        workAt(worker, hot.getBlockPos());
         h.assertTrue(hot.isEmpty() && worker.getHealth() == health && protection.getDamageValue() == 1,
                 "existing native damage events must protect maid and charge exactly one durability");
         worker.removeAllEffects();
@@ -277,7 +327,7 @@ public final class StockpotGameTests {
         ItemStack fireProtection = com.github.tartaricacid.touhoulittlemaid.init.InitItems.FIRE_PROTECT_BAUBLE.get().getDefaultInstance();
         worker.getMaidBauble().setStackInSlot(0, fireProtection);
         StockpotAdapter.addIngredient(hot, level, worker, new ItemStack(Items.CARROT));
-        TaskKcStockpot.workAt(worker, hot.getBlockPos());
+        workAt(worker, hot.getBlockPos());
         h.assertTrue(hot.isEmpty() && worker.getHealth() == health && fireProtection.getDamageValue() == 1,
                 "TLM fire protection alone must allow native raw retrieval: empty=" + hot.isEmpty()
                         + ", health=" + worker.getHealth() + ", durability=" + fireProtection.getDamageValue());
@@ -356,19 +406,19 @@ public final class StockpotGameTests {
             var snapshot = StockpotAdapter.inspect(pot, level).orElseThrow();
             var settings = new StockpotTaskData(legacyFilter, false);
             ItemStack lid = ModItems.STOCKPOT_LID.get().getDefaultInstance();
-            var maximum = new StockpotRecipePlanner(level, settings,
-                    List.of(lid, new ItemStack(Items.CARROT, 9), new ItemStack(Items.BOWL, 9))).plan(snapshot);
-            h.assertTrue(maximum.outcome() == StockpotRecipePlanner.Outcome.READY
-                            && maximum.plan().recipeId().equals(id("batch_9")) && maximum.plan().additions().size() == 9,
+            var maximum = plan(level, settings,
+                    List.of(lid, new ItemStack(Items.CARROT, 9), new ItemStack(Items.BOWL, 9)), snapshot, pot);
+            h.assertTrue(maximum != null
+                            && maximum.recipeId().equals(id("batch_9")) && maximum.maidItems().stream().filter(item -> item.role() == com.github.wallev.maidsoulkitchen.task.cook.common.rule.rec.MaidItem.Role.INGREDIENT).mapToInt(item -> item.count()).sum() == 9,
                     "sufficient ingredients must prefer the largest batch");
-            var smaller = new StockpotRecipePlanner(level, settings,
-                    List.of(lid, new ItemStack(Items.CARROT, 4), new ItemStack(Items.BOWL, 9))).plan(snapshot);
-            h.assertTrue(smaller.outcome() == StockpotRecipePlanner.Outcome.READY
-                            && smaller.plan().recipeId().equals(id("batch_3")),
+            var smaller = plan(level, settings,
+                    List.of(lid, new ItemStack(Items.CARROT, 4), new ItemStack(Items.BOWL, 9)), snapshot, pot);
+            h.assertTrue(smaller != null
+                            && smaller.recipeId().equals(id("batch_3")),
                     "material shortage must choose the largest available smaller batch");
-            var missingCarriers = new StockpotRecipePlanner(level, settings,
-                    List.of(lid, new ItemStack(Items.CARROT, 9), new ItemStack(Items.BOWL, 1))).plan(snapshot);
-            h.assertTrue(missingCarriers.outcome() == StockpotRecipePlanner.Outcome.WAIT_SUPPLIES,
+            var missingCarriers = plan(level, settings,
+                    List.of(lid, new ItemStack(Items.CARROT, 9), new ItemStack(Items.BOWL, 1)), snapshot, pot);
+            h.assertTrue(missingCarriers == null,
                     "carrier shortage must not silently lower a fully supplied ingredient batch");
             h.setBlock(6, 1, 1, Blocks.CHEST);
             var source = (ChestBlockEntity) level.getBlockEntity(h.absolutePos(new BlockPos(6, 1, 1)));
@@ -389,7 +439,7 @@ public final class StockpotGameTests {
                 h.assertTrue(StockpotAdapter.inspect(pot, level).orElseThrow().heated(),
                         "lit FD stove must pass KC native heat check");
             }
-            var move = new MaidStockpotMoveTask();
+            var move = new TestStockpotMove(worker);
             move.start(level, worker, level.getGameTime());
             h.assertTrue(CookTargetMemory.getWorkPos(worker).isEmpty(),
                     "water and bound raw materials without a lid must not claim work");
@@ -397,7 +447,7 @@ public final class StockpotGameTests {
             move.start(level, worker, level.getGameTime());
             h.assertTrue(CookTargetMemory.getWorkPos(worker).orElseThrow().currentBlockPosition().equals(pot.getBlockPos()),
                     "a lid in the same bound input chest must make the water-filled pot selectable");
-            TaskKcStockpot.workAt(worker, pot.getBlockPos());
+            workAt(worker, pot.getBlockPos());
             h.assertTrue(pot.hasLid() && pot.getInputs().stream().filter(stack -> !stack.isEmpty()).count() == 9
                             && source.getItem(0).isEmpty() && source.getItem(2).isEmpty(),
                     "real stockpot task must take nine ingredients and one lid from bound input, then cover");
@@ -411,10 +461,17 @@ public final class StockpotGameTests {
     private static void navigationCases(GameTestHelper h, List<EntityMaid> maids) {
         var level = h.getLevel(); EntityMaid maid = maid(h, maids); EntityMaid other = maid(h, maids);
         h.setBlock(2, 1, 1, Blocks.STONE); h.setBlock(2, 2, 1, Blocks.STONE);
-        ItemStack[] resources = {new ItemStack(Items.WATER_BUCKET), new ItemStack(Items.CARROT),
-                new ItemStack(Items.POTATO), new ItemStack(Items.BOWL, 2), ModItems.STOCKPOT_LID.get().getDefaultInstance()};
+        // Unified planning reserves real resources per device. Supply two complete physical units
+        // before testing rotation between two eligible devices (two lids occupy separate slots).
+        ItemStack[] resources = {ItemStack.EMPTY, new ItemStack(Items.CARROT, 2),
+                new ItemStack(Items.POTATO, 2), new ItemStack(Items.BOWL, 4), ModItems.STOCKPOT_LID.get().getDefaultInstance(),
+                ModItems.STOCKPOT_LID.get().getDefaultInstance()};
         for (int slot = 0; slot < resources.length; slot++) maid.getMaidInv().setStackInSlot(slot, resources[slot]);
-        var move = new MaidStockpotMoveTask();
+        // Both nearby water-filled half pots need no bucket; one backpack slot stays free for output.
+        var secondReady = pot(h, new BlockPos(6, 2, 5));
+        StockpotAdapter.addSoupBase(secondReady, level, maid, new ItemStack(Items.WATER_BUCKET));
+        maid.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+        var move = new TestStockpotMove(maid);
         move.start(level, maid, level.getGameTime());
         BlockPos first = CookTargetMemory.getWorkPos(maid).orElseThrow().currentBlockPosition();
         BlockPos walk = maid.getBrain().getMemory(com.github.wallev.maidsoulkitchen.init.MkMemories.COOK_WALK_POS.get())
@@ -433,6 +490,53 @@ public final class StockpotGameTests {
         h.assertTrue(!CookTargetMemory.hasValidWorkTarget(level, maid, StockpotAdapter::supports),
                 "destroyed device must invalidate the assignment");
         CookWorkLocks.release(level, destroyed, maid); CookTargetMemory.clear(maid);
+    }
+
+    private static List<ItemStack> stacks(net.neoforged.neoforge.items.IItemHandler inventory) {
+        List<ItemStack> result = new ArrayList<>();
+        for (int slot=0; slot<inventory.getSlots(); slot++) if (!inventory.getStackInSlot(slot).isEmpty()) result.add(inventory.getStackInSlot(slot).copy());
+        return result;
+    }
+    private static com.github.wallev.maidsoulkitchen.task.cook.common.rule.rec.MaidRec plan(net.minecraft.world.level.Level level,
+            StockpotTaskData settings, List<ItemStack> available, StockpotAdapter.Snapshot snapshot, StockpotBlockEntity pot) {
+        var rsm = StockpotRecSerializerManager.INSTANCE;
+        for (var descriptor : rsm.forDevice(pot, level, settings)) {
+            var work = rsm.createWork(snapshot, level, settings, available, descriptor.candidates, pot,
+                    com.github.wallev.maidsoulkitchen.task.TaskInfo.KC_STOCKPOT.uid, 0);
+            if (work != null) return work;
+        }
+        return null;
+    }
+    private static void finishPlanning(com.github.wallev.maidsoulkitchen.task.cook.common.manager.MaidCookManager<?> cm) {
+        for (int retry=0; retry<12 && cm.getRunState()==0; retry++) cm.checkAndCreateRecipesIngredients();
+        for (int ticks=0; ticks<600 && cm.getRunState()>0; ticks++) {
+            if (cm.getRunState()==1) { cm.getChestInputInventory().tickScan(); if (cm.getChestInputInventory().done()) cm.startGenerateRecs(); }
+            else if (cm.getRunState()==2) { if (!cm.recsGenerateDone()) cm.tickGenerateRecs(); if (cm.recsGenerateDone()) cm.recsGenDoneAndUpdate(); }
+        }
+        if (cm.getRunState()!=0) throw new IllegalStateException("bounded stockpot planner did not finish");
+    }
+    /** Test driver invokes the production shared manager/Be/Rule, never the deleted KC workAt. */
+    private static void workAt(EntityMaid maid, BlockPos pos) {
+        // This fixture explicitly requests one pot among several independent cases. Restrict the
+        // source condition scan to that column; production Move remains free to choose its work.
+        var center = maid.getRestrictCenter(); var radius = (int) maid.getRestrictRadius(); var location = maid.position();
+        maid.restrictTo(pos, 1); maid.moveTo(pos.getX() + 0.5, pos.getY(), pos.getZ() - 0.5);
+        var task = (TaskKcStockpot) maid.getTask(); var cm = task.getRecipesManager(maid);
+        try { cm.checkAndInit(); finishPlanning(cm); }
+        finally { maid.restrictTo(center, radius); maid.moveTo(location.x, location.y, location.z); }
+        if (!(maid.level().getBlockEntity(pos) instanceof StockpotBlockEntity nativeBe)) return;
+        var be = new StockpotBe(maid); be.setBe(nativeBe);
+        StockpotCookRule.INSTANCE.cookMake(be, cm); cm.syncInv(); cm.itemOutput2Chest();
+    }
+    private static final class TestStockpotMove extends com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookMoveTask<StockpotBlockEntity,
+            net.minecraft.world.item.crafting.Recipe<StockpotInput>> {
+        TestStockpotMove(EntityMaid maid) { this((TaskKcStockpot) maid.getTask(), maid); }
+        private TestStockpotMove(TaskKcStockpot task, EntityMaid maid) {
+            super(task, task.getRecipesManager(maid), StockpotCookRule.INSTANCE, new StockpotBe(maid));
+        }
+        @Override public void start(net.minecraft.server.level.ServerLevel level, EntityMaid maid, long time) {
+            getMaidCookManager().clear(); finishPlanning(getMaidCookManager()); super.start(level, maid, time);
+        }
     }
 
     private static NonNullList<Ingredient> ingredients(net.minecraft.world.level.ItemLike... items) {

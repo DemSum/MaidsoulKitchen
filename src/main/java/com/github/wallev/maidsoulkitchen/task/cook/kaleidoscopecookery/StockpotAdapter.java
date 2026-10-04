@@ -40,7 +40,7 @@ public final class StockpotAdapter {
     }
 
     public static List<RecipeOption> getRecipeOptions(Level level, boolean includeFlex) {
-        return StockpotRecipePlanner.options(level, includeFlex);
+        return StockpotRecSerializerManager.options(level, includeFlex);
     }
 
     public static boolean supports(BlockEntity entity) {

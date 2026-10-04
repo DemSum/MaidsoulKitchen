@@ -88,10 +88,14 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
             hasCulinaryHub = !hub.isEmpty();
             lastCulinaryHub = hub;
             bindingPoses = bindings;
-            cookInv = hasCulinaryHub ? new MaidCookBagInventory(maid, hub) : new MaidInventory(maid);
+            cookInv = createCookInventory(hub);
             cookInv.refreshInv();
         }
         return changed;
+    }
+
+    protected IMaidCookInventory createCookInventory(ItemStack hub) {
+        return hub.isEmpty() ? new MaidInventory(maid) : new MaidCookBagInventory(maid, hub);
     }
 
     private boolean initTaskData() {
@@ -117,7 +121,7 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
         return changed;
     }
 
-    private List<MKRecipe<R>> getValidRecipesFor(List<MKRecipe<R>> recipes) {
+    protected List<MKRecipe<R>> getValidRecipesFor(List<MKRecipe<R>> recipes) {
         boolean whitelist = cookData.mode().equals(CookData.Mode.WHITELIST.name);
         List<String> selected = cookData.recs(cookData.mode());
         return recipes.stream().filter(recipe -> selected.contains(recipe.idStr()) == whitelist).toList();
@@ -410,13 +414,75 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
         return result.getCount() > ItemHandlerHelper.insertItemStacked(getOutputInv(), result.copy(), true).getCount();
     }
 
+    /** Verified KC capacity rule moved from CulinaryHubWorkStorage: keep native food untouched
+     * when its output buffer or bound warehouse is full. Views reference the same real Handlers. */
+    public boolean canAcceptNativeResults(List<ItemStack> incoming) {
+        if (!CookInventoryTransactions.canFitAll(getOutputInv(), incoming)) return false;
+        var bindings = getBindingTypePoses(BagType.OUTPUT);
+        if (!hasCulinaryHub || bindings.isEmpty()) return true;
+        List<IItemHandler> handlers = new ArrayList<>();
+        for (BlockPos pos : bindings) {
+            if (!level.isLoaded(pos) || isExtraZone(pos)) return false;
+            var be = level.getBlockEntity(pos);
+            if (be == null || !isStorageAccessible(be)) return false;
+            var handler = ItemCulinaryHub.getBeInv(level, be);
+            if (handler == null) return false;
+            handlers.add(handler);
+        }
+        List<ItemStack> pending = new ArrayList<>(incoming);
+        for (int slot = 0; slot < getOutputInv().getSlots(); slot++) pending.add(getOutputInv().getStackInSlot(slot).copy());
+        return CookInventoryTransactions.canFitAll(handlers, pending);
+    }
+
+    /** Source: CookBeBase.useItem (58ec08ec) and verified KC workAt/interact/popHand.
+     * KC accepts LivingEntity directly. Extract a physical unit before the Be's native action,
+     * detach the original hand, then capture actual post-action hand and unconsumed input.
+     * Hand placement is needed by removeIngredient. Replaces StockpotWorkStorage inventory writes;
+     * the pending MaidRec remains in the manager until Be confirms complete native acceptance. */
+    public boolean useNativeItem(GatherResult source, IItemHandler destination, MaidRec work,
+                                 boolean placeInHand, java.util.function.Function<ItemStack, Boolean> nativeUse) {
+        if (work != null && peekMaidRec() != work) return false;
+        ItemStack extracted = ItemStack.EMPTY;
+        if (!source.isFail()) {
+            ItemStack preview = source.getItemHandler().extractItem(source.getSlot(), 1, true);
+            extracted = source.getItemHandler().extractItem(source.getSlot(), 1, false);
+            if (extracted.isEmpty()) return false;
+            if (!ItemStack.isSameItemSameComponents(preview, extracted)) {
+                CookInventoryTransactions.returnOrDrop(getInputInv(), source.backItemStack(extracted), maid);
+                syncInv(); invalidate(); return false;
+            }
+        }
+        ItemStack originalHand = maid.getMainHandItem();
+        maid.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, placeInHand ? extracted : ItemStack.EMPTY);
+        try { return nativeUse.apply(extracted); }
+        finally {
+            ItemStack received = maid.getMainHandItem();
+            maid.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+            try {
+                if (received != extracted) CookInventoryTransactions.returnOrDrop(destination, received, maid);
+                CookInventoryTransactions.returnOrDrop(getInputInv(), extracted, maid);
+            } finally {
+                maid.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, originalHand);
+                cookInv.syncInv(); cookInv.refreshInv();
+            }
+        }
+    }
+
+    /** Native partial-pot contents are conditions, never borrowed a second time. */
+    public boolean hasMaterials(MaidRec work) {
+        Map<ItemDefinition, Integer> needed = new HashMap<>();
+        work.maidItems().stream().filter(material -> material.role() != MaidItem.Role.DEVICE_INPUT && !material.isEmpty())
+                .forEach(material -> needed.merge(material.item(), material.count(), Integer::sum));
+        return needed.entrySet().stream().allMatch(entry -> CookInventoryTransactions.count(getInputInv(), entry.getKey()::is) >= entry.getValue());
+    }
+
     /** Source: verified local SteamerAdapter.takeReadyFoodTo (c9273ce5/WIP), moved into the
      * upstream manager's takeItem ownership. KC has no Handler result slot: native takeFood gives
      * one physical result to a non-player hand and drops the rest. Retain its UUID/expected-item
      * capture, preflight the entire batch, detach before insertion, and recover native effects even
      * after a late exception. Replaces steamer Storage/adapter inventory writes, owns no result cache. */
     public boolean takeNativeOutput(List<ItemStack> expectedOutputs, java.util.function.BooleanSupplier nativeTake) {
-        if (!CookInventoryTransactions.canFitAll(getOutputInv(), expectedOutputs)) return false;
+        if (!canAcceptNativeResults(expectedOutputs)) return false;
         List<ItemStack> expected = expectedOutputs.stream().filter(stack -> !stack.isEmpty()).map(ItemStack::copy).toList();
         var area = maid.getBoundingBox().inflate(2.0);
         Set<java.util.UUID> existing = new HashSet<>();
@@ -685,12 +751,18 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
         if (hasCulinaryHub && recSerializerManager instanceof ToolRecSerializerManager<?>
                 && predicate.test(maid.getMainHandItem()) && !maid.getMainHandItem().isEmpty())
             return new GatherResult(maid.getHandsInvWrapper(), 0);
-        for (BlockPos pos : getBindingTypePoses(BagType.OUTPUT_ADDITION)) {
+        return getBoundItem(BagType.OUTPUT_ADDITION, predicate);
+    }
+
+    /** Source getItem bound-chest lookup, shared by native KC container recovery. The binding is
+     * checked on each access and returns the actual Handler; it owns no second inventory state. */
+    protected GatherResult getBoundItem(BagType type, Predicate<ItemStack> predicate) {
+        for (BlockPos pos : getBindingTypePoses(type)) {
             if (!level.isLoaded(pos) || isExtraZone(pos)) continue;
             BlockEntity be = level.getBlockEntity(pos);
             IItemHandler handler = be == null || !isStorageAccessible(be) ? null : ItemCulinaryHub.getBeInv(level, be);
             if (handler == null) continue;
-            slot = ItemsUtil.findStackSlot(handler, predicate);
+            int slot = ItemsUtil.findStackSlot(handler, predicate);
             if (slot >= 0) return new GatherResult(handler, slot);
         }
         return GatherResult.FAIL;
@@ -738,7 +810,7 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
         cookInv.syncInv(); cookInv.refreshInv();
     }
 
-    private boolean retainInput(ItemStack stack) {
+    protected boolean retainInput(ItemStack stack) {
         if (recSerializerManager.getFuels().stream().anyMatch(fuel -> fuel.is(stack.getItem()))) return true;
         if (stack.getMaxStackSize() == 1 || stack.is(net.minecraft.world.item.Items.BOWL)
                 || stack.is(net.minecraft.world.item.Items.BUCKET) || stack.is(net.minecraft.world.item.Items.GLASS_BOTTLE)) return true;

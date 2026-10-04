@@ -23,36 +23,75 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.TreeMap;
 import com.mojang.serialization.JsonOps;
+import net.minecraft.world.item.crafting.Recipe;
+import net.minecraft.world.item.crafting.RecipeType;
+import com.github.wallev.maidsoulkitchen.task.cook.common.rule.rec.*;
+import com.github.wallev.maidsoulkitchen.task.cook.common.rule.rec.mkrec.MKRecipe;
+import com.github.wallev.maidsoulkitchen.task.cook.common.inv.item.ItemDefinition;
+import com.github.wallev.maidsoulkitchen.task.cook.common.inv.ingredient.RecIngredient;
+import com.github.wallev.maidsoulkitchen.task.cook.common.inv.itemdown.RecDataUse;
 
-/** One short-lived planning pass, shared across devices in the existing throttled BFS. */
-final class StockpotRecipePlanner {
-    enum Outcome { READY, WAIT_SUPPLIES, NO_ALLOWED_COMPLETION, UNCERTAIN }
-    record Decision(Outcome outcome, Plan plan) { }
-    record Plan(ResourceLocation recipeId, ResourceLocation soupBase, ItemStack baseItem,
-                ItemStack lid, List<ItemStack> additions, List<ItemStack> supplies, ItemStack preview) { }
+/** Source: 58ec08ec RecSerializerManager/createMaidRec (MIT), with the existing verified
+ * KC quantity grouping, bounded assignment and native overlap checks moved from StockpotRecipePlanner.
+ * No 1.20 stockpot existed. Half-pot inputs, real lids/carriers and Flex native quantity require a
+ * device-context converter. It produces only MaidRec; the old Plan/Decision and cached availability
+ * are deleted. Pure recipe metadata is reload-aware; no queue or storage is owned here. */
+public final class StockpotRecSerializerManager extends RecSerializerManager<Recipe<StockpotInput>> {
+    public static final StockpotRecSerializerManager INSTANCE = new StockpotRecSerializerManager();
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private StockpotRecSerializerManager() { super((RecipeType) ModRecipes.STOCKPOT_RECIPE); }
 
-    private final Level level;
-    private final StockpotTaskData settings;
-    private final List<Spec> ordinary;
-    private final List<Spec> flexible;
-    private final List<ItemStack> available;
-    private final Map<ResourceLocation, RecipeOption> optionsById = new HashMap<>();
+    @Override @SuppressWarnings({"unchecked", "rawtypes"})
+    protected List<RecipeHolder<Recipe<StockpotInput>>> getRecsFromRm(Level level) {
+        List<RecipeHolder<?>> holders = new ArrayList<>(level.getRecipeManager().getAllRecipesFor(ModRecipes.STOCKPOT_RECIPE));
+        holders.addAll(level.getRecipeManager().getAllRecipesFor(ModRecipes.FLEX_STOCKPOT_RECIPE));
+        return (List) holders;
+    }
 
-    StockpotRecipePlanner(Level level, StockpotTaskData settings, List<ItemStack> available) {
-        this.level = level;
-        this.settings = settings;
-        this.available = available.stream().map(ItemStack::copy).toList();
-        List<List<Spec>> groups = quantityGroups(level.getRecipeManager().getAllRecipesFor(ModRecipes.STOCKPOT_RECIPE)
-                .stream().map(Spec::ordinary).toList(), level);
-        ordinary = groups.stream().flatMap(List::stream).toList();
-        flexible = settings.allowFlexRecipes()
-                ? level.getRecipeManager().getAllRecipesFor(ModRecipes.FLEX_STOCKPOT_RECIPE).stream()
-                    .map(Spec::flex).toList() : List.of();
-        for (List<Spec> group : groups) {
-            RecipeOption option = option(group);
-            group.forEach(spec -> optionsById.put(spec.id(), option));
+    @Override protected MKRecipe<Recipe<StockpotInput>> createMKRecipe(RecipeHolder<Recipe<StockpotInput>> holder) {
+        var spec = Spec.of(holder);
+        List<RecIngredient> ingredients = new ArrayList<>(RecIngredient.from(spec.ingredients()));
+        if (!spec.carrier().isEmpty()) ingredients.add(RecIngredient.of(spec.carrier()));
+        ingredients.add(RecIngredient.of(Ingredient.of(com.github.ysbbbbbb.kaleidoscopecookery.init.ModItems.STOCKPOT_LID.get())));
+        return new MKRecipe<>(holder, true, ingredients, spec.result());
+    }
+
+    /** Native appliance conditions attach to descriptors, before the inherited ten-descriptor tick
+     * planner. This is metadata, not a work unit; the converter alone creates the final MaidRec. */
+    static final class DeviceRecipe extends MKRecipe<Recipe<StockpotInput>> {
+        final com.github.ysbbbbbb.kaleidoscopecookery.blockentity.kitchen.StockpotBlockEntity device;
+        final List<Spec> candidates;
+        final StockpotTaskData settings;
+        DeviceRecipe(com.github.ysbbbbbb.kaleidoscopecookery.blockentity.kitchen.StockpotBlockEntity device, List<Spec> candidates, StockpotTaskData settings) {
+            super(candidates.getFirst().holder(), true, RecIngredient.from(candidates.getFirst().ingredients()), candidates.getFirst().result());
+            this.device = device; this.candidates = List.copyOf(candidates); this.settings = settings;
         }
-        flexible.forEach(spec -> optionsById.put(spec.id(), new RecipeOption(spec.id(), spec.result())));
+    }
+
+    List<DeviceRecipe> forDevice(com.github.ysbbbbbb.kaleidoscopecookery.blockentity.kitchen.StockpotBlockEntity device,
+                                  Level level, StockpotTaskData settings) {
+        return groups(level, settings).stream().filter(group -> option(group).allowed(settings.filter()))
+                .map(group -> new DeviceRecipe(device, group, settings)).toList();
+    }
+
+    @Override protected List<MaidRec> createMaidRec(MKRecipe<Recipe<StockpotInput>> description,
+            Map<ItemDefinition, Long> available, RecDataUse use, ResourceLocation taskId, long generation) {
+        if (!(description instanceof DeviceRecipe deviceRecipe)) return List.of();
+        var device = deviceRecipe.device; var level = device.getLevel();
+        var snapshot = StockpotAdapter.inspect(device, level).orElse(null);
+        if (snapshot == null || !snapshot.heated() || (snapshot.status() != IStockpot.PUT_SOUP_BASE && snapshot.status() != IStockpot.PUT_INGREDIENT)) return List.of();
+        var settings = deviceRecipe.settings;
+        // Settings are attached by the sole manager, never read from a second persisted recipe state.
+        List<ItemStack> pool = available.entrySet().stream().filter(entry -> entry.getValue() > 0).map(entry -> entry.getKey().toStack(entry.getValue())).toList();
+        var work = createWork(snapshot, level, settings, pool, deviceRecipe.candidates, device, taskId, generation);
+        if (work == null) return List.of();
+        Map<ItemDefinition, ItemAmount> amounts = new HashMap<>();
+        for (MaidItem material : work.maidItems()) {
+            if (material.isEmpty() || material.role() == MaidItem.Role.DEVICE_INPUT) continue;
+            amounts.computeIfAbsent(material.item(), ignored -> new ItemAmount(0)).addCount(material.count());
+            available.compute(material.item(), (item, count) -> count - material.count());
+        }
+        use.set(amounts, 1); return List.of(work);
     }
 
     static List<RecipeOption> options(Level level, boolean includeFlex) {
@@ -113,36 +152,49 @@ final class StockpotRecipePlanner {
         return a;
     }
 
-    private boolean allows(Spec spec) { return optionsById.get(spec.id()).allowed(settings.filter()); }
+    private static boolean allows(Spec spec, Level level, StockpotTaskData settings) {
+        return groups(level, settings).stream().filter(group -> group.stream().anyMatch(candidate -> candidate.id().equals(spec.id())))
+                .anyMatch(group -> option(group).allowed(settings.filter()));
+    }
+    private static List<List<Spec>> groups(Level level, StockpotTaskData settings) {
+        List<List<Spec>> groups = new ArrayList<>(quantityGroups(level.getRecipeManager().getAllRecipesFor(ModRecipes.STOCKPOT_RECIPE)
+                .stream().map(Spec::ordinary).toList(), level));
+        if (settings.allowFlexRecipes()) level.getRecipeManager().getAllRecipesFor(ModRecipes.FLEX_STOCKPOT_RECIPE)
+                .forEach(holder -> groups.add(List.of(Spec.flex(holder))));
+        return groups;
+    }
+    static List<Spec> allSpecs(Level level, StockpotTaskData settings) { return groups(level, settings).stream().flatMap(List::stream).toList(); }
+    boolean enabled(ResourceLocation id, Level level, StockpotTaskData settings) {
+        return allSpecs(level, settings).stream().anyMatch(spec -> spec.id().equals(id) && allows(spec, level, settings));
+    }
 
-    boolean retain(ItemStack stack) {
+    boolean retain(ItemStack stack, Level level, StockpotTaskData settings) {
         if (StockpotAdapter.isLid(stack) || (stack.getMaxStackSize() == 1
                 && !stack.has(net.minecraft.core.component.DataComponents.FOOD))
                 || stack.is(net.minecraft.world.item.Items.BOWL) || stack.is(net.minecraft.world.item.Items.BUCKET)
                 || stack.is(net.minecraft.world.item.Items.GLASS_BOTTLE)) return true;
-        for (Spec spec : allSpecs()) {
+        for (Spec spec : allSpecs(level, settings)) {
             if (spec.carrier().test(stack)) return true;
             // Reusable empty ingredient containers belong to the input buffer, not unused-food cleanup.
             for (Ingredient ingredient : spec.ingredients()) for (ItemStack candidate : ingredient.getItems()) {
                 ItemStack container = StockpotAdapter.ingredientContainer(candidate);
                 if (!container.isEmpty() && stack.is(container.getItem())) return true;
             }
-            if (allows(spec) && (spec.ingredients().stream().anyMatch(ingredient -> ingredient.test(stack))
+            if (allows(spec, level, settings) && (spec.ingredients().stream().anyMatch(ingredient -> ingredient.test(stack))
                     || StockpotAdapter.soupBaseFor(stack).filter(spec.soup()::equals).isPresent())) return true;
         }
         return false;
     }
 
-    boolean uses(StockpotTaskData current) { return settings.equals(current); }
-    boolean hasSupply(Predicate<ItemStack> predicate) { return available.stream().anyMatch(predicate); }
 
-    Decision plan(StockpotAdapter.Snapshot snapshot) {
-        boolean structurallyPossible = false;
-        boolean uncertain = false;
+    MaidRec createWork(StockpotAdapter.Snapshot snapshot, Level level, StockpotTaskData settings,
+            List<ItemStack> available, List<Spec> candidates,
+            com.github.ysbbbbbb.kaleidoscopecookery.blockentity.kitchen.StockpotBlockEntity device,
+            ResourceLocation taskId, long generation) {
         Set<ResourceLocation> suppliedGroups = new HashSet<>();
-        for (Spec spec : allSpecs()) {
-            ResourceLocation groupId = optionsById.get(spec.id()).id();
-            if (suppliedGroups.contains(groupId) || spec.ingredients().isEmpty() || !allows(spec)
+        for (Spec spec : candidates) {
+            ResourceLocation groupId = candidates.getFirst().id();
+            if (suppliedGroups.contains(groupId) || spec.ingredients().isEmpty() || !allows(spec, level, settings)
                     || (snapshot.status() != IStockpot.PUT_SOUP_BASE && !spec.soup().equals(snapshot.soupBase()))) continue;
             List<ItemStack> fixed = snapshot.inputs().stream().filter(stack -> !stack.isEmpty()).toList();
             int occupiedSlots = fixed.size();
@@ -157,7 +209,6 @@ final class StockpotRecipePlanner {
             }
             Set<Integer> masks = StockpotIngredientMatcher.assignments(matrix, spec.ingredients().size());
             if (masks.isEmpty()) continue;
-            structurallyPossible = true;
             List<ItemStack> bases = snapshot.status() == IStockpot.PUT_SOUP_BASE
                     ? available.stream().filter(stack -> StockpotAdapter.soupBaseFor(stack)
                         .filter(spec.soup()::equals).isPresent()).map(stack -> stack.copyWithCount(1)).toList()
@@ -180,17 +231,15 @@ final class StockpotRecipePlanner {
                     List<ItemStack> additions = new ArrayList<>();
                     Set<Item> usedItems = new HashSet<>();
                     fixed.forEach(stack -> usedItems.add(stack.getItem()));
-                    Plan[] selected = {null};
-                    boolean[] ambiguous = {false};
+                    MaidRec[] selected = {null};
                     boolean found = fill(spec, mask, 0, branch, usedItems, additions, budget, remaining -> {
                         List<ItemStack> completed = completed(snapshot.inputs(), additions);
                         if (completed == null) return false;
                         StockpotInput input = new StockpotInput(completed, spec.soup());
                         if (!spec.matches(input, level)) return false;
                         materialComplete[0] = true;
-                        List<Spec> hits = nativeMatches(input);
-                        if (hits.isEmpty() || hits.stream().anyMatch(hit -> !allows(hit))) {
-                            ambiguous[0] = true;
+                        List<Spec> hits = nativeMatches(input, level, settings);
+                        if (hits.isEmpty() || hits.stream().anyMatch(hit -> !allows(hit, level, settings))) {
                             return false;
                         }
                         // KC Flex assemble can change result quantity based on the actual inputs.
@@ -208,12 +257,21 @@ final class StockpotRecipePlanner {
                             if (carrier.isEmpty()) return false;
                             resources.add(carrier);
                         }
-                        selected[0] = new Plan(spec.id(), spec.soup(), base, lid, List.copyOf(additions),
-                                List.copyOf(resources), preview.copyWithCount(1));
+                        List<MaidItem> materials = new ArrayList<>();
+                        if (!base.isEmpty()) materials.add(new MaidItem(ItemDefinition.of(base), 1, MaidItem.Role.FLUID));
+                        if (!snapshot.covered()) materials.add(new MaidItem(ItemDefinition.of(lid), 1, MaidItem.Role.TOOL));
+                        additions.forEach(stack -> materials.add(new MaidItem(ItemDefinition.of(stack), 1)));
+                        int carrierStart = supplies.size() + additions.size();
+                        resources.subList(carrierStart, resources.size()).forEach(stack -> materials.add(new MaidItem(ItemDefinition.of(stack), 1, MaidItem.Role.CONTAINER)));
+                        snapshot.inputs().forEach(stack -> materials.add(new MaidItem(ItemDefinition.of(stack), stack.getCount(), MaidItem.Role.DEVICE_INPUT)));
+                        if (snapshot.covered()) materials.add(new MaidItem(ItemDefinition.of(snapshot.lid()), snapshot.lid().getCount(), MaidItem.Role.DEVICE_INPUT));
+                        var pos = device.getBlockPos();
+                        selected[0] = new MaidRec(spec.holder(), taskId, generation, 0, 1, List.of(preview), materials,
+                                Map.of("x", pos.getX(), "y", pos.getY(), "z", pos.getZ(), "device", System.identityHashCode(device),
+                                        "status", snapshot.status(), "covered", snapshot.covered() ? 1 : 0));
                         return true;
                     });
-                    uncertain |= ambiguous[0] || budget.exhausted;
-                    if (found) return new Decision(Outcome.READY, selected[0]);
+                    if (found) return selected[0];
                     if (budget.exhausted) break;
                 }
                 if (budget.exhausted) break;
@@ -221,24 +279,34 @@ final class StockpotRecipePlanner {
             // Smaller batches are a material-shortage fallback, not a way around missing carriers or uncertainty.
             if (materialComplete[0] || budget.exhausted) suppliedGroups.add(groupId);
         }
-        return new Decision(uncertain ? Outcome.UNCERTAIN
-                : structurallyPossible ? Outcome.WAIT_SUPPLIES : Outcome.NO_ALLOWED_COMPLETION, null);
+        return null;
     }
 
-    boolean permitsCompleted(StockpotAdapter.Snapshot snapshot) {
-        List<Spec> hits = nativeMatches(new StockpotInput(snapshot.inputs(), snapshot.soupBase()));
-        return !hits.isEmpty() && hits.stream().allMatch(this::allows);
+    boolean permitsCompleted(StockpotAdapter.Snapshot snapshot, Level level, StockpotTaskData settings) {
+        List<Spec> hits = nativeMatches(new StockpotInput(snapshot.inputs(), snapshot.soupBase()), level, settings);
+        return !hits.isEmpty() && hits.stream().allMatch(spec -> allows(spec, level, settings));
     }
 
-    private List<Spec> nativeMatches(StockpotInput input) {
-        List<Spec> hits = ordinary.stream().filter(spec -> spec.matches(input, level)).toList();
-        return hits.isEmpty() ? flexible.stream().filter(spec -> spec.matches(input, level)).toList() : hits;
+    private static List<Spec> nativeMatches(StockpotInput input, Level level, StockpotTaskData settings) {
+        var specs = allSpecs(level, settings);
+        List<Spec> hits = specs.stream().filter(spec -> !spec.flexible() && spec.matches(input, level)).toList();
+        return hits.isEmpty() ? specs.stream().filter(spec -> spec.flexible() && spec.matches(input, level)).toList() : hits;
     }
 
-    private List<Spec> allSpecs() {
-        List<Spec> result = new ArrayList<>(ordinary);
-        result.addAll(flexible);
-        return result;
+    /** Native structural completion check used by cleanup. Material shortage/ambiguity must not
+     * clear a partially prepared pot; use the same verified ingredient assignment algorithm. */
+    boolean hasAllowedCompletion(StockpotAdapter.Snapshot snapshot, Level level, StockpotTaskData settings) {
+        for (Spec spec : allSpecs(level, settings)) {
+            if (!allows(spec, level, settings) || !spec.soup().equals(snapshot.soupBase())) continue;
+            List<ItemStack> fixed = snapshot.inputs().stream().filter(stack -> !stack.isEmpty()).toList();
+            int occupied = fixed.size();
+            if (spec.flexible()) { Set<Item> seen = new HashSet<>(); fixed = fixed.stream().filter(stack -> seen.add(stack.getItem())).toList(); }
+            if (occupied + spec.ingredients().size() - fixed.size() > 9) continue;
+            boolean[][] matrix = new boolean[fixed.size()][spec.ingredients().size()];
+            for (int i=0; i<fixed.size(); i++) for (int j=0; j<spec.ingredients().size(); j++) matrix[i][j] = spec.ingredients().get(j).test(fixed.get(i));
+            if (!StockpotIngredientMatcher.assignments(matrix, spec.ingredients().size()).isEmpty()) return true;
+        }
+        return false;
     }
 
     private static boolean fill(Spec spec, int fixedMask, int index, List<ItemStack> pool,
@@ -291,17 +359,23 @@ final class StockpotRecipePlanner {
 
     private static final class Budget { int remaining = 2048; boolean exhausted; }
 
-    private record Spec(ResourceLocation id, ResourceLocation soup, List<Ingredient> ingredients,
+    record Spec(RecipeHolder<Recipe<StockpotInput>> holder, ResourceLocation id, ResourceLocation soup, List<Ingredient> ingredients,
                         Ingredient carrier, ItemStack result, boolean flexible,
                         StockpotRecipe ordinaryRecipe, FlexStockpotRecipe flexRecipe) {
+        @SuppressWarnings({"unchecked", "rawtypes"})
+        private static RecipeHolder<Recipe<StockpotInput>> cast(RecipeHolder<?> holder) { return (RecipeHolder) holder; }
+        @SuppressWarnings({"unchecked", "rawtypes"})
+        static Spec of(RecipeHolder<Recipe<StockpotInput>> holder) {
+            return holder.value() instanceof StockpotRecipe ? ordinary((RecipeHolder) holder) : flex((RecipeHolder) holder);
+        }
         static Spec ordinary(RecipeHolder<StockpotRecipe> holder) {
             var recipe = holder.value();
-            return new Spec(holder.id(), recipe.soupBase(), nonEmpty(recipe.ingredients()), recipe.carrier(),
+            return new Spec(cast(holder), holder.id(), recipe.soupBase(), nonEmpty(recipe.ingredients()), recipe.carrier(),
                     recipe.result(), false, recipe, null);
         }
         static Spec flex(RecipeHolder<FlexStockpotRecipe> holder) {
             var recipe = holder.value();
-            return new Spec(holder.id(), recipe.soupBase(), nonEmpty(recipe.ingredients()), recipe.carrier(),
+            return new Spec(cast(holder), holder.id(), recipe.soupBase(), nonEmpty(recipe.ingredients()), recipe.carrier(),
                     recipe.result(), true, null, recipe);
         }
         private static List<Ingredient> nonEmpty(List<Ingredient> ingredients) {

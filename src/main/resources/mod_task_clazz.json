@@ -119,7 +119,8 @@
           "com.github.ysbbbbbb.kaleidoscopecookery.blockentity.kitchen.SteamerBlockEntity#getItems()Lnet/minecraft/core/NonNullList;",
           "com.github.ysbbbbbb.kaleidoscopecookery.blockentity.kitchen.SteamerBlockEntity#getSteamerRecipe(Lnet/minecraft/world/level/Level;Lnet/minecraft/world/item/ItemStack;)Ljava/util/Optional;",
           "com.github.ysbbbbbb.kaleidoscopecookery.blockentity.kitchen.SteamerBlockEntity#hasHeatSource(Lnet/minecraft/world/level/Level;)Z",
-          "com.github.ysbbbbbb.kaleidoscopecookery.crafting.recipe.SteamerRecipe#getResult()Lnet/minecraft/world/item/ItemStack;"
+          "com.github.ysbbbbbb.kaleidoscopecookery.crafting.recipe.SteamerRecipe#getResult()Lnet/minecraft/world/item/ItemStack;",
+          "com.github.ysbbbbbb.kaleidoscopecookery.crafting.recipe.SteamerRecipe#getIngredient()Lnet/minecraft/world/item/crafting/Ingredient;"
         ],
         "fields": [
           "com.github.ysbbbbbb.kaleidoscopecookery.block.kitchen.SteamerBlock#HALF",

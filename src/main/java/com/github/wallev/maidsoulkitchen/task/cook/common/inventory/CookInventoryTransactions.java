@@ -73,11 +73,24 @@ public final class CookInventoryTransactions {
 
     /** Simulates a whole batch together, respecting unstackable items and actual slot acceptance. */
     public static boolean canFitAll(IItemHandler inventory, List<ItemStack> incoming) {
-        ItemStack[] virtual = new ItemStack[inventory.getSlots()];
-        for (int slot = 0; slot < virtual.length; slot++) virtual[slot] = inventory.getStackInSlot(slot).copy();
+        return canFitAll(List.of(inventory), incoming);
+    }
+
+    /** Same verified batch simulation across bound inventories. NeoForge capabilities need not
+     * implement IItemHandlerModifiable; no setter or persistent warehouse snapshot is required. */
+    public static boolean canFitAll(List<? extends IItemHandler> inventories, List<ItemStack> incoming) {
+        List<ItemStack[]> snapshots = new java.util.ArrayList<>();
+        for (IItemHandler inventory : inventories) {
+            ItemStack[] virtual = new ItemStack[inventory.getSlots()];
+            for (int slot = 0; slot < virtual.length; slot++) virtual[slot] = inventory.getStackInSlot(slot).copy();
+            snapshots.add(virtual);
+        }
         for (ItemStack stack : incoming) {
             int remaining = stack.getCount();
             for (int pass = 0; pass < 2 && remaining > 0; pass++) {
+                for (int index = 0; index < inventories.size() && remaining > 0; index++) {
+                    IItemHandler inventory = inventories.get(index);
+                    ItemStack[] virtual = snapshots.get(index);
                 for (int slot = 0; slot < virtual.length && remaining > 0; slot++) {
                     ItemStack present = virtual[slot];
                     if ((pass == 0 && present.isEmpty()) || (pass == 1 && !present.isEmpty())) continue;
@@ -90,6 +103,7 @@ public final class CookInventoryTransactions {
                     if (moved == 0) continue;
                     virtual[slot] = stack.copyWithCount(present.getCount() + moved);
                     remaining -= moved;
+                }
                 }
             }
             if (remaining > 0) return false;
