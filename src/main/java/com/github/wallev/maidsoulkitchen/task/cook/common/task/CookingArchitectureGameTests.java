@@ -36,6 +36,62 @@ public final class CookingArchitectureGameTests {
     private static ResourceLocation id(String name) { return ResourceLocation.fromNamespaceAndPath(MaidsoulKitchen.MOD_ID, name); }
 
     @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID, batch = "cooking_architecture")
+    public static void nativeCuttingUsesTickLifecycleAndPhysicalTool(GameTestHelper helper) {
+        var maid = helper.spawnWithNoFreeWill(InitEntities.MAID.get(), new net.minecraft.core.BlockPos(1, 1, 1)); maid.setNoAi(true);
+        var task = new com.github.wallev.maidsoulkitchen.task.cook.farmersdelight.cuttingboard.TaskFdCuttingBoard(); maid.setTask(task);
+        var cm = task.getRecipesManager(maid);
+        var rule = com.github.wallev.maidsoulkitchen.task.cook.farmersdelight.cuttingboard.CuttingBoardCookRule.getInstance().getOrCreate();
+        var cookBe = new com.github.wallev.maidsoulkitchen.task.cook.farmersdelight.cuttingboard.CuttingBoardBe(maid);
+        try {
+            var description = task.getRecSerializerManager().getRecipes(helper.getLevel()).stream()
+                    .filter(recipe -> recipe.inItems().size() == 1 && recipe.inItems().getFirst().ingredient.getItems().length > 0
+                            && recipe.tool().ingredient.getItems().length > 0).findFirst().orElseThrow();
+            KitchenData.get(maid).setCookData(task.getUid(), new CookData("whitelist", List.of(description.idStr()), List.of()));
+            var input = maid.getAvailableInv(true);
+            for (int slot = 0; slot < input.getSlots(); slot++) input.setStackInSlot(slot, ItemStack.EMPTY);
+            var ingredient = description.inItems().getFirst().ingredient.getItems()[0].copyWithCount(2);
+            var tool = description.tool().ingredient.getItems()[0].copyWithCount(1);
+            tool.set(DataComponents.CUSTOM_NAME, Component.literal("borrowed cutting tool"));
+            input.setStackInSlot(0, ingredient.copy()); input.setStackInSlot(2, tool.copy());
+            cm.checkAndCreateRecipesIngredients(); finishPlanning(cm);
+            helper.setBlock(new net.minecraft.core.BlockPos(2, 1, 2), vectorwing.farmersdelight.common.registry.ModBlocks.CUTTING_BOARD.get());
+            var board = (vectorwing.farmersdelight.common.block.entity.CuttingBoardBlockEntity) helper.getBlockEntity(new net.minecraft.core.BlockPos(2, 1, 2));
+            cookBe.setBe(board);
+            helper.assertTrue(cm.getMaidRecs().size() == 2, "each native board input must have its own work identity");
+            rule.cookMake(cookBe, cm);
+            helper.assertTrue(cm.getMaidRecs().size() == 2 && ItemStack.isSameItemSameComponents(maid.getMainHandItem(), tool)
+                    && CookInventoryTransactions.count(input, stack -> ItemStack.isSameItemSameComponents(stack, ingredient)) == 2,
+                    "start must lend the actual tool and retain both plans and previous hand materials");
+            rule.tickCookMake(cookBe, cm);
+            helper.assertTrue(board.getStoredItem().getCount() == 1 && cm.getMaidRecs().size() == 1
+                    && CookInventoryTransactions.count(input, stack -> ItemStack.isSameItemSameComponents(stack, ingredient)) == 1,
+                    "only actual board acceptance may consume one planned material and work identity");
+            for (int i = 0; i < 5; i++) rule.tickCookMake(cookBe, cm);
+            helper.assertTrue(board.getStoredItem().isEmpty(), "the fifth tick must perform native cutting rather than a second recipe implementation");
+            var actualTool = maid.getMainHandItem().copy();
+            rule.tickStop(cookBe, cm); rule.tickStop(cookBe, cm);
+            helper.assertTrue(maid.getMainHandItem().isEmpty()
+                    && CookInventoryTransactions.count(input, stack -> ItemStack.isSameItemSameComponents(stack, actualTool)) == 1
+                    && cm.getMaidRecs().isEmpty(), "stop must return the actual damaged component-bearing tool exactly once and revoke stale work");
+            board.getInventory().insertItem(0, ingredient.copyWithCount(1), false);
+            cm.checkAndInit(); cookBe.setBe(board); rule.cookMake(cookBe, cm); rule.tickCookMake(cookBe, cm);
+            helper.assertTrue(board.getStoredItem().isEmpty(), "a stored native input must resume without another queued work unit");
+            rule.tickStop(cookBe, cm);
+            var returnedTool = input.getStackInSlot(com.github.tartaricacid.touhoulittlemaid.util.ItemsUtil.findStackSlot(input, description.tool().ingredient::test)).copy();
+            for (int slot = 0; slot < input.getSlots(); slot++) input.setStackInSlot(slot, ItemStack.EMPTY);
+            maid.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, returnedTool);
+            maid.getMaidBauble().setStackInSlot(0, com.github.wallev.maidsoulkitchen.init.MkItems.CULINARY_HUB.get().getDefaultInstance());
+            cm.checkAndInit(); cm.getInputInv().setStackInSlot(0, ingredient.copyWithCount(1)); cm.syncInv();
+            cm.checkAndCreateRecipesIngredients(); finishPlanning(cm);
+            helper.assertTrue(cm.peekMaidRec() != null, "hub planning must use the already held physical tool without requesting a second tool from a chest");
+            rule.cookMake(cookBe, cm); rule.tickCookMake(cookBe, cm); rule.tickStop(cookBe, cm);
+            helper.assertTrue(board.getStoredItem().getCount() == 1 && maid.getMainHandItem() == returnedTool,
+                    "stopping a hub job must preserve a tool originally held by the maid rather than returning a borrowed copy");
+        } finally { rule.tickStop(cookBe, cm); maid.discard(); }
+        helper.succeed();
+    }
+
+    @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID, batch = "cooking_architecture")
     public static void nativeFurnaceFamiliesShareOneQueue(GameTestHelper helper) {
         var recipes = helper.getLevel().getRecipeManager();
         var original = List.copyOf(recipes.getRecipes());

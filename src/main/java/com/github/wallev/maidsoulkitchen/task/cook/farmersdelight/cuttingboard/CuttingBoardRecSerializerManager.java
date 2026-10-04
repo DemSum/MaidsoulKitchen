@@ -31,6 +31,8 @@ public class CuttingBoardRecSerializerManager extends ToolRecSerializerManager<C
     }
 
     public static class CuttingBoardRecipeInfoProvider extends ToolRecipeInfoProvider<CuttingBoardRecipe> {
+        /** Native board accepts one physical input; fix upstream batch polling before repeated insertion. */
+        @Override public boolean isSingle(RecSerializerManager<CuttingBoardRecipe> rsm, CuttingBoardRecipe rec) { return true; }
         @Override
         public RecIngredient getTool(RecSerializerManager<CuttingBoardRecipe> rsm, CuttingBoardRecipe rec) {
             return RecIngredient.of(rec.getTool());

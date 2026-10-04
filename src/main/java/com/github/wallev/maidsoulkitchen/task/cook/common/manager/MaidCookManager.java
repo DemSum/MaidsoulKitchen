@@ -61,6 +61,7 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
     private long collectIngredientsBubbleId = -1;
     private long availableFoodsBubbleId = -1;
     private long noIngredientBubbleId = -1;
+    private ItemStack loanedTool = ItemStack.EMPTY;
 
     public MaidCookManager(RecSerializerManager<R> recSerializerManager, EntityMaid maid, ICookTask<?, R> task) {
         this.recSerializerManager = recSerializerManager;
@@ -206,9 +207,9 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
 
     public void startGenerateRecs() {
         if (!checkAndInit()) return;
-        Map<ItemDefinition, Long> available = new HashMap<>(getItemInventory().getStacks());
+        Map<ItemDefinition, Long> available = getPhysicalAvailable();
         chestInputInventory.getAvailable().forEach((definition, count) -> available.merge(definition, count, Long::sum));
-        hubItemDown.init(getInputInv(), getItemInventory().getStacks());
+        hubItemDown.init(getInputInv(), getPhysicalAvailable());
         recsGenerate.setAvailable(available);
         recsGenerate.setCurrentRecs(getRecs());
         runState = 2;
@@ -218,6 +219,18 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
         recsGenerate.setAvailable(getItemInventory().getStacks());
         recsGenerate.setCurrentRecs(getRecs());
         runState = 2;
+    }
+
+    /** Source: ToolRecSerializerManager.processTool and TickCookRule's existing hand-tool check.
+     * A hub excludes equipment from its stored inputs; the source consequently cannot plan with
+     * an already held native tool. Include that one physical tool in the derived availability,
+     * without reserving a duplicate from a chest or maintaining a second material inventory. */
+    private Map<ItemDefinition, Long> getPhysicalAvailable() {
+        Map<ItemDefinition, Long> available = new HashMap<>(getItemInventory().getStacks());
+        if (hasCulinaryHub && recSerializerManager instanceof ToolRecSerializerManager<?>
+                && recsGenerate.getRecs().stream().anyMatch(recipe -> recipe.tool().test(maid.getMainHandItem()) > 0))
+            available.merge(ItemDefinition.of(maid.getMainHandItem()), 1L, Long::sum);
+        return available;
     }
 
     public void tickGenerateRecs() {
@@ -253,6 +266,8 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
         for (var use : hubItemDown.getUseItemDef().entrySet()) {
             ItemDefinition definition = use.getKey();
             int missing = use.getValue() - CookInventoryTransactions.count(getInputInv(), definition::is);
+            if (recSerializerManager instanceof ToolRecSerializerManager<?> && definition.is(maid.getMainHandItem())
+                    && recsGenerate.getRecs().stream().anyMatch(recipe -> recipe.tool().test(maid.getMainHandItem()) > 0)) missing--;
             if (missing <= 0) continue;
             ChestInventory.ChestItemDef sources = chestInputInventory.getItemDefinitions().get(definition);
             if (sources == null) return false;
@@ -291,6 +306,8 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
         if (!hasMaidRecs()) return null;
         for (MaidRec recipe : maidRecs) {
             if (recipe.resolve(level.getRecipeManager(), task.getUid(), generation).isEmpty()) { invalidate(); return null; }
+            if (recipe.maidItems().stream().anyMatch(material -> material.role() == MaidItem.Role.TOOL
+                    && getItem(material.item()::is).isFail())) { invalidate(); return null; }
             if (matches.test(recipe)) return recipe;
         }
         return null;
@@ -400,13 +417,15 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
      * plan; device leftovers remain visible for the Rule's next cleanup. No shadow work state survives.
      */
     public boolean insertInputs(MaidRec rec, IItemHandlerModifiable device, int start, int size) {
+        List<MaidItem> materials = rec == null ? List.of() : rec.maidItems().stream()
+                .filter(material -> material.role() != MaidItem.Role.TOOL).toList();
         if (!checkAndInit() || rec == null || !maidRecs.contains(rec) || runState != 0
                 || rec.resolve(level.getRecipeManager(), task.getUid(), generation).isEmpty()
-                || rec.maidItems().size() > size) return false;
+                || materials.size() > size) return false;
         Map<ItemDefinition, Integer> needed = new HashMap<>();
-        int[] missing = new int[rec.maidItems().size()];
+        int[] missing = new int[materials.size()];
         for (int i = 0; i < missing.length; i++) {
-            MaidItem material = rec.maidItems().get(i);
+            MaidItem material = materials.get(i);
             if (material.isEmpty()) continue;
             if (material.role() == MaidItem.Role.TOOL || material.role() == MaidItem.Role.FLUID) return false;
             ItemStack present = device.getStackInSlot(start + i);
@@ -420,7 +439,7 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
         int[] accepted = new int[missing.length];
         boolean complete = true;
         for (int i = 0; i < missing.length; i++) {
-            MaidItem material = rec.maidItems().get(i);
+            MaidItem material = materials.get(i);
             for (int source = 0; source < getInputInv().getSlots() && accepted[i] < missing[i]; source++) {
                 if (material.isEmpty() || !material.item().is(getInputInv().getStackInSlot(source))) continue;
                 accepted[i] += insertItem(new GatherResult(getInputInv(), source), device, start + i, missing[i] - accepted[i]);
@@ -431,12 +450,51 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
             for (int i = accepted.length - 1; i >= 0; i--) {
                 if (accepted[i] == 0) continue;
                 var receipt = CookInventoryTransactions.transfer(device, start + i, getInputInv(), accepted[i],
-                        rec.maidItems().get(i).item()::is);
+                        materials.get(i).item()::is);
                 CookInventoryTransactions.returnOrDrop(maid.getAvailableBackpackInv(), receipt.remainder(), maid);
             }
             syncInv(); invalidate();
         }
         return complete;
+    }
+
+    /** Source: upstream TickCookRule.swapItem/swapTool/backpackTool, and local cutting equipTool.
+     * Live-stack copyAndClear could alias Handler contents or duplicate the previous hand item.
+     * Extract first, transfer the old hand with real receipts, then lend exactly one physical tool.
+     * The sole manager owns the loan; Rule holds only its lifecycle tick/process state. */
+    public boolean equipTool(Predicate<ItemStack> tool) {
+        if (tool.test(maid.getMainHandItem())) return true;
+        GatherResult source = getItem(tool);
+        if (source.isFail()) return false;
+        ItemStack preview = source.getItemHandler().extractItem(source.getSlot(), 1, true);
+        ItemStack extracted = source.getItemHandler().extractItem(source.getSlot(), 1, false);
+        if (extracted.isEmpty()) return false;
+        IItemHandlerModifiable storage = hasCulinaryHub ? getInputInv() : maid.getAvailableBackpackInv();
+        if (!tool.test(extracted) || !ItemStack.isSameItemSameComponents(preview, extracted)) {
+            CookInventoryTransactions.returnOrDrop(maid.getAvailableBackpackInv(), source.backItemStack(extracted), maid); return false;
+        }
+        var hand = maid.getHandsInvWrapper();
+        if (!maid.getMainHandItem().isEmpty()) takeItem(hand, 0, storage, stack -> true);
+        if (!maid.getMainHandItem().isEmpty()) {
+            CookInventoryTransactions.returnOrDrop(maid.getAvailableBackpackInv(), source.backItemStack(extracted), maid);
+            cookInv.syncInv(); cookInv.refreshInv(); return false;
+        }
+        maid.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, extracted);
+        loanedTool = extracted;
+        cookInv.syncInv(); cookInv.refreshInv();
+        return true;
+    }
+
+    /** Return the actual (possibly damaged) loan once; task stop/reload replans remaining resources. */
+    public void backpackTool() {
+        if (!loanedTool.isEmpty() && maid.getMainHandItem() == loanedTool) {
+            var actual = maid.getMainHandItem().copy();
+            maid.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+            CookInventoryTransactions.returnOrDrop(hasCulinaryHub ? getInputInv() : maid.getAvailableBackpackInv(), actual, maid);
+        }
+        loanedTool = ItemStack.EMPTY;
+        invalidate();
+        cookInv.syncInv(); cookInv.refreshInv();
     }
 
     public void syncInv() {
@@ -449,6 +507,9 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
     public GatherResult getItem(Predicate<ItemStack> predicate) {
         int slot = ItemsUtil.findStackSlot(getInputInv(), predicate);
         if (slot >= 0) return new GatherResult(getInputInv(), slot);
+        if (hasCulinaryHub && recSerializerManager instanceof ToolRecSerializerManager<?>
+                && predicate.test(maid.getMainHandItem()) && !maid.getMainHandItem().isEmpty())
+            return new GatherResult(maid.getHandsInvWrapper(), 0);
         for (BlockPos pos : getBindingTypePoses(BagType.OUTPUT_ADDITION)) {
             if (!level.isLoaded(pos) || isExtraZone(pos)) continue;
             BlockEntity be = level.getBlockEntity(pos);
