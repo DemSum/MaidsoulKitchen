@@ -36,6 +36,47 @@ public final class CookingArchitectureGameTests {
     private static ResourceLocation id(String name) { return ResourceLocation.fromNamespaceAndPath(MaidsoulKitchen.MOD_ID, name); }
 
     @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID, batch = "cooking_architecture")
+    public static void nativeGrillAcceptsEntriesFlipsAndRetainsFullOutput(GameTestHelper helper) {
+        var maid = helper.spawnWithNoFreeWill(InitEntities.MAID.get(), new net.minecraft.core.BlockPos(1, 1, 1)); maid.setNoAi(true);
+        var rule = com.github.wallev.maidsoulkitchen.task.cook.barbequesdelight.grill.GrillCookRule.getInstance().getOrCreate();
+        var be = new com.github.wallev.maidsoulkitchen.task.cook.barbequesdelight.grill.GrillBe(maid);
+        com.github.wallev.maidsoulkitchen.task.cook.common.manager.MaidCookManager<com.mao.barbequesdelight.content.recipe.GrillingRecipe<?>> cm = null;
+        try {
+            var task = new com.github.wallev.maidsoulkitchen.task.cook.barbequesdelight.grill.TaskBbqGrill(); maid.setTask(task);
+            var description = task.getRecSerializerManager().getRecipes(helper.getLevel()).stream()
+                    .filter(recipe -> recipe.inItems().size() == 1 && recipe.inItems().getFirst().ingredient.getItems().length > 0).findFirst().orElseThrow();
+            KitchenData.get(maid).setCookData(task.getUid(), new CookData("whitelist", List.of(description.idStr()), List.of()));
+            maid.getMaidBauble().setStackInSlot(0, com.github.wallev.maidsoulkitchen.init.MkItems.CULINARY_HUB.get().getDefaultInstance());
+            cm = task.getRecipesManager(maid); cm.checkAndInit();
+            var material = description.inItems().getFirst().ingredient.getItems()[0].copyWithCount(2); material.set(DataComponents.CUSTOM_NAME, Component.literal("native grill components"));
+            cm.getInputInv().setStackInSlot(0, material.copy()); cm.syncInv(); cm.checkAndCreateRecipesIngredients(); finishPlanning(cm);
+            helper.setBlock(new net.minecraft.core.BlockPos(2, 0, 2), net.minecraft.world.level.block.Blocks.CAMPFIRE);
+            helper.setBlock(new net.minecraft.core.BlockPos(2, 1, 2), com.mao.barbequesdelight.init.registrate.BBQDBlocks.GRILL.get());
+            var grill = (com.mao.barbequesdelight.content.block.GrillBlockEntity) helper.getBlockEntity(new net.minecraft.core.BlockPos(2, 1, 2)); be.setBe(grill);
+            var output = cm.getOutputInv(); for (int slot = 0; slot < output.getSlots(); slot++) output.setStackInSlot(slot, new ItemStack(Items.DIRT, 64));
+            helper.assertTrue(cm.getMaidRecs().size() == 2 && rule.canMoveTo(be, cm), "two physical grill inputs must have distinct sole-manager work units");
+            rule.cookMake(be, cm);
+            helper.assertTrue(cm.getMaidRecs().size() == 1 && grill.entries[0].stack.getCount() == 1
+                    && CookInventoryTransactions.count(cm.getInputInv(), stack -> ItemStack.isSameItemSameComponents(stack, material)) == 1,
+                    "native entry acceptance, not copied grillStacks, must consume exactly one work and one material");
+            rule.tickCookMake(be, cm);
+            helper.assertTrue(cm.getMaidRecs().isEmpty() && grill.entries[1].stack.getCount() == 1, "the next native entry must accept the second actual work once");
+            int duration = grill.entries[0].duration;
+            for (int i = 0; i <= duration; i++) {
+                for (var entry : grill.entries) entry.tick(grill, true);
+                rule.tickCookMake(be, cm);
+            }
+            helper.assertTrue(grill.entries[0].flipped && grill.entries[1].flipped && be.hasResult()
+                    && java.util.Arrays.stream(grill.entries).mapToInt(entry -> entry.stack.getCount()).sum() == 2,
+                    "full output must not prevent native flipping and must retain both actual cooked entries");
+            var expected = grill.entries[0].stack.copy(); output.setStackInSlot(0, ItemStack.EMPTY); rule.tickCookMake(be, cm);
+            helper.assertTrue(!be.hasInputs() && CookInventoryTransactions.count(output, stack -> ItemStack.isSameItemSameComponents(stack, expected)) == 2,
+                    "only real finished native stacks with retained components may move into available output");
+        } finally { if (cm != null) rule.tickStop(be, cm); maid.discard(); }
+        helper.succeed();
+    }
+
+    @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID, batch = "cooking_architecture")
     public static void nativeCuisineRetainsPlanUntilPhysicalServing(GameTestHelper helper) {
         var level = helper.getLevel(); long time = level.getGameTime();
         var maid = helper.spawnWithNoFreeWill(InitEntities.MAID.get(), new net.minecraft.core.BlockPos(1, 1, 1)); maid.setNoAi(true);
