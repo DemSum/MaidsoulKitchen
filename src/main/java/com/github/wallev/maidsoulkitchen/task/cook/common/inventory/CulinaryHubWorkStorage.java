@@ -53,7 +53,7 @@ public final class CulinaryHubWorkStorage {
     }
 
     public IItemHandlerModifiable ingredients() {
-        return CookBagInventory.logicalInput(containers);
+        return com.github.wallev.maidsoulkitchen.task.cook.common.inv.maid.MaidCookBagInventory.logicalInput(containers);
     }
 
     public IItemHandlerModifiable outputs() {

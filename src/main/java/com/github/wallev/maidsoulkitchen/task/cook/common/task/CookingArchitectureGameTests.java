@@ -36,6 +36,50 @@ public final class CookingArchitectureGameTests {
     private static ResourceLocation id(String name) { return ResourceLocation.fromNamespaceAndPath(MaidsoulKitchen.MOD_ID, name); }
 
     @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID)
+    public static void inventoryViewsPreserveComponentsAndTransfers(GameTestHelper helper) {
+        var maid = helper.spawnWithNoFreeWill(InitEntities.MAID.get(), new net.minecraft.core.BlockPos(1, 1, 1));
+        maid.setNoAi(true);
+        ItemStack hub = com.github.wallev.maidsoulkitchen.init.MkItems.CULINARY_HUB.get().getDefaultInstance();
+        maid.getMaidBauble().setStackInSlot(0, hub);
+        var view = new com.github.wallev.maidsoulkitchen.task.cook.common.inv.maid.MaidCookBagInventory(maid, hub);
+        ItemStack named = new ItemStack(Items.CARROT, 3);
+        named.set(DataComponents.CUSTOM_NAME, Component.literal("view component"));
+        view.getInputInv().setStackInSlot(0, named.copy());
+        view.getInputInv().setStackInSlot(1, new ItemStack(Items.CARROT, 7));
+        view.refreshInv();
+        helper.assertTrue(view.getItemInventory().getItemCount(named) == 3
+                && view.getItemInventory().getItemCount(new ItemStack(Items.CARROT)) == 7,
+                "component variants must remain distinct in the upstream inventory view");
+        view.getInputInv().extractItem(0, 1, false);
+        view.refreshInv();
+        helper.assertTrue(view.getItemInventory().getItemCount(named) == 2,
+                "refresh must preserve unsynchronized transfers instead of reloading stale hub components");
+        view.syncInv();
+        var reloaded = new com.github.wallev.maidsoulkitchen.task.cook.common.inv.maid.MaidCookBagInventory(maid, hub);
+        reloaded.refreshInv();
+        helper.assertTrue(reloaded.getItemInventory().getItemCount(named) == 2
+                && reloaded.getInputInv().getSlots() == java.util.Arrays.stream(
+                com.github.wallev.maidsoulkitchen.inventory.container.item.BagType.INPUT_VALS).mapToInt(type -> type.size * 9).sum(),
+                "component sync and all four logical input sections must survive reopening");
+        var editedContainers = com.github.wallev.maidsoulkitchen.item.ItemCulinaryHub.getContainers(maid.registryAccess(), hub);
+        var editedInput = com.github.wallev.maidsoulkitchen.task.cook.common.inv.maid.MaidCookBagInventory.logicalInput(editedContainers);
+        editedInput.setStackInSlot(0, named.copyWithCount(5));
+        com.github.wallev.maidsoulkitchen.item.ItemCulinaryHub.setContainer(maid.registryAccess(), hub, editedContainers);
+        reloaded.refreshInv();
+        helper.assertTrue(reloaded.getItemInventory().getItemCount(named) == 5,
+                "external component inventory edits must replace the derived view on the next refresh");
+        var counts = new com.github.wallev.maidsoulkitchen.task.cook.common.inv.item.ItemInventory();
+        ItemStack live = named.copy(); counts.add(live); live.shrink(2); counts.markDirty(); counts.update();
+        helper.assertTrue(counts.getItemCount(named) == 1 && counts.getItemCount(Items.DIRT) == 0,
+                "dirty inventory counts must follow shrunk references and absent items must count as zero");
+        live.setCount(0); counts.markDirty(); counts.update();
+        helper.assertTrue(counts.getItemCount(named) == 0 && counts.getItemStacksWithNbt(named).isEmpty(),
+                "empty references must leave no stale ingredient counts");
+        maid.discard();
+        helper.succeed();
+    }
+
+    @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID)
     public static void refusedAndPartialHandlers(GameTestHelper helper) {
         var refusedSource = new ItemStackHandler(1) {
             @Override public ItemStack extractItem(int slot, int amount, boolean simulate) {

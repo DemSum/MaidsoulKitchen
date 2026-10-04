@@ -4,6 +4,9 @@ import com.github.tartaricacid.touhoulittlemaid.entity.passive.EntityMaid;
 import com.github.tartaricacid.touhoulittlemaid.util.ItemsUtil;
 import com.github.wallev.maidsoulkitchen.api.task.v1.cook.ICookTask;
 import com.github.wallev.maidsoulkitchen.entity.data.inner.task.CookData;
+import com.github.wallev.maidsoulkitchen.task.cook.common.inv.maid.IMaidCookInventory;
+import com.github.wallev.maidsoulkitchen.task.cook.common.inv.maid.MaidInventory;
+import com.github.wallev.maidsoulkitchen.task.cook.common.inv.maid.MaidCookBagInventory;
 import com.github.wallev.maidsoulkitchen.inventory.container.item.BagType;
 import com.github.wallev.maidsoulkitchen.item.ItemCulinaryHub;
 import com.github.wallev.maidsoulkitchen.util.BubbleUtil;
@@ -38,7 +41,7 @@ public class MaidRecipesManager<R extends Recipe<? extends RecipeInput>> {
     protected final Level level;
     protected final ICookTask<?, R> task;
     protected final boolean single;
-    protected ICookInventory cookInv;
+    protected IMaidCookInventory cookInv;
     protected boolean hasCulinaryHub;
     protected Map<BagType, List<BlockPos>> bindingPoses;
     protected String lastTaskRule;
@@ -95,9 +98,9 @@ public class MaidRecipesManager<R extends Recipe<? extends RecipeInput>> {
         return storageChanged || bindingsChanged;
     }
 
-    private ICookInventory initCookInv() {
+    private IMaidCookInventory initCookInv() {
         ItemStack culinaryHub = this.findCulinaryHub();
-        return culinaryHub.isEmpty() ? new MaidInventory(maid) : new CookBagInventory(maid.registryAccess(), culinaryHub);
+        return culinaryHub.isEmpty() ? new MaidInventory(maid) : new MaidCookBagInventory(maid, culinaryHub);
     }
 
     public ItemStack findCulinaryHub() {
@@ -249,7 +252,7 @@ public class MaidRecipesManager<R extends Recipe<? extends RecipeInput>> {
 
         ItemStack culinaryHub = this.findCulinaryHub();
         if (!culinaryHub.isEmpty()) {
-            IItemHandlerModifiable availableInv1 = this.getCookInv().getAvailableInv(maid, BagType.INGREDIENT);
+            IItemHandlerModifiable availableInv1 = this.getCookInv().getAvailableInv( BagType.INGREDIENT);
             if (availableInv1.getSlots() != lastInvStack.size()) return false;
 
             for (int i = 0; i < availableInv1.getSlots(); i++) {
@@ -282,7 +285,7 @@ public class MaidRecipesManager<R extends Recipe<? extends RecipeInput>> {
         List<BlockPos> ingredientPos = getBindingTypePoses(BagType.INGREDIENT);
         if (ingredientPos.isEmpty()) return;
 
-        IItemHandlerModifiable inventory = this.getCookInv().getAvailableInv(maid, BagType.INGREDIENT);
+        IItemHandlerModifiable inventory = this.getCookInv().getAvailableInv( BagType.INGREDIENT);
 
         Map<Item, Integer> available = new HashMap<>();
         Map<Item, List<ItemStack>> ingredientAmount = new HashMap<>();
@@ -425,7 +428,7 @@ public class MaidRecipesManager<R extends Recipe<? extends RecipeInput>> {
         this.tranUnIngre2Chest();
         // 获取原料箱子配方原料并置入CookBag
         this.mapChestIngredient();
-        this.cookInv.refreshInv(maid.registryAccess());
+        this.cookInv.refreshInv();
         this.createIngres(true);
         if (this.recipesIngredients.isEmpty() && !this.rec.isEmpty()) {
             this.noIngredientBubbleId = BubbleUtil.noIngredient(maid, this.noIngredientBubbleId);
@@ -495,7 +498,7 @@ public class MaidRecipesManager<R extends Recipe<? extends RecipeInput>> {
         return new HashMap<>(getCookInv().getInventoryItem());
     }
 
-    public ICookInventory getCookInv() {
+    public IMaidCookInventory getCookInv() {
         return this.cookInv;
     }
 
@@ -927,7 +930,7 @@ public class MaidRecipesManager<R extends Recipe<? extends RecipeInput>> {
     }
 
     private IItemHandlerModifiable getBagContainerInv(BagType bagType) {
-        return this.getCookInv().getAvailableInv(maid, bagType);
+        return this.getCookInv().getAvailableInv( bagType);
     }
 
 

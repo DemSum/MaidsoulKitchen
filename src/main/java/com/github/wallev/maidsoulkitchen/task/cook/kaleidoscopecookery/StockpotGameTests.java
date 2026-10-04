@@ -476,7 +476,7 @@ public final class StockpotGameTests {
     }
     private static void supply(EntityMaid maid, ItemStack hub, ItemStack... items) {
         var containers = ItemCulinaryHub.getContainers(maid.registryAccess(), hub);
-        var input = com.github.wallev.maidsoulkitchen.task.cook.common.inventory.CookBagInventory.logicalInput(containers);
+        var input = com.github.wallev.maidsoulkitchen.task.cook.common.inv.maid.MaidCookBagInventory.logicalInput(containers);
         for (int slot = 0; slot < input.getSlots(); slot++) input.setStackInSlot(slot, ItemStack.EMPTY);
         for (int slot = 0; slot < items.length; slot++) input.setStackInSlot(slot, items[slot]);
         ItemCulinaryHub.setContainer(maid.registryAccess(), hub, containers);

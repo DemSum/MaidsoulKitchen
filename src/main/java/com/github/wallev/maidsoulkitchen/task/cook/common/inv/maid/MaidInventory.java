@@ -1,9 +1,11 @@
-package com.github.wallev.maidsoulkitchen.task.cook.common.inventory;
+package com.github.wallev.maidsoulkitchen.task.cook.common.inv.maid;
 
 import com.github.tartaricacid.touhoulittlemaid.entity.passive.EntityMaid;
-import net.minecraft.core.HolderLookup;
+import com.github.wallev.maidsoulkitchen.inventory.container.item.BagType;
+
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.neoforged.neoforge.items.IItemHandlerModifiable;
 import net.neoforged.neoforge.items.wrapper.CombinedInvWrapper;
 
 import java.util.ArrayList;
@@ -11,42 +13,41 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class MaidInventory implements ICookInventory{
-    private final EntityMaid maid;
+/**
+ * Source: 58ec08ec task/cook/common/inv/maid/MaidInventory.java (MIT).
+ * Keeps the upstream inventory view; NeoForge imports and component identity are the version boundary.
+ * Replaces the corresponding beta ICookInventory view; no plans or work queue are stored here.
+ */
+public class MaidInventory extends IMaidCookInventory {
     private final Map<Item, Integer> inventoryItem = new HashMap<>();
     private final Map<Item, List<ItemStack>> inventoryStack = new HashMap<>();
     private final List<ItemStack> lastInvStack = new ArrayList<>();
+    private CombinedInvWrapper inv;
 
     public MaidInventory(EntityMaid maid) {
-        this(maid, true);
+        super(maid);
+        this.initInvData();
     }
 
-    public MaidInventory(EntityMaid maid, boolean refresh) {
-        this.maid = maid;
-        if (refresh) {
-            this.refreshInv();
-        }
+    @Override
+    protected void initInvData() {
+        this.inv = maid.getAvailableInv(true);
     }
 
     public void refreshInv() {
         clearCacheStackInfo();
-        CombinedInvWrapper availableInv = maid.getAvailableInv(true);
-        List<Integer> blackSlots = getBlackSlots();
-        for (int i = 0; i < availableInv.getSlots(); i++) {
-            ItemStack stack = availableInv.getStackInSlot(i);
+        this.initInvData();
+        for (int i = 0; i < inv.getSlots(); i++) {
+            ItemStack stack = inv.getStackInSlot(i);
             proseLastInvStack(i, stack);
-            if (blackSlots.contains(i)) continue;
             if (stack.isEmpty()) continue;
             add(stack);
+            itemInventory.add(stack);
         }
     }
 
     @Override
-    public void refreshInv(HolderLookup.Provider provider) {
-        refreshInv();
-    }
-
-    public void proseLastInvStack(int index, ItemStack invStack) {
+    protected void proseLastInvStack(int index, ItemStack invStack) {
         if (index < lastInvStack.size()) {
             ItemStack cacheStack = lastInvStack.get(index);
             if (ItemStack.isSameItemSameComponents(cacheStack, invStack) && cacheStack != invStack) {
@@ -57,24 +58,17 @@ public class MaidInventory implements ICookInventory{
         lastInvStack.add(invStack.copy());
     }
 
-    public void clearCacheStackInfo() {
+    @Override
+    protected void clearCacheStackInfo() {
+        itemInventory.clear();
+
         inventoryItem.clear();
         inventoryStack.clear();
         lastInvStack.clear();
     }
 
-    public List<Integer> getBlackSlots() {
-        List<Integer> blockSlots = new ArrayList<>();
-//        BaubleItemHandler maidBauble = this.maid.getMaidBauble();
-//        for (int i = 0; i < maidBauble.getSlots(); i++) {
-//            if (maidBauble.getStackInSlot(i).getItem() instanceof ItemWirelessIO itemWirelessIO) {
-////                itemWirelessIO.get
-//            }
-//        }
-        return blockSlots;
-    }
-
-    public void add(ItemStack stack) {
+    @Override
+    protected void add(ItemStack stack) {
         if (!stack.isEmpty()) {
             Item item = stack.getItem();
             if (this.inventoryStack.get(item) == null) {
@@ -89,19 +83,38 @@ public class MaidInventory implements ICookInventory{
         }
     }
 
+    @Override
     public Map<Item, List<ItemStack>> getInventoryStack() {
         return inventoryStack;
     }
 
+    @Override
     public Map<Item, Integer> getInventoryItem() {
         return inventoryItem;
     }
 
-    public EntityMaid getMaid() {
-        return maid;
-    }
-
+    @Override
     public List<ItemStack> getLastInvStack() {
         return lastInvStack;
+    }
+
+    @Override
+    public IItemHandlerModifiable getAvailableInv(BagType bagType) {
+        return inv;
+    }
+
+    @Override
+    public IItemHandlerModifiable getInputInv() {
+        return this.inv;
+    }
+
+    @Override
+    public IItemHandlerModifiable getOutputInv() {
+        return this.inv;
+    }
+
+    @Override
+    public void syncInv() {
+        this.calcAvailableSlots();
     }
 }
