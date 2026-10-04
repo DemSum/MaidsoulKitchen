@@ -24,14 +24,20 @@ public record SyncKitchenDataC2SMessage(int maidId, ResourceLocation cookName, b
             var player = context.player();
             if (!(player instanceof net.minecraft.server.level.ServerPlayer sender)
                     || !(player.level().getEntity(message.maidId) instanceof EntityMaid maid) || !maid.isOwnedBy(player)
-                    || !(maid.getTask() instanceof TaskCook task)
+                    || (!(maid.getTask() instanceof TaskCook)
+                    && !(maid.getTask() instanceof com.github.wallev.maidsoulkitchen.api.task.cook.ICookTask<?, ?>))
                     || !(player.containerMenu instanceof com.github.tartaricacid.touhoulittlemaid.inventory.container.task.TaskConfigContainer menu)
                     || menu.getMaid() != maid || !menu.stillValid(player)) return;
-            if (!KitchenData.get(maid).getCookName().equals(message.cookName) && !TaskCook.select(maid, message.cookName)) return;
-            var selected = task.getTask(maid);
+            // Source CookConfigGuiV1.selectTask: browsing devices changes only the view.
+            // Never apply a possibly stale client UID (including idle) when opening that view.
+            if (message.recipeSettings && (!(maid.getTask() instanceof TaskCook)
+                    || !KitchenData.get(maid).getCookName().equals(message.cookName))
+                    && !TaskCook.select(maid, message.cookName)) return;
+            var selected = TaskCook.resolve(maid);
             var provider = message.recipeSettings && selected.isPresent() ? selected.get().getTaskConfigGuiProvider(maid)
                     : new net.minecraft.world.SimpleMenuProvider((id, inventory, menuPlayer) ->
-                    new com.github.wallev.maidsoulkitchen.inventory.container.maid.CookConfigContainer(id, inventory, maid.getId(), true), task.getName());
+                    new com.github.wallev.maidsoulkitchen.inventory.container.maid.CookConfigContainer(id, inventory, maid.getId(), true),
+                    net.minecraft.network.chat.Component.translatable("task.maidsoulkitchen.cook"));
             sender.openMenu(provider, buffer -> { buffer.writeInt(maid.getId()); buffer.writeBoolean(!message.recipeSettings); });
         });
     }

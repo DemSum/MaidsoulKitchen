@@ -289,6 +289,7 @@
   "gui.maidsoulkitchen.btn.cook_guide.info.warn.furnace.1": "- Due to the special nature of the furnace's recipe, it is not currently controlled by the black and white list, and will be updated and optimized in the future!",
   "gui.maidsoulkitchen.btn.cook_guide.info.warn.cuttingboard": "- Due to the particularity of the cutting board task, it is not possible to interact with the culinary hub at present, and it will be updated and optimized in the future!",
   "gui.maidsoulkitchen.widget.cook_guide.task.desc": "Now Task: %s",
+  "gui.maidsoulkitchen.widget.cook_guide.task.choose_cook_type": "Click to select or switch appliances",
   "gui.maidsoulkitchen.widget.cook_guide.task.recipe_type": "RecipeType: %s",
   "gui.maidsoulkitchen.patchouli_warning.download": "Download Patchouli",
   "gui.maidsoulkitchen.patchouli_warning.tips": "You'll need to install the Patchouli mod to open book entry feature",

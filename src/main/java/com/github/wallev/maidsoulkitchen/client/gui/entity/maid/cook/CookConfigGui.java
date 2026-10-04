@@ -5,6 +5,7 @@ import com.github.wallev.maidsoulkitchen.MaidsoulKitchen;
 import com.github.wallev.maidsoulkitchen.api.task.cook.ICookTask;
 import com.github.wallev.maidsoulkitchen.task.cook.common.task.*;
 import com.github.wallev.maidsoulkitchen.network.message.SyncKitchenDataC2SMessage;
+import com.github.wallev.maidsoulkitchen.entity.data.inner.task.KitchenData;
 import com.github.wallev.maidsoulkitchen.client.gui.entity.maid.MaidTaskConfigGui;
 import com.github.wallev.maidsoulkitchen.entity.data.inner.task.CookData;
 import com.github.wallev.maidsoulkitchen.inventory.container.maid.CookConfigContainer;
@@ -171,6 +172,13 @@ public class CookConfigGui extends MaidTaskConfigGui<CookConfigContainer> {
     @Override
     protected void containerTick() {
         super.containerTick();
+        // TLM 1.5.3 sends KitchenData after opening the menu. Refresh the upstream device
+        // view when that canonical selection arrives, rather than retaining the idle header.
+        if (TaskCook.resolve(maid).orElse(null) != cookTask) {
+            initCookData = true;
+            solIndex = 0;
+            init();
+        }
     }
 
     @Override
@@ -262,14 +270,10 @@ public class CookConfigGui extends MaidTaskConfigGui<CookConfigContainer> {
     private void addTaskInfoButton() {
         int startX = visualZone.startX() + taskDisplay.startX();
         int startY = visualZone.startY() + taskDisplay.startY();
-        TaskInfoButton taskInfoButton = new TaskInfoButton(startX, startY, taskDisplay.width(), taskDisplay.height(), cookTask == null ? this.task : cookTask) {
-            @Override public boolean mouseClicked(double x, double y, int button) {
-                if (task instanceof TaskCook && isMouseOver(x, y) && button == 0) {
-                    selectTask = !selectTask || cookTask == null; solIndex = 0; searchBox.setValue(""); init(); return true;
-                }
-                return false;
-            }
-        };
+        TaskInfoButton taskInfoButton = new TaskInfoButton(startX, startY, taskDisplay.width(), taskDisplay.height(),
+                cookTask == null ? this.task : cookTask, button -> NetworkHandler.sendToServer(
+                new SyncKitchenDataC2SMessage(maid.getId(), cookTask == null ? KitchenData.IDLE : cookTask.getUid(),
+                        selectTask && cookTask != null)));
         this.addRenderableWidget(taskInfoButton);
     }
 

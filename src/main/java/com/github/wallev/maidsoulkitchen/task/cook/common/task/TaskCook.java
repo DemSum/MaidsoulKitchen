@@ -50,14 +50,24 @@ public final class TaskCook implements ICookTargetTask, IDataTask<KitchenData> {
     /** Source KitchenData.setCookName. Rebuild TLM's brain so selecting a device retires the old
      * Rule and manager; the client cannot submit settings or a second work state in this action. */
     public static boolean select(EntityMaid maid, ResourceLocation uid) {
-        if (!(maid.getTask() instanceof TaskCook) || !(maid.level() instanceof net.minecraft.server.level.ServerLevel level)) return false;
+        if (!(maid.level() instanceof net.minecraft.server.level.ServerLevel level)) return false;
+        IMaidTask current = maid.getTask();
+        if (!(current instanceof TaskCook) && !(current instanceof ICookTask<?, ?>)) return false;
         var task = CookTaskManager.findTask(uid);
         if (!uid.equals(KitchenData.IDLE) && (task.isEmpty() || !task.get().isEnable(maid))) return false;
+        // TLM 1.5.3 keeps hidden legacy UIDs loadable. An explicit device choice migrates
+        // that entry into upstream TaskCook, retaining its existing canonical/legacy filters.
+        var unified = current instanceof TaskCook cook ? cook
+                : TaskManager.findTask(com.github.wallev.maidsoulkitchen.task.TaskInfo.COOK.uid)
+                .filter(TaskCook.class::isInstance).map(TaskCook.class::cast).orElse(null);
+        if (unified == null) return false;
+        if (current instanceof ICookTask<?, ?> legacy) KitchenData.get(maid, legacy);
         var owner = (com.github.wallev.maidsoulkitchen.entity.passive.IAddonMaid) maid;
         if (owner.tlmk$getCookManager() != null) owner.tlmk$getCookManager().retire();
         owner.tlmk$setCookManager(null);
         KitchenData.get(maid).setCookName(uid); KitchenData.sync(maid);
-        maid.refreshBrain(level);
+        if (current == unified) maid.refreshBrain(level);
+        else maid.setTask(unified);
         return true;
     }
 }

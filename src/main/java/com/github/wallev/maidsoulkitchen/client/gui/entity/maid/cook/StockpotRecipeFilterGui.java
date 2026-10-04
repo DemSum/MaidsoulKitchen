@@ -21,6 +21,9 @@ public final class StockpotRecipeFilterGui extends RecipeFilterGui<StockpotRecip
         return menu.getMaid() == null ? List.of()
                 : StockpotAdapter.getRecipeOptions(menu.getMaid().level(), allowFlex);
     }
+    @Override protected net.minecraft.resources.ResourceLocation getCookTaskUid() {
+        return com.github.wallev.maidsoulkitchen.task.TaskInfo.KC_STOCKPOT.uid;
+    }
     @Override protected RecipeFilterData readFilter() { return menu.getSettings().filter(); }
     @Override protected void syncFilter() {
         if (menu.getMaidEntityId() >= 0) {

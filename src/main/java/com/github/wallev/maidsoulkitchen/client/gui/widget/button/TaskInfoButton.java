@@ -20,11 +20,12 @@ import java.util.List;
 public class TaskInfoButton extends NormalTooltipButton {
     private static final ResourceLocation TEXTURE = ResourceLocation.fromNamespaceAndPath(MaidsoulKitchen.MOD_ID, "textures/gui/cook_guide.png");
 
-    private IMaidTask task;
+    private final IMaidTask task;
 
-    public TaskInfoButton(int pX, int pY, int pWidth, int pHeight, IMaidTask task) {
-        super(pX, pY, pWidth, pHeight, task.getName(), getDesc(task), (b) -> {
-        });
+    // Source: 58ec08ec TaskInfoButton OnPress. Restore the upstream clickable device card
+    // instead of the beta's empty callback / disabled mouseClicked implementation.
+    public TaskInfoButton(int pX, int pY, int pWidth, int pHeight, IMaidTask task, OnPress onPress) {
+        super(pX, pY, pWidth, pHeight, task.getName(), getDesc(task), onPress);
         this.task = task;
     }
 
@@ -43,14 +44,11 @@ public class TaskInfoButton extends NormalTooltipButton {
         renderScrollingString(pGuiGraphics, pFont, this.getMessage(), x, y, x + pWidth, y + pFont.lineHeight, pColor);
     }
 
-    @Override
-    public boolean mouseClicked(double pMouseX, double pMouseY, int pButton) {
-        return false;
-    }
-
     public static List<Component> getDesc(IMaidTask task) {
         List<Component> components = new ArrayList<>();
         components.add(Component.translatable("gui.maidsoulkitchen.widget.cook_guide.task.desc", task.getName()));
+        components.add(Component.translatable("gui.maidsoulkitchen.widget.cook_guide.task.choose_cook_type")
+                .withStyle(ChatFormatting.YELLOW));
         if (task instanceof ICookTask<?, ?> maidTask) {
             RecipeType<?> recipeType = maidTask.getRecipeType();
             String typeString = recipeType.toString();

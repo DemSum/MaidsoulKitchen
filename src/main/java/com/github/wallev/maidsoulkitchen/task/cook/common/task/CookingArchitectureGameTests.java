@@ -34,6 +34,93 @@ import java.util.Map;
 @PrefixGameTestTemplate(false)
 public final class CookingArchitectureGameTests {
     @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID, batch = "cooking_architecture")
+    public static void hiddenApplianceAliasesRemainLoadableAndMigrateFilters(GameTestHelper helper) {
+        var maid = helper.spawnWithNoFreeWill(InitEntities.MAID.get(), new net.minecraft.core.BlockPos(1, 1, 1));
+        maid.setNoAi(true); maid.setFavorability(10000);
+        try {
+            var visible = com.github.tartaricacid.touhoulittlemaid.entity.task.TaskManager.getNotHiddenTaskList(maid);
+            helper.assertTrue(visible.stream().anyMatch(TaskCook.class::isInstance)
+                    && visible.stream().noneMatch(com.github.wallev.maidsoulkitchen.api.task.cook.ICookTask.class::isInstance),
+                    "TLM's actual task picker must expose only the unified cooking entry");
+            for (var device : CookTaskManager.getTaskIndex()) {
+                helper.assertTrue(com.github.tartaricacid.touhoulittlemaid.entity.task.TaskManager.findTask(device.getUid()).isPresent(),
+                        "hidden appliance UID must remain registered for old saves: " + device.getUid());
+            }
+            var legacy = CookTaskManager.findTask(TaskInfo.FURNACE.uid).orElseThrow();
+            var filter = new CookData("whitelist", List.of("minecraft:iron_ingot_from_smelting_raw_iron"), List.of());
+            maid.setData(DataRegister.MC_FURNACE, filter);
+            maid.setTask(legacy);
+            var old = legacy.getRecipesManager(maid);
+            helper.assertTrue(TaskCook.select(maid, TaskInfo.FURNACE.uid)
+                    && maid.getTask() instanceof TaskCook
+                    && KitchenData.get(maid).getCookData(TaskInfo.FURNACE.uid).whitelistRecs().equals(filter.whitelistRecs())
+                    && TaskCook.resolve(maid).orElseThrow().getRecipesManager(maid) != old && !old.checkAndInit(),
+                    "explicit choice from an old appliance task must preserve its filter and retire its old context");
+        } finally { maid.discard(); }
+        helper.succeed();
+    }
+
+    @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID, batch = "cooking_architecture")
+    @SuppressWarnings("unchecked")
+    public static void browsingDeviceMenuWithStaleUidPreservesLiveWork(GameTestHelper helper) throws ReflectiveOperationException {
+        var original = List.copyOf(helper.getLevel().getRecipeManager().getRecipes());
+        var maid = helper.spawnWithNoFreeWill(InitEntities.MAID.get(), new net.minecraft.core.BlockPos(1, 1, 1));
+        var profile = new com.mojang.authlib.GameProfile(java.util.UUID.randomUUID(), "menu-browse-test");
+        var player = new net.minecraft.server.level.ServerPlayer(helper.getLevel().getServer(), helper.getLevel(), profile,
+                net.minecraft.server.level.ClientInformation.createDefault());
+        // Use NeoForge's no-network connection, but a real ServerPlayer: FakePlayer itself
+        // overrides openMenu with an empty method, and vanilla's login mock lacks mod negotiation.
+        player.connection = new net.neoforged.neoforge.common.util.FakePlayer(helper.getLevel(), profile).connection;
+        helper.getLevel().addNewPlayer(player);
+        // TLM getOwner uses PlayerList.getPlayer(UUID), unlike vanilla's level lookup.
+        // Register only that native test identity; do not run a login lacking mod negotiation.
+        var playerField = net.minecraft.server.players.PlayerList.class.getDeclaredField("playersByUUID");
+        playerField.setAccessible(true);
+        var registered = (Map<java.util.UUID, net.minecraft.server.level.ServerPlayer>) playerField.get(helper.getLevel().getServer().getPlayerList());
+        registered.put(player.getUUID(), player);
+        maid.setNoAi(true); maid.setFavorability(10000); maid.setTame(true, false); maid.setOwnerUUID(player.getUUID());
+        player.moveTo(maid.getX(), maid.getY(), maid.getZ());
+        try {
+            var holder = new RecipeHolder<>(id("browse_preserves_work"), new com.github.ysbbbbbb.kaleidoscopecookery.crafting.recipe.SteamerRecipe(
+                    Ingredient.of(Items.CARROT), new ItemStack(Items.BAKED_POTATO), 20));
+            reloadRecipes(helper, List.of(holder));
+            maid.getMaidBauble().setStackInSlot(0, com.github.wallev.maidsoulkitchen.init.MkItems.CULINARY_HUB.get().getDefaultInstance());
+            maid.setTask(new TaskCook());
+            helper.assertTrue(TaskCook.select(maid, TaskInfo.KC_STEAMER.uid), "select physical steamer context");
+            var cm = TaskCook.resolve(maid).orElseThrow().getRecipesManager(maid); cm.checkAndInit();
+            cm.getInputInv().setStackInSlot(0, new ItemStack(Items.CARROT, 3));
+            cm.checkAndCreateRecipes(); finishPlanning(cm); var work = cm.peekMaidRec();
+            helper.assertTrue(work != null, "fixture must have real planned work before opening the chooser");
+            var menu = new com.github.wallev.maidsoulkitchen.inventory.container.maid.SteamerRecipeFilterContainer(1, player.getInventory(), maid.getId());
+            player.containerMenu = menu;
+            helper.assertTrue(menu.stillValid(player), "real TLM menu checks: sameMaid=" + (menu.getMaid() == maid)
+                    + ", owned=" + maid.isOwnedBy(player) + ", alive=" + maid.isAlive() + ", sleeping=" + maid.isSleeping()
+                    + ", reachable=" + player.canInteractWithEntity(maid, 4.0));
+            var context = (net.neoforged.neoforge.network.handling.IPayloadContext) java.lang.reflect.Proxy.newProxyInstance(
+                    CookingArchitectureGameTests.class.getClassLoader(),
+                    new Class<?>[]{net.neoforged.neoforge.network.handling.IPayloadContext.class}, (proxy, method, args) -> switch (method.getName()) {
+                        case "flow" -> net.minecraft.network.protocol.PacketFlow.SERVERBOUND;
+                        case "player" -> player;
+                        case "enqueueWork" -> { ((Runnable) args[0]).run(); yield java.util.concurrent.CompletableFuture.completedFuture(null); }
+                        default -> throw new UnsupportedOperationException(method.getName());
+                    });
+            com.github.wallev.maidsoulkitchen.network.message.SyncKitchenDataC2SMessage.handle(
+                    new com.github.wallev.maidsoulkitchen.network.message.SyncKitchenDataC2SMessage(maid.getId(), KitchenData.IDLE, false), context);
+            helper.assertTrue(player.containerMenu instanceof com.github.wallev.maidsoulkitchen.inventory.container.maid.CookConfigContainer chooser
+                    && chooser.chooseDevices && player.containerMenu != menu
+                    && KitchenData.get(maid).getCookName().equals(TaskInfo.KC_STEAMER.uid)
+                    && TaskCook.resolve(maid).orElseThrow().getRecipesManager(maid) == cm && cm.peekMaidRec() == work
+                    && cm.getInputInv().getStackInSlot(0).getCount() == 3,
+                    "actual selection payload must open the chooser without applying stale idle, retiring work or consuming inventory");
+        } finally {
+            player.closeContainer(); helper.getLevel().removePlayerImmediately(player, net.minecraft.world.entity.Entity.RemovalReason.DISCARDED);
+            registered.remove(player.getUUID());
+            reloadRecipes(helper, original); maid.discard();
+        }
+        helper.succeed();
+    }
+
+    @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID, batch = "cooking_architecture")
     public static void conditionalPlannerReportsAbsentDeviceWithoutInventingWork(GameTestHelper helper) {
         var maid = helper.spawnWithNoFreeWill(InitEntities.MAID.get(), new net.minecraft.core.BlockPos(1, 1, 1));
         maid.setNoAi(true);

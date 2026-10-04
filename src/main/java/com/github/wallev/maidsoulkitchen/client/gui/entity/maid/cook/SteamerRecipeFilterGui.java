@@ -14,6 +14,9 @@ public final class SteamerRecipeFilterGui extends RecipeFilterGui<SteamerRecipeF
         super(menu, inventory, title);
     }
     @Override protected List<RecipeOption> readRecipeOptions() { return menu.getRecipeOptions(); }
+    @Override protected net.minecraft.resources.ResourceLocation getCookTaskUid() {
+        return com.github.wallev.maidsoulkitchen.task.TaskInfo.KC_STEAMER.uid;
+    }
     @Override protected RecipeFilterData readFilter() { return menu.getFilterData(); }
     @Override protected void syncFilter() {
         if (menu.getMaidEntityId() >= 0) {

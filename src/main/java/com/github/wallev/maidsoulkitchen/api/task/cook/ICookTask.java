@@ -66,6 +66,9 @@ public abstract class ICookTask<B extends BlockEntity, R extends Recipe<? extend
     protected abstract CookBeBase<B> createCookBe(EntityMaid maid);
     public final RecSerializerManager<R> getRecSerializerManager() { return recSerializerManager; }
     public RecipeType<R> getRecipeType() { return recSerializerManager.getRecipeType(); }
+    /** TLM 1.5.3 visibility boundary: keep legacy UIDs loadable, but expose devices only
+     * through the upstream TaskCook / CookTaskManager chooser. */
+    @Override public final boolean isHidden(EntityMaid maid) { return true; }
     /** Source: upstream BubbleUtil recipe overview/commit presentation. Explicit local acceptance
      * policy temporarily excludes the new KC devices from quantity bubbles. A constant device
      * capability changes presentation only; it cannot change planning, transactions or the queue. */

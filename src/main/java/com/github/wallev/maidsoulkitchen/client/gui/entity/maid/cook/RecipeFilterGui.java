@@ -79,13 +79,6 @@ public abstract class RecipeFilterGui<M extends TaskConfigContainer> extends Mai
     @Override
     protected void initAdditionWidgets() {
         super.initAdditionWidgets();
-        if (maid.getTask() instanceof com.github.wallev.maidsoulkitchen.task.cook.common.task.TaskCook) {
-            addRenderableWidget(Button.builder(Component.translatable("task.maidsoulkitchen.cook"), button ->
-                    com.github.wallev.maidsoulkitchen.network.NetworkHandler.sendToServer(
-                    new com.github.wallev.maidsoulkitchen.network.message.SyncKitchenDataC2SMessage(maid.getId(),
-                            com.github.wallev.maidsoulkitchen.entity.data.inner.task.KitchenData.get(maid).getCookName(), false)))
-                    .bounds(visualZone.startX() + 80, visualZone.startY() + 5, 80, 14).build());
-        }
         addTaskInfoButton();
         addSearchTextBox();
         addSearchButton();
@@ -190,9 +183,13 @@ public abstract class RecipeFilterGui<M extends TaskConfigContainer> extends Mai
         int x = visualZone.startX() + TASK_DISPLAY.startX();
         int y = visualZone.startY() + TASK_DISPLAY.startY();
         // Source: 58ec08ec CookConfigGuiV1.addTaskInfoButton displays the selected cookTask.
-        // TaskCook is now TLM's entry task; resolve its KitchenData UID for the device header.
-        var selected = com.github.wallev.maidsoulkitchen.task.cook.common.task.TaskCook.resolve(maid).orElse(null);
-        addRenderableWidget(new TaskInfoButton(x, y, taskDisplayWidth(), TASK_DISPLAY.height(), selected == null ? task : selected));
+        // KC's native menu already identifies its device. TLM defers task-data synchronization,
+        // so resolving the maid's selection during screen construction can still return idle.
+        var selected = com.github.wallev.maidsoulkitchen.task.cook.common.task.CookTaskManager.findTask(getCookTaskUid()).orElse(null);
+        addRenderableWidget(new TaskInfoButton(x, y, taskDisplayWidth(), TASK_DISPLAY.height(), selected == null ? task : selected,
+                button -> com.github.wallev.maidsoulkitchen.network.NetworkHandler.sendToServer(
+                        new com.github.wallev.maidsoulkitchen.network.message.SyncKitchenDataC2SMessage(
+                                maid.getId(), getCookTaskUid(), false))));
     }
 
     protected int taskDisplayWidth() { return TASK_DISPLAY.width(); }
@@ -308,6 +305,8 @@ public abstract class RecipeFilterGui<M extends TaskConfigContainer> extends Mai
     }
 
     protected abstract List<RecipeOption> readRecipeOptions();
+    /** KC menu identity, a display boundary only; work and filters remain in KitchenData. */
+    protected abstract ResourceLocation getCookTaskUid();
     protected abstract RecipeFilterData readFilter();
     protected abstract void syncFilter();
 
