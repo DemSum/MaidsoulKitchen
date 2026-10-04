@@ -75,6 +75,12 @@ public abstract class CookBeBase<B extends BlockEntity> {
         setBe((B) be);
     }
     public BlockPos getPos() { return be.getBlockPos(); }
+    /** Source: c9273ce5 side search, extended by the verified KC steamer stack search.
+     * Device geometry belongs to Be; the common Move still performs exactly one TLM BFS. */
+    public int[] getInteractionHeightOffsets() { return new int[]{0, 1}; }
+    public int getVerticalSearchRange() { return 2; }
+    /** Existing floor recovery anchor; stacked devices override it with their actual heat base. */
+    public BlockPos getWorkAreaFloorAnchor(BlockPos walkPos) { return walkPos; }
     public void clear() { be = null; }
     public EntityMaid getMaid() { return maid; }
 }

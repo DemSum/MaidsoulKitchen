@@ -33,6 +33,14 @@ public final class ReachableCookDeviceSearch {
             Predicate<BlockPos> isValidDevice,
             CookTargetCycle targetCycle
     ) {
+        return find(level, maid, searchCenter, searchRange, verticalSearchStart, verticalSearchRange,
+                isValidDevice, targetCycle, DEVICE_HEIGHT_OFFSETS);
+    }
+
+    /** Existing KC side geometry supplies height offsets to the same single-BFS selection. */
+    public static Optional<Result> find(ServerLevel level, EntityMaid maid, BlockPos searchCenter,
+            int searchRange, int verticalSearchStart, int verticalSearchRange,
+            Predicate<BlockPos> isValidDevice, CookTargetCycle targetCycle, int[] deviceHeightOffsets) {
         if (searchRange <= 0) {
             return Optional.empty();
         }
@@ -54,7 +62,8 @@ public final class ReachableCookDeviceSearch {
                         verticalSearchRange,
                         checkedDevices,
                         isValidDevice,
-                        selection
+                        selection,
+                        deviceHeightOffsets
                 )
         );
         return Optional.ofNullable(selection.result());
@@ -70,13 +79,13 @@ public final class ReachableCookDeviceSearch {
             int verticalSearchRange,
             Set<BlockPos> checkedDevices,
             Predicate<BlockPos> isValidDevice,
-            Selection selection
+            Selection selection,
+            int[] deviceHeightOffsets
     ) {
-        for (int heightOffset : DEVICE_HEIGHT_OFFSETS) {
+        for (int heightOffset : deviceHeightOffsets) {
             for (Direction direction : HORIZONTAL_DIRECTIONS) {
                 BlockPos devicePos = candidateWalkPos.above(heightOffset).relative(direction).immutable();
-                if (!isSideApproach(candidateWalkPos, devicePos)
-                        || !isDeviceWithinSearchBounds(
+                if (!isDeviceWithinSearchBounds(
                         devicePos,
                         searchCenter,
                         searchRange,

@@ -410,6 +410,52 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
         return result.getCount() > ItemHandlerHelper.insertItemStacked(getOutputInv(), result.copy(), true).getCount();
     }
 
+    /** Source: verified local SteamerAdapter.takeReadyFoodTo (c9273ce5/WIP), moved into the
+     * upstream manager's takeItem ownership. KC has no Handler result slot: native takeFood gives
+     * one physical result to a non-player hand and drops the rest. Retain its UUID/expected-item
+     * capture, preflight the entire batch, detach before insertion, and recover native effects even
+     * after a late exception. Replaces steamer Storage/adapter inventory writes, owns no result cache. */
+    public boolean takeNativeOutput(List<ItemStack> expectedOutputs, java.util.function.BooleanSupplier nativeTake) {
+        if (!CookInventoryTransactions.canFitAll(getOutputInv(), expectedOutputs)) return false;
+        List<ItemStack> expected = expectedOutputs.stream().filter(stack -> !stack.isEmpty()).map(ItemStack::copy).toList();
+        var area = maid.getBoundingBox().inflate(2.0);
+        Set<java.util.UUID> existing = new HashSet<>();
+        level.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class, area).forEach(entity -> existing.add(entity.getUUID()));
+        ItemStack originalHand = maid.getMainHandItem();
+        maid.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+        try { return nativeTake.getAsBoolean(); }
+        finally {
+            ItemStack actualHand = maid.getMainHandItem();
+            maid.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+            try {
+                claimExpectedCount(actualHand, expected);
+                CookInventoryTransactions.returnOrDrop(getOutputInv(), actualHand, maid);
+                for (var entity : level.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class, area,
+                        candidate -> !existing.contains(candidate.getUUID()))) {
+                    ItemStack source = entity.getItem();
+                    int amount = claimExpectedCount(source, expected);
+                    if (amount == 0) continue;
+                    ItemStack detached = source.split(amount);
+                    ItemStack remainder = ItemHandlerHelper.insertItemStacked(getOutputInv(), detached, false);
+                    source.grow(remainder.getCount());
+                    if (source.isEmpty()) entity.discard(); else entity.setItem(source);
+                }
+            } finally {
+                maid.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, originalHand);
+                cookInv.syncInv(); cookInv.refreshInv();
+            }
+        }
+    }
+
+    private static int claimExpectedCount(ItemStack source, List<ItemStack> expected) {
+        int remaining = source.getCount(); int claimed = 0;
+        for (ItemStack stack : expected) {
+            if (remaining == 0 || stack.isEmpty() || !ItemStack.isSameItemSameComponents(source, stack)) continue;
+            int amount = Math.min(remaining, stack.getCount()); stack.shrink(amount); claimed += amount; remaining -= amount;
+        }
+        return claimed;
+    }
+
     /** Source: CookBeBase.insertInputs/insertAndShrink (58ec08ec).
      * The source consumed plans before insertion and trusted live stacks. Keep ordered recipe slots,
      * preflight component counts and real slot acceptance, then use extract-first receipts.

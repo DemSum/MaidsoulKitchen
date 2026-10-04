@@ -68,6 +68,14 @@ public final class KitchenData {
     }
 
     public static CookData get(EntityMaid maid, ICookTask<?, ?> task) {
+        // KC legacy keys contain filter records rather than CookData. Migrate those once through
+        // their existing boundary, then return the same canonical type_data entry to the manager.
+        if (task.getUid().equals(TaskInfo.KC_STEAMER.uid)) {
+            getSteamerFilter(maid); return get(maid).getCookData(task.getUid());
+        }
+        if (task.getUid().equals(TaskInfo.KC_STOCKPOT.uid)) {
+            getStockpotSettings(maid); return get(maid).getCookData(task.getUid());
+        }
         KitchenData kitchen = get(maid);
         boolean migrated = !kitchen.cookData.containsKey(task.getUid());
         CookData data = kitchen.migrate(task.getUid(), () -> maid.getOrCreateData(task.getCookDataKey(), new CookData()));

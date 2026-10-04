@@ -36,6 +36,66 @@ public final class CookingArchitectureGameTests {
     private static ResourceLocation id(String name) { return ResourceLocation.fromNamespaceAndPath(MaidsoulKitchen.MOD_ID, name); }
 
     @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID, batch = "cooking_architecture")
+    public static void nativeSteamerOneToFourLayersUseUnifiedWorkAndOutput(GameTestHelper helper) {
+        var level = helper.getLevel(); var original = List.copyOf(level.getRecipeManager().getRecipes());
+        var maid = helper.spawnWithNoFreeWill(InitEntities.MAID.get(), new net.minecraft.core.BlockPos(1, 1, 1)); maid.setNoAi(true);
+        long time = level.getGameTime();
+        try {
+            for (int x = 0; x < 7; x++) for (int z = 0; z < 7; z++) helper.setBlock(x, 0, z, net.minecraft.world.level.block.Blocks.STONE);
+            var center = helper.absolutePos(new net.minecraft.core.BlockPos(3, 1, 3));
+            maid.getSchedulePos().setHomeModeEnable(maid, center); maid.getSchedulePos().setConfigured(true);
+            maid.setHomeModeEnable(true); maid.restrictTo(center, 8); maid.setOnGround(true);
+            var holder = new RecipeHolder<>(id("native_steamer_work"), new com.github.ysbbbbbb.kaleidoscopecookery.crafting.recipe.SteamerRecipe(
+                    Ingredient.of(Items.CARROT), new ItemStack(Items.BAKED_POTATO), 10)); reloadRecipes(helper, List.of(holder));
+            var task = new com.github.wallev.maidsoulkitchen.task.cook.kaleidoscopecookery.TaskKcSteamer(); maid.setTask(task);
+            KitchenData.get(maid).setCookData(task.getUid(), new CookData("whitelist", List.of(holder.id().toString()), List.of()));
+            maid.getMaidBauble().setStackInSlot(0, com.github.wallev.maidsoulkitchen.init.MkItems.CULINARY_HUB.get().getDefaultInstance());
+            for (int layers = 1; layers <= 4; layers++) {
+                for (int y = 1; y <= 5; y++) helper.setBlock(4, y, 4, net.minecraft.world.level.block.Blocks.AIR);
+                helper.setBlock(4, 0, 4, net.minecraft.world.level.block.Blocks.CAMPFIRE);
+                for (int y = 1; y <= layers; y++) helper.setBlock(new net.minecraft.core.BlockPos(4, y, 4),
+                        com.github.ysbbbbbb.kaleidoscopecookery.init.ModBlocks.STEAMER.get().defaultBlockState()
+                                .setValue(com.github.ysbbbbbb.kaleidoscopecookery.block.kitchen.SteamerBlock.HALF, y == layers && layers % 2 == 0)
+                                .setValue(com.github.ysbbbbbb.kaleidoscopecookery.block.kitchen.SteamerBlock.HAS_LID, y == layers));
+                var nativeBe = (com.github.ysbbbbbb.kaleidoscopecookery.blockentity.kitchen.SteamerBlockEntity) helper.getBlockEntity(new net.minecraft.core.BlockPos(4, layers, 4));
+                var be = new com.github.wallev.maidsoulkitchen.task.cook.kaleidoscopecookery.SteamerBe(maid); be.setBe(nativeBe);
+                maid.moveTo(center.getX() - 1.5, center.getY(), center.getZ() - 1.5);
+                var cm = task.getRecipesManager(maid); cm.checkAndInit();
+                var input = cm.getInputInv(); for (int slot = 0; slot < input.getSlots(); slot++) input.setStackInSlot(slot, ItemStack.EMPTY);
+                var material = new ItemStack(Items.CARROT, 2); material.set(DataComponents.CUSTOM_NAME, Component.literal("steamer components")); input.setStackInSlot(0, material.copy());
+                var output = cm.getOutputInv(); for (int slot = 0; slot < output.getSlots(); slot++) output.setStackInSlot(slot, ItemStack.EMPTY);
+                cm.checkAndCreateRecipesIngredients(); finishPlanning(cm);
+                var found = com.github.wallev.maidsoulkitchen.task.cook.common.ai.ReachableCookDeviceSearch.find(level, maid, center, 8, 0, be.getVerticalSearchRange(),
+                        pos -> pos.equals(nativeBe.getBlockPos()), new com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookTargetCycle(), be.getInteractionHeightOffsets());
+                helper.assertTrue(found.isPresent() && !found.get().walkPos().equals(found.get().workPos())
+                        && be.getWorkAreaFloorAnchor(found.get().walkPos()).equals(helper.absolutePos(new net.minecraft.core.BlockPos(4, 0, 4)))
+                        && be.cookStateMatch(), "common single BFS and heat-floor anchor must reach native steamer layer " + layers);
+                for (int unit = 0; unit < 2; unit++) com.github.wallev.maidsoulkitchen.task.cook.kaleidoscopecookery.SteamerCookRule.INSTANCE.cookMake(be, cm);
+                helper.assertTrue(cm.getMaidRecs().isEmpty() && input.getStackInSlot(0).isEmpty()
+                        && nativeBe.getItems().stream().filter(stack -> ItemStack.isSameItemSameComponents(stack, material)).count() == 2,
+                        "two physical single-slot inputs must preserve components and commit exactly twice at layer " + layers);
+                for (int tick = 0; tick < 80; tick++) {
+                    ((net.minecraft.world.level.storage.ServerLevelData) level.getLevelData()).setGameTime(time + tick);
+                    for (int y = 1; y <= layers; y++) ((com.github.ysbbbbbb.kaleidoscopecookery.blockentity.kitchen.SteamerBlockEntity)
+                            helper.getBlockEntity(new net.minecraft.core.BlockPos(4, y, 4))).tick(level);
+                }
+                for (int slot = 0; slot < output.getSlots(); slot++) output.setStackInSlot(slot, new ItemStack(Items.COBBLESTONE, 64));
+                helper.assertTrue(be.hasResult() && !be.extractResult(cm) && nativeBe.getItems().stream().filter(stack -> !stack.isEmpty()).count() == 2,
+                        "full unified output must leave the actual native batch in the steamer layer " + layers + ": " + be.snapshot());
+                for (int slot = 0; slot < output.getSlots(); slot++) output.setStackInSlot(slot, ItemStack.EMPTY);
+                var sword = new ItemStack(Items.IRON_SWORD); sword.setDamageValue(9); maid.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, sword);
+                helper.assertTrue(be.extractResult(cm) && !be.hasInputs() && maid.getMainHandItem() == sword
+                        && CookInventoryTransactions.count(output, stack -> stack.is(Items.BAKED_POTATO)) == 2,
+                        "manager must collect the actual hand/drop batch once and restore the original hand");
+                maid.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+            }
+        } finally {
+            ((net.minecraft.world.level.storage.ServerLevelData) level.getLevelData()).setGameTime(time); reloadRecipes(helper, original); maid.discard();
+        }
+        helper.succeed();
+    }
+
+    @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID, batch = "cooking_architecture")
     public static void nativeFdSkilletAcceptsBoundedBatchAndSelectedRecipe(GameTestHelper helper) {
         var level = helper.getLevel(); var original = List.copyOf(level.getRecipeManager().getRecipes());
         var maid = helper.spawnWithNoFreeWill(InitEntities.MAID.get(), new net.minecraft.core.BlockPos(1, 1, 1)); maid.setNoAi(true);
@@ -1167,3 +1227,5 @@ public final class CookingArchitectureGameTests {
         helper.succeed();
     }
 }
+
+

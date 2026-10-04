@@ -30,7 +30,7 @@ public class CookMoveTask<B extends BlockEntity, R extends Recipe<? extends Reci
     protected int verticalSearchStart;
 
     public CookMoveTask(ICookTask<B, R> task, MaidCookManager<R> maidRecipesManager, com.github.wallev.maidsoulkitchen.task.cook.common.rule.cook.AbstractCookRule<B, R> rule, com.github.wallev.maidsoulkitchen.task.cook.common.cook.be.CookBeBase<B> cookBe) {
-        this(task, 0.5f, 2, maidRecipesManager, rule, cookBe);
+        this(task, 0.5f, cookBe.getVerticalSearchRange(), maidRecipesManager, rule, cookBe);
     }
 
     public CookMoveTask(ICookTask<B, R> task, float movementSpeed, int verticalSearchRange, MaidCookManager<R> maidRecipesManager, com.github.wallev.maidsoulkitchen.task.cook.common.rule.cook.AbstractCookRule<B, R> rule, com.github.wallev.maidsoulkitchen.task.cook.common.cook.be.CookBeBase<B> cookBe) {
@@ -96,7 +96,8 @@ public class CookMoveTask<B extends BlockEntity, R extends Recipe<? extends Reci
                 this.verticalSearchRange,
                 pos -> CookWorkLocks.isAvailable(worldIn, pos, maid)
                         && shouldMoveTo(worldIn, maid, pos),
-                targetCycle
+                targetCycle,
+                cookBe.getInteractionHeightOffsets()
         );
         if (result.isEmpty()) {
             this.guideBackToWorkArea(worldIn, maid, centrePos, centrePos);
@@ -104,9 +105,9 @@ public class CookMoveTask<B extends BlockEntity, R extends Recipe<? extends Reci
         }
 
         ReachableCookDeviceSearch.Result target = result.get();
-        if (this.guideBackToWorkArea(worldIn, maid, centrePos, target.walkPos())) return;
-        if (!CookWorkLocks.tryClaim(worldIn, target.workPos(), maid)) return;
         cookBe.setBlockEntity(worldIn.getBlockEntity(target.workPos()));
+        if (this.guideBackToWorkArea(worldIn, maid, centrePos, cookBe.getWorkAreaFloorAnchor(target.walkPos()))) return;
+        if (!CookWorkLocks.tryClaim(worldIn, target.workPos(), maid)) return;
         CookTargetMemory.remember(
                 maid,
                 target.walkPos(),

@@ -38,15 +38,15 @@ class Tlm15ApiMigrationTest {
         );
         String steamerMove = classFileText(
                 "com/github/wallev/maidsoulkitchen/task/cook/kaleidoscopecookery/"
-                        + "MaidSteamerMoveTask.class"
+                        + "SteamerBe.class"
         );
         assertTrue(adapter.contains("MaidPathFindingBFS"));
         assertTrue(adapter.contains("finish"));
         assertFalse(adapter.contains("java/lang/reflect"));
         assertTrue(genericSearch.contains("CookPathSearch"));
         assertFalse(genericSearch.contains("NodeEvaluator"));
-        assertTrue(steamerMove.contains("CookPathSearch"));
-        assertTrue(steamerMove.contains("ICookTargetTask"));
+        assertTrue(steamerMove.contains("getInteractionHeightOffsets"));
+        assertTrue(steamerMove.contains("CookBeBase"));
         assertNull(getClass().getClassLoader().getResource(
                 "com/github/wallev/maidsoulkitchen/task/cook/kaleidoscopecookery/"
                         + "SteamerApproachSearch.class"
@@ -69,11 +69,11 @@ class Tlm15ApiMigrationTest {
                 "com/github/wallev/maidsoulkitchen/api/task/v1/cook/ICookTargetTask.class"
         );
         String genericMove = classFileText(
-                "com/github/wallev/maidsoulkitchen/task/cook/common/ai/MaidCookMoveTask.class"
+                "com/github/wallev/maidsoulkitchen/task/cook/common/ai/CookMoveTask.class"
         );
         String steamerMove = classFileText(
                 "com/github/wallev/maidsoulkitchen/task/cook/kaleidoscopecookery/"
-                        + "MaidSteamerMoveTask.class"
+                        + "SteamerBe.class"
         );
         assertTrue(memory.contains("COOK_TASK_UID"));
         assertTrue(memory.contains("CookWorkLocks"));
@@ -84,9 +84,9 @@ class Tlm15ApiMigrationTest {
         assertTrue(genericMove.contains("guideBackToWorkArea"));
         assertTrue(genericMove.contains("pendingWorkAreaFloorAnchor"));
         assertTrue(genericMove.contains("setNextCheckTickCount"));
-        assertTrue(steamerMove.contains("CookTargetCycle"));
-        assertTrue(steamerMove.contains("isAvailable"));
-        assertTrue(steamerMove.contains("guideBackToWorkArea"));
+        assertTrue(genericMove.contains("CookTargetCycle"));
+        assertTrue(genericMove.contains("isAvailable"));
+        assertTrue(genericMove.contains("getWorkAreaFloorAnchor"));
         assertTrue(steamerMove.contains("findHeatSourcePosition"));
     }
 
@@ -137,3 +137,4 @@ class Tlm15ApiMigrationTest {
         }
     }
 }
+

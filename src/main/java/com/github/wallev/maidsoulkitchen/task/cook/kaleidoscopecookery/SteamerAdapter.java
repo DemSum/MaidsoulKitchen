@@ -8,24 +8,15 @@ import com.github.ysbbbbbb.kaleidoscopecookery.init.ModRecipes;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.phys.AABB;
-import net.neoforged.neoforge.items.IItemHandler;
-import net.neoforged.neoforge.items.IItemHandlerModifiable;
-import net.neoforged.neoforge.items.ItemHandlerHelper;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
 import java.util.function.Predicate;
 
 /**
@@ -128,104 +119,11 @@ public final class SteamerAdapter {
         return ((ISteamer) steamer).placeFood(level, user, food);
     }
 
-    public static int findPlaceableFoodSlot(
-            BlockEntity blockEntity,
-            Level level,
-            IItemHandler inventory,
-            Predicate<ResourceLocation> recipeAllowed
-    ) {
-        if (!(blockEntity instanceof SteamerBlockEntity steamer)) {
-            return -1;
-        }
-        for (int slot = 0; slot < inventory.getSlots(); slot++) {
-            ItemStack stack = inventory.getStackInSlot(slot);
-            if (canPlaceFood(steamer, level, stack, recipeAllowed)) {
-                return slot;
-            }
-        }
-        return -1;
-    }
-
-    public static boolean placeFoodFromSlot(
-            BlockEntity blockEntity,
-            Level level,
-            LivingEntity user,
-            IItemHandlerModifiable inventory,
-            int slot,
-            Predicate<ResourceLocation> recipeAllowed
-    ) {
-        if (slot < 0 || slot >= inventory.getSlots()) {
-            return false;
-        }
-        ItemStack stack = inventory.getStackInSlot(slot);
-        boolean placed = placeFood(blockEntity, level, user, stack, recipeAllowed);
-        if (placed) {
-            // KC mutates the supplied stack; notify handlers whose stack was
-            // modified in place so the inventory remains synchronized.
-            inventory.setStackInSlot(slot, stack);
-        }
-        return placed;
-    }
-
     public static List<RecipeOption> getRecipeOptions(Level level) {
         return level.getRecipeManager().getAllRecipesFor(ModRecipes.STEAMER_RECIPE).stream()
                 .map(recipe -> new RecipeOption(recipe.id(), recipe.value().getResult()))
                 .sorted(java.util.Comparator.comparing(RecipeOption::id))
                 .toList();
-    }
-
-    public static boolean takeReadyFoodTo(
-            BlockEntity blockEntity,
-            Level level,
-            LivingEntity user,
-            IItemHandler destination
-    ) {
-        if (!(blockEntity instanceof SteamerBlockEntity steamer) || !isCurrent(steamer, level)) {
-            return false;
-        }
-        Optional<Snapshot> inspected = inspect(steamer, level);
-        if (inspected.isEmpty()
-                || !inspected.get().canTakeFood()
-                || !canFitAll(destination, inspected.get().items())) {
-            return false;
-        }
-
-        List<ItemStack> expected = inspected.get().items().stream()
-                .filter(stack -> !stack.isEmpty())
-                .map(ItemStack::copy)
-                .collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
-        AABB captureArea = user.getBoundingBox().inflate(2.0);
-        Set<UUID> existingDrops = new HashSet<>();
-        for (ItemEntity itemEntity : level.getEntitiesOfClass(ItemEntity.class, captureArea)) {
-            existingDrops.add(itemEntity.getUUID());
-        }
-        boolean mainHandWasEmpty = user.getMainHandItem().isEmpty();
-
-        if (!((ISteamer) steamer).takeFood(level, user)) {
-            return false;
-        }
-
-        // KC gives the first result to a non-player's empty hand and drops the rest.
-        if (mainHandWasEmpty) {
-            ItemStack handStack = user.getMainHandItem();
-            transferExpectedStack(handStack, expected, destination);
-            user.setItemInHand(InteractionHand.MAIN_HAND, handStack.isEmpty() ? ItemStack.EMPTY : handStack);
-        }
-
-        for (ItemEntity itemEntity : level.getEntitiesOfClass(
-                ItemEntity.class,
-                captureArea,
-                itemEntity -> !existingDrops.contains(itemEntity.getUUID())
-        )) {
-            ItemStack droppedStack = itemEntity.getItem();
-            transferExpectedStack(droppedStack, expected, destination);
-            if (droppedStack.isEmpty()) {
-                itemEntity.discard();
-            } else {
-                itemEntity.setItem(droppedStack);
-            }
-        }
-        return true;
     }
 
     private static boolean isAccessible(SteamerBlockEntity steamer, Level level) {
@@ -255,6 +153,11 @@ public final class SteamerAdapter {
             if (!(layerEntity instanceof SteamerBlockEntity layer)) {
                 return SteamerStackHeat.LayerState.NOT_STEAMER;
             }
+            // KC updateLitLevel explicitly stops steam above a HALF layer. A half steamer may
+            // be the selected top, but cannot be a supporting layer. The old depth predicate
+            // accepted this impossible heat path and repeatedly loaded food that never cooked.
+            if (depth > 0 && layer.getBlockState().getValue(SteamerBlock.HALF))
+                return SteamerStackHeat.LayerState.NOT_STEAMER;
             return layer.hasHeatSource(level)
                     ? SteamerStackHeat.LayerState.DIRECTLY_HEATED
                     : SteamerStackHeat.LayerState.UNHEATED;
@@ -286,76 +189,6 @@ public final class SteamerAdapter {
 
     private static boolean isCurrent(SteamerBlockEntity steamer, Level level) {
         return !steamer.isRemoved() && level.getBlockEntity(steamer.getBlockPos()) == steamer;
-    }
-
-    static boolean canFitAll(IItemHandler destination, List<ItemStack> stacks) {
-        List<ItemStack> simulated = new ArrayList<>(destination.getSlots());
-        for (int slot = 0; slot < destination.getSlots(); slot++) {
-            simulated.add(destination.getStackInSlot(slot).copy());
-        }
-
-        for (ItemStack source : stacks) {
-            int remaining = source.getCount();
-            for (int slot = 0; slot < simulated.size() && remaining > 0; slot++) {
-                ItemStack present = simulated.get(slot);
-                if (present.isEmpty() || !ItemStack.isSameItemSameComponents(present, source)) {
-                    continue;
-                }
-                int limit = Math.min(destination.getSlotLimit(slot), present.getMaxStackSize());
-                int inserted = Math.min(remaining, Math.max(0, limit - present.getCount()));
-                present.grow(inserted);
-                remaining -= inserted;
-            }
-            for (int slot = 0; slot < simulated.size() && remaining > 0; slot++) {
-                if (!simulated.get(slot).isEmpty() || !destination.isItemValid(slot, source)) {
-                    continue;
-                }
-                int limit = Math.min(destination.getSlotLimit(slot), source.getMaxStackSize());
-                int inserted = Math.min(remaining, limit);
-                simulated.set(slot, source.copyWithCount(inserted));
-                remaining -= inserted;
-            }
-            if (remaining > 0) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    private static void transferExpectedStack(
-            ItemStack source,
-            List<ItemStack> expected,
-            IItemHandler destination
-    ) {
-        if (source.isEmpty()) {
-            return;
-        }
-        int matchingCount = claimExpectedCount(source, expected);
-        if (matchingCount <= 0) {
-            return;
-        }
-        ItemStack remainder = ItemHandlerHelper.insertItemStacked(
-                destination,
-                source.copyWithCount(matchingCount),
-                false
-        );
-        source.shrink(matchingCount - remainder.getCount());
-    }
-
-    private static int claimExpectedCount(ItemStack source, List<ItemStack> expected) {
-        int remaining = source.getCount();
-        int claimed = 0;
-        for (ItemStack expectedStack : expected) {
-            if (remaining <= 0 || expectedStack.isEmpty()
-                    || !ItemStack.isSameItemSameComponents(source, expectedStack)) {
-                continue;
-            }
-            int amount = Math.min(remaining, expectedStack.getCount());
-            expectedStack.shrink(amount);
-            claimed += amount;
-            remaining -= amount;
-        }
-        return claimed;
     }
 
     public record Snapshot(
@@ -405,3 +238,4 @@ public final class SteamerAdapter {
         }
     }
 }
+
