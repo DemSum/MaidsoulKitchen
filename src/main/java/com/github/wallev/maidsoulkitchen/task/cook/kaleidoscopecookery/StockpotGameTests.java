@@ -357,7 +357,7 @@ public final class StockpotGameTests {
             com.github.wallev.maidsoulkitchen.entity.data.inner.task.KitchenData.get(maid).setCookData(fdTask.getUid(),
                     new com.github.wallev.maidsoulkitchen.entity.data.inner.task.CookData("whitelist", List.of(), List.of()));
             var fdInventory = fdTask.getRecipesManager(maid);
-            fdInventory.checkAndCreateRecipesIngredients();
+            fdInventory.checkAndCreateRecipes();
             h.assertTrue(wrongChest.getItem(1).isEmpty() && sameChest.getItem(0).getCount() == 4,
                     "FD common manager must return unused input to a same-material chest");
             maid.setTask(new TaskKcStockpot());
@@ -520,7 +520,7 @@ public final class StockpotGameTests {
         cm.checkAndInit(); return cm;
     }
     private static void finishPlanning(com.github.wallev.maidsoulkitchen.task.cook.common.manager.MaidCookManager<?> cm) {
-        for (int retry=0; retry<12 && cm.getRunState()==0; retry++) cm.checkAndCreateRecipesIngredients();
+        for (int retry=0; retry<12 && cm.getRunState()==0; retry++) cm.checkAndCreateRecipes();
         for (int ticks=0; ticks<600 && cm.getRunState()>0; ticks++) {
             if (cm.getRunState()==1) { cm.getChestInputInventory().tickScan(); if (cm.getChestInputInventory().done()) cm.startGenerateRecs(); }
             else if (cm.getRunState()==2) { if (!cm.recsGenerateDone()) cm.tickGenerateRecs(); if (cm.recsGenerateDone()) cm.recsGenDoneAndUpdate(); }

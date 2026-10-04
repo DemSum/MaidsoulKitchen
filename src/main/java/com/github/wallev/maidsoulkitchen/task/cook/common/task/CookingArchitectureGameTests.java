@@ -53,7 +53,7 @@ public final class CookingArchitectureGameTests {
             cm.getInputInv().setStackInSlot(0, new ItemStack(Items.CARROT));
             ItemStack tool = new ItemStack(Items.IRON_AXE); tool.setDamageValue(12);
             tool.set(DataComponents.CUSTOM_NAME, Component.literal("retired physical loan")); cm.getInputInv().setStackInSlot(1, tool.copy());
-            cm.checkAndCreateRecipesIngredients(); finishPlanning(cm); MaidRec work = cm.peekMaidRec();
+            cm.checkAndCreateRecipes(); finishPlanning(cm); MaidRec work = cm.peekMaidRec();
             helper.assertTrue(work != null && work.taskId().equals(TaskInfo.KC_STEAMER.uid) && cm.equipTool(stack -> ItemStack.isSameItemSameComponents(stack, tool)),
                     "delegated device must plan its own holder and lend an actual component-preserving tool");
             var pos = helper.absolutePos(new net.minecraft.core.BlockPos(4, 1, 4));
@@ -106,7 +106,7 @@ public final class CookingArchitectureGameTests {
                 var input = cm.getInputInv(); for (int slot = 0; slot < input.getSlots(); slot++) input.setStackInSlot(slot, ItemStack.EMPTY);
                 var material = new ItemStack(Items.CARROT, 2); material.set(DataComponents.CUSTOM_NAME, Component.literal("steamer components")); input.setStackInSlot(0, material.copy());
                 var output = cm.getOutputInv(); for (int slot = 0; slot < output.getSlots(); slot++) output.setStackInSlot(slot, ItemStack.EMPTY);
-                cm.checkAndCreateRecipesIngredients(); finishPlanning(cm);
+                cm.checkAndCreateRecipes(); finishPlanning(cm);
                 var found = com.github.wallev.maidsoulkitchen.task.cook.common.ai.ReachableCookDeviceSearch.find(level, maid, center, 8, 0, be.getVerticalSearchRange(),
                         pos -> pos.equals(nativeBe.getBlockPos()), new com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookTargetCycle(), be.getInteractionHeightOffsets());
                 helper.assertTrue(found.isPresent() && !found.get().walkPos().equals(found.get().workPos())
@@ -151,7 +151,7 @@ public final class CookingArchitectureGameTests {
             var input = maid.getAvailableInv(true); for (int slot = 0; slot < input.getSlots(); slot++) input.setStackInSlot(slot, ItemStack.EMPTY);
             var material = new ItemStack(Items.CARROT, 2); material.set(DataComponents.CUSTOM_NAME, Component.literal("native skillet components"));
             input.setStackInSlot(0, material.copy()); input.setStackInSlot(2, new ItemStack(Items.BEEF));
-            var cm = task.getRecipesManager(maid); cm.checkAndCreateRecipesIngredients(); finishPlanning(cm); var work = cm.peekMaidRec();
+            var cm = task.getRecipesManager(maid); cm.checkAndCreateRecipes(); finishPlanning(cm); var work = cm.peekMaidRec();
             helper.setBlock(new net.minecraft.core.BlockPos(2, 0, 2), net.minecraft.world.level.block.Blocks.CAMPFIRE);
             helper.setBlock(new net.minecraft.core.BlockPos(2, 1, 2), vectorwing.farmersdelight.common.registry.ModBlocks.SKILLET.get().defaultBlockState()
                     .setValue(vectorwing.farmersdelight.common.block.SkilletBlock.WATERLOGGED, true));
@@ -167,7 +167,7 @@ public final class CookingArchitectureGameTests {
             for (int i = 0; i < 100; i++) vectorwing.farmersdelight.common.block.entity.SkilletBlockEntity.cookingTick(level, skillet.getBlockPos(), skillet.getBlockState(), skillet);
             int actual = level.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class, new net.minecraft.world.phys.AABB(skillet.getBlockPos()).inflate(3)).stream()
                     .filter(entity -> entity.getItem().is(Items.BAKED_POTATO)).mapToInt(entity -> entity.getItem().getCount()).sum();
-            cm.checkAndCreateRecipesIngredients(); finishPlanning(cm); rule.cookMake(be, cm);
+            cm.checkAndCreateRecipes(); finishPlanning(cm); rule.cookMake(be, cm);
             helper.assertTrue(actual == 2 && !skillet.hasStoredStack() && cm.getMaidRecs().isEmpty() && input.getStackInSlot(2).getCount() == 1,
                     "native timing must emit exactly two real results; no fallback loop may cook an excluded recipe");
         } finally { reloadRecipes(helper, original); maid.discard(); }
@@ -201,7 +201,7 @@ public final class CookingArchitectureGameTests {
             };
             cm.checkAndInit(); var input = cm.getInputInv(); input.setStackInSlot(0, new ItemStack(Items.STICK, 2));
             var carrot = new ItemStack(Items.CARROT, 6); carrot.set(DataComponents.CUSTOM_NAME, Component.literal("counted native basin components"));
-            input.setStackInSlot(1, carrot.copy()); input.setStackInSlot(2, new ItemStack(Items.POTATO, 4)); cm.syncInv(); cm.checkAndCreateRecipesIngredients(); finishPlanning(cm);
+            input.setStackInSlot(1, carrot.copy()); input.setStackInSlot(2, new ItemStack(Items.POTATO, 4)); cm.syncInv(); cm.checkAndCreateRecipes(); finishPlanning(cm);
             helper.setBlock(new net.minecraft.core.BlockPos(2, 1, 2), com.mao.barbequesdelight.init.registrate.BBQDBlocks.BASIN.get());
             var basin = (com.mao.barbequesdelight.content.block.BasinBlockEntity) helper.getBlockEntity(new net.minecraft.core.BlockPos(2, 1, 2));
             var be = new com.github.wallev.maidsoulkitchen.task.cook.barbequesdelight.basin.BasinBe(maid); be.setBe(basin);
@@ -211,7 +211,7 @@ public final class CookingArchitectureGameTests {
                     && CookInventoryTransactions.count(input, stack -> stack.is(Items.STICK)) == 2 && CookInventoryTransactions.count(input, stack -> ItemStack.isSameItemSameComponents(stack, carrot)) == 6
                     && CookInventoryTransactions.count(input, stack -> stack.is(Items.POTATO)) == 4 && CookInventoryTransactions.count(cm.getOutputInv(), stack -> stack.is(Items.COOKED_BEEF)) == 0,
                     "actual side extraction refusal must refund preceding physical inputs and produce no native effect or executable work");
-            rejectSide[0] = false; cm.checkAndCreateRecipesIngredients(); finishPlanning(cm); work = cm.peekMaidRec();
+            rejectSide[0] = false; cm.checkAndCreateRecipes(); finishPlanning(cm); work = cm.peekMaidRec();
             var output = cm.getOutputInv(); for (int slot = 0; slot < output.getSlots(); slot++) output.setStackInSlot(slot, new ItemStack(Items.DIRT, 64));
             helper.assertTrue(!be.insertInputs(work, cm) && cm.peekMaidRec() == work && !be.hasInputs()
                     && CookInventoryTransactions.count(input, stack -> stack.is(Items.CARROT)) == 6, "full output must retain counted physical ingredients and pending work");
@@ -238,7 +238,7 @@ public final class CookingArchitectureGameTests {
             maid.getMaidBauble().setStackInSlot(0, com.github.wallev.maidsoulkitchen.init.MkItems.CULINARY_HUB.get().getDefaultInstance());
             cm = task.getRecipesManager(maid); cm.checkAndInit();
             var material = description.inItems().getFirst().ingredient.getItems()[0].copyWithCount(2); material.set(DataComponents.CUSTOM_NAME, Component.literal("native grill components"));
-            cm.getInputInv().setStackInSlot(0, material.copy()); cm.syncInv(); cm.checkAndCreateRecipesIngredients(); finishPlanning(cm);
+            cm.getInputInv().setStackInSlot(0, material.copy()); cm.syncInv(); cm.checkAndCreateRecipes(); finishPlanning(cm);
             helper.setBlock(new net.minecraft.core.BlockPos(2, 0, 2), net.minecraft.world.level.block.Blocks.CAMPFIRE);
             helper.setBlock(new net.minecraft.core.BlockPos(2, 1, 2), com.mao.barbequesdelight.init.registrate.BBQDBlocks.GRILL.get());
             var grill = (com.mao.barbequesdelight.content.block.GrillBlockEntity) helper.getBlockEntity(new net.minecraft.core.BlockPos(2, 1, 2)); be.setBe(grill);
@@ -285,7 +285,7 @@ public final class CookingArchitectureGameTests {
             for (int i = 1; i < description.inItems().size(); i++) input.setStackInSlot(i, java.util.Arrays.stream(description.inItems().get(i).ingredient.getItems())
                     .filter(stack -> dev.xkmc.cuisinedelight.content.logic.IngredientConfig.get().getEntry(stack) != null).findFirst().orElseThrow().copyWithCount(1));
             var tool = dev.xkmc.cuisinedelight.init.registrate.CDItems.SPATULA.asStack(); tool.set(DataComponents.CUSTOM_NAME, Component.literal("native cuisine tool"));
-            input.setStackInSlot(7, tool.copy()); cm.syncInv(); cm.checkAndCreateRecipesIngredients(); finishPlanning(cm);
+            input.setStackInSlot(7, tool.copy()); cm.syncInv(); cm.checkAndCreateRecipes(); finishPlanning(cm);
             var work = cm.peekMaidRec();
             helper.assertTrue(work != null && work.maidItems().getFirst().role() == MaidItem.Role.CONTAINER
                     && work.maidItems().stream().anyMatch(item -> item.role() == MaidItem.Role.TOOL && item.item().is(tool)), "the sole work unit must preserve actual component-bearing tool and plate");
@@ -344,7 +344,7 @@ public final class CookingArchitectureGameTests {
             var input = maid.getAvailableInv(true);
             for (int slot = 0; slot < input.getSlots(); slot++) input.setStackInSlot(slot, ItemStack.EMPTY);
             var filled = sake.type.asStack(2); filled.set(DataComponents.CUSTOM_NAME, Component.literal("half-tank fluid components")); input.setStackInSlot(0, filled);
-            var cm = task.getRecipesManager(maid); cm.checkAndCreateRecipesIngredients(); finishPlanning(cm);
+            var cm = task.getRecipesManager(maid); cm.checkAndCreateRecipes(); finishPlanning(cm);
             var rec = cm.peekMaidRec();
             helper.assertTrue(rec != null && rec.maidItems().size() == 1 && rec.maidItems().getFirst().role() == MaidItem.Role.FLUID && rec.maidItems().getFirst().count() == 2,
                     "the native exact 500mB requirement must reserve two 250mB bottles, independently of the ingredient's representative 1000mB stack");
@@ -384,7 +384,7 @@ public final class CookingArchitectureGameTests {
             maid.getMaidBauble().setStackInSlot(0, com.github.wallev.maidsoulkitchen.init.MkItems.CULINARY_HUB.get().getDefaultInstance());
             var cm = task.getRecipesManager(maid); cm.checkAndInit();
             cm.getInputInv().setStackInSlot(0, new ItemStack(Items.WATER_BUCKET)); cm.getInputInv().setStackInSlot(1, new ItemStack(Items.CARROT)); cm.syncInv();
-            cm.checkAndCreateRecipesIngredients(); finishPlanning(cm);
+            cm.checkAndCreateRecipes(); finishPlanning(cm);
             helper.setBlock(new net.minecraft.core.BlockPos(2, 1, 2), dev.xkmc.youkaishomecoming.init.registrate.YHBlocks.FERMENT.get());
             var tank = (dev.xkmc.youkaishomecoming.content.pot.ferment.FermentationTankBlockEntity) helper.getBlockEntity(new net.minecraft.core.BlockPos(2, 1, 2));
             var be = new com.github.wallev.maidsoulkitchen.task.cook.youkaishomecoming.ferment.FermentationCookBe(maid); be.setBe(tank);
@@ -438,7 +438,7 @@ public final class CookingArchitectureGameTests {
             helper.setBlock(new net.minecraft.core.BlockPos(2, 1, 2), dev.xkmc.youkaishomecoming.init.registrate.YHBlocks.KETTLE.get());
             var kettle = (dev.xkmc.youkaishomecoming.content.pot.kettle.KettleBlockEntity) helper.getBlockEntity(new net.minecraft.core.BlockPos(2, 1, 2));
             var be = new com.github.wallev.maidsoulkitchen.task.cook.youkaishomecoming.kettle.KettleBe(maid); be.setBe(kettle);
-            var cm = task.getRecipesManager(maid); cm.checkAndCreateRecipesIngredients(); finishPlanning(cm);
+            var cm = task.getRecipesManager(maid); cm.checkAndCreateRecipes(); finishPlanning(cm);
             var rule = com.github.wallev.maidsoulkitchen.task.cook.common.rule.cook.WaterFdPotCookRule.getInstance();
             helper.assertTrue(!rule.canMoveTo(be, cm), "dry kettle without a native water source cannot claim a cooking job");
             var refused = new ItemStackHandler(1) {
@@ -447,7 +447,7 @@ public final class CookingArchitectureGameTests {
             helper.assertTrue(!cm.useItem(new com.github.wallev.maidsoulkitchen.task.cook.common.manager.GatherResult(refused, 0), kettle.getBlockPos())
                     && kettle.getWater() == 0 && refused.getStackInSlot(0).is(Items.WATER_BUCKET),
                     "refused real extraction must not create native kettle water");
-            input.setStackInSlot(5, new ItemStack(Items.WATER_BUCKET)); cm.checkAndCreateRecipesIngredients(); finishPlanning(cm);
+            input.setStackInSlot(5, new ItemStack(Items.WATER_BUCKET)); cm.checkAndCreateRecipes(); finishPlanning(cm);
             helper.assertTrue(rule.canMoveTo(be, cm), "a native water source must make the planned kettle work eligible"); rule.cookMake(be, cm);
             helper.assertTrue(be.recMatch() && be.hasFluid() && cm.getMaidRecs().isEmpty()
                     && CookInventoryTransactions.count(input, stack -> stack.is(Items.WATER_BUCKET)) == 0
@@ -478,7 +478,7 @@ public final class CookingArchitectureGameTests {
             helper.setBlock(new net.minecraft.core.BlockPos(2, 1, 2), dev.xkmc.youkaishomecoming.init.registrate.YHBlocks.RACK.get());
             var rack = (dev.xkmc.youkaishomecoming.content.pot.rack.DryingRackBlockEntity) helper.getBlockEntity(new net.minecraft.core.BlockPos(2, 1, 2));
             var be = new com.github.wallev.maidsoulkitchen.task.cook.youkaishomecoming.dryingrack.DryingRackBe(maid); be.setBe(rack);
-            var cm = task.getRecipesManager(maid); cm.checkAndCreateRecipesIngredients(); finishPlanning(cm);
+            var cm = task.getRecipesManager(maid); cm.checkAndCreateRecipes(); finishPlanning(cm);
             var rec = cm.peekMaidRec();
             helper.assertTrue(rec != null && rec.amount() == 4 && rec.maidItems().getFirst().count() == 4,
                     "four-position native drying must reserve only four of eight physical materials");
@@ -488,7 +488,7 @@ public final class CookingArchitectureGameTests {
             helper.assertTrue(!be.insertInputs(rec, cm), "an accepted/stale drying work identity cannot insert again");
             for (int i = 0; i < 3; i++) dev.xkmc.youkaishomecoming.content.pot.rack.DryingRackBlockEntity.cookTick(level, rack.getBlockPos(), rack.getBlockState(), rack);
             helper.assertTrue(rack.getItems().stream().allMatch(ItemStack::isEmpty), "native timers initialized by placeFood must finish every occupied position");
-            cm.checkAndCreateRecipesIngredients(); finishPlanning(cm); level.setDayTime(18000); level.updateSkyBrightness();
+            cm.checkAndCreateRecipes(); finishPlanning(cm); level.setDayTime(18000); level.updateSkyBrightness();
             helper.assertTrue(!be.cookStateMatch() && !be.isCookBe(rack) && !be.insertInputs(cm.peekMaidRec(), cm)
                     && CookInventoryTransactions.count(input, stack -> stack.is(Items.CARROT)) == 4,
                     "night must prevent both selection and actual native insertion without consuming materials");
@@ -511,7 +511,7 @@ public final class CookingArchitectureGameTests {
             helper.setBlock(new net.minecraft.core.BlockPos(2, 1, 2), dev.xkmc.youkaishomecoming.init.registrate.YHBlocks.MOKA.get());
             var moka = (dev.xkmc.youkaishomecoming.content.pot.moka.MokaMakerBlockEntity) helper.getBlockEntity(new net.minecraft.core.BlockPos(2, 1, 2));
             var be = new com.github.wallev.maidsoulkitchen.task.cook.youkaishomecoming.moka.MokaBe(maid); be.setBe(moka);
-            var cm = task.getRecipesManager(maid); cm.checkAndCreateRecipesIngredients(); finishPlanning(cm);
+            var cm = task.getRecipesManager(maid); cm.checkAndCreateRecipes(); finishPlanning(cm);
             var rec = cm.peekMaidRec();
             helper.assertTrue(rec != null && be.cookStateMatch() && be.insertInputs(rec, cm) && be.recMatch() && cm.commitMaidRec(rec),
                     "native Moka must accept the unified descriptor and match its original Holder");
@@ -543,7 +543,7 @@ public final class CookingArchitectureGameTests {
             var tool = description.tool().ingredient.getItems()[0].copyWithCount(1);
             tool.set(DataComponents.CUSTOM_NAME, Component.literal("borrowed cutting tool"));
             input.setStackInSlot(0, ingredient.copy()); input.setStackInSlot(2, tool.copy());
-            cm.checkAndCreateRecipesIngredients(); finishPlanning(cm);
+            cm.checkAndCreateRecipes(); finishPlanning(cm);
             helper.setBlock(new net.minecraft.core.BlockPos(2, 1, 2), vectorwing.farmersdelight.common.registry.ModBlocks.CUTTING_BOARD.get());
             var board = (vectorwing.farmersdelight.common.block.entity.CuttingBoardBlockEntity) helper.getBlockEntity(new net.minecraft.core.BlockPos(2, 1, 2));
             cookBe.setBe(board);
@@ -572,7 +572,7 @@ public final class CookingArchitectureGameTests {
             maid.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, returnedTool);
             maid.getMaidBauble().setStackInSlot(0, com.github.wallev.maidsoulkitchen.init.MkItems.CULINARY_HUB.get().getDefaultInstance());
             cm.checkAndInit(); cm.getInputInv().setStackInSlot(0, ingredient.copyWithCount(1)); cm.syncInv();
-            cm.checkAndCreateRecipesIngredients(); finishPlanning(cm);
+            cm.checkAndCreateRecipes(); finishPlanning(cm);
             helper.assertTrue(cm.peekMaidRec() != null, "hub planning must use the already held physical tool without requesting a second tool from a chest");
             rule.cookMake(cookBe, cm); rule.tickCookMake(cookBe, cm); rule.tickStop(cookBe, cm);
             helper.assertTrue(board.getStoredItem().getCount() == 1 && maid.getMainHandItem() == returnedTool,
@@ -606,7 +606,7 @@ public final class CookingArchitectureGameTests {
                 var be = (net.minecraft.world.level.block.entity.AbstractFurnaceBlockEntity) helper.getBlockEntity(pos);
                 be.setItem(1, new ItemStack(Items.COAL)); devices.add(be);
             }
-            var cm = task.getRecipesManager(maid); cm.checkAndCreateRecipesIngredients(); finishPlanning(cm);
+            var cm = task.getRecipesManager(maid); cm.checkAndCreateRecipes(); finishPlanning(cm);
             helper.assertTrue(cm.getMaidRecs().size() == 3, "all present furnace families must share the manager's one queue");
             var cookBe = new com.github.wallev.maidsoulkitchen.task.cook.minecraft.furnace.FurnaceCookBe(maid);
             var rule = com.github.wallev.maidsoulkitchen.task.cook.common.rule.cook.FuelCookRule.getInstance();
@@ -709,7 +709,7 @@ public final class CookingArchitectureGameTests {
             var input = maid.getAvailableInv(true);
             for (int slot = 0; slot < input.getSlots(); slot++) input.setStackInSlot(slot, ItemStack.EMPTY);
             input.setStackInSlot(0, new ItemStack(Items.CARROT, 5));
-            var cm = task.getRecipesManager(maid); cm.checkAndCreateRecipesIngredients(); finishPlanning(cm);
+            var cm = task.getRecipesManager(maid); cm.checkAndCreateRecipes(); finishPlanning(cm);
             var rec = cm.peekMaidRec();
             var partial = new ItemStackHandler(1) {
                 @Override public ItemStack insertItem(int slot, ItemStack stack, boolean simulate) {
@@ -722,7 +722,7 @@ public final class CookingArchitectureGameTests {
                     && partial.getStackInSlot(0).isEmpty() && cm.getMaidRecs().isEmpty()
                     && CookInventoryTransactions.count(input, stack -> stack.is(Items.CARROT)) == 5,
                     "real partial device acceptance must roll back actual inserts and revoke the unfulfilled plan");
-            cm.checkAndCreateRecipesIngredients(); finishPlanning(cm);
+            cm.checkAndCreateRecipes(); finishPlanning(cm);
             var refused = new ItemStackHandler(1) {
                 @Override public ItemStack insertItem(int slot, ItemStack stack, boolean simulate) {
                     return simulate ? super.insertItem(slot, stack, true) : stack.copy();
@@ -753,7 +753,7 @@ public final class CookingArchitectureGameTests {
                 var ingredient = description.inItems().get(slot);
                 input.setStackInSlot(slot, ingredient.ingredient.getItems()[0].copyWithCount(ingredient.test(ingredient.ingredient.getItems()[0])));
             }
-            var cm = task.getRecipesManager(maid); cm.checkAndCreateRecipesIngredients(); finishPlanning(cm);
+            var cm = task.getRecipesManager(maid); cm.checkAndCreateRecipes(); finishPlanning(cm);
             helper.setBlock(new net.minecraft.core.BlockPos(2, 1, 2), vectorwing.farmersdelight.common.registry.ModBlocks.COOKING_POT.get().defaultBlockState());
             var pot = (vectorwing.farmersdelight.common.block.entity.CookingPotBlockEntity) helper.getBlockEntity(new net.minecraft.core.BlockPos(2, 1, 2));
             var cookBe = new com.github.wallev.maidsoulkitchen.task.cook.farmersdelight.cookingpot.CookingPotBe(maid); cookBe.setBe(pot);
@@ -794,7 +794,7 @@ public final class CookingArchitectureGameTests {
                 ItemStack sample = ingredient.ingredient.getItems()[0];
                 input.setStackInSlot(slot, sample.copyWithCount(ingredient.test(sample)));
             }
-            var cm = task.getRecipesManager(maid); cm.checkAndCreateRecipesIngredients(); finishPlanning(cm);
+            var cm = task.getRecipesManager(maid); cm.checkAndCreateRecipes(); finishPlanning(cm);
             helper.setBlock(new net.minecraft.core.BlockPos(2, 1, 2), lekavar.lma.drinkbeer.registries.BlockRegistry.BEER_BARREL.get().defaultBlockState());
             var barrel = (lekavar.lma.drinkbeer.blockentities.BeerBarrelBlockEntity) helper.getBlockEntity(new net.minecraft.core.BlockPos(2, 1, 2));
             var cookBe = new com.github.wallev.maidsoulkitchen.task.cook.drinkbeer.beerbarrel.BeerBarrelBe(maid); cookBe.setBe(barrel);
@@ -836,7 +836,7 @@ public final class CookingArchitectureGameTests {
             for (int slot = 0; slot < input.getSlots(); slot++) input.setStackInSlot(slot, ItemStack.EMPTY);
             input.setStackInSlot(0, named.copy()); input.setStackInSlot(1, named.copy());
             var manager = task.getRecipesManager(maid);
-            manager.checkAndCreateRecipesIngredients();
+            manager.checkAndCreateRecipes();
             helper.assertTrue(manager.getRunState() == 2 && manager.getMaidRecs().isEmpty(),
                     "candidates must not be exposed as executable work while generation is active");
             finishPlanning(manager);
@@ -856,21 +856,21 @@ public final class CookingArchitectureGameTests {
             long generation = manager.getGeneration(); manager.checkAndInit();
             helper.assertTrue(manager.getMaidRecs().isEmpty() && manager.getGeneration() > generation,
                     "component changes in live inputs must invalidate pending work");
-            manager.getInputInv().setStackInSlot(1, named.copy()); manager.checkAndCreateRecipesIngredients(); finishPlanning(manager);
+            manager.getInputInv().setStackInSlot(1, named.copy()); manager.checkAndCreateRecipes(); finishPlanning(manager);
             MaidRec beforeReload = manager.peekMaidRec();
             reloadRecipes(helper, List.of(new RecipeHolder<>(holder.id(), new SmokingRecipe("", CookingBookCategory.MISC,
                     DataComponentIngredient.of(true, named), new ItemStack(Items.BAKED_POTATO), 0, 20))));
             manager.checkAndInit();
             helper.assertTrue(beforeReload != null && manager.getMaidRecs().isEmpty() && !manager.commitMaidRec(beforeReload),
                     "same-ID recipe reload must discard the old work identity");
-            manager.checkAndCreateRecipesIngredients(); finishPlanning(manager);
+            manager.checkAndCreateRecipes(); finishPlanning(manager);
             if (com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskInfo.FD_COOK_POT.canLoad()) {
                 maid.setTask(new com.github.wallev.maidsoulkitchen.task.cook.farmersdelight.cookingpot.TaskFdCookingPot());
                 helper.assertTrue(!manager.checkAndInit() && manager.getMaidRecs().isEmpty(),
                         "switching tasks must revoke the previous manager's work");
                 maid.setTask(task);
             }
-            manager.checkAndCreateRecipesIngredients(); finishPlanning(manager);
+            manager.checkAndCreateRecipes(); finishPlanning(manager);
             maid.discard();
             helper.assertTrue(!manager.checkAndInit() && manager.getMaidRecs().isEmpty(), "death/removal must revoke pending work");
         } finally { reloadRecipes(helper, original); maid.discard(); }
@@ -907,15 +907,15 @@ public final class CookingArchitectureGameTests {
                     return List.of();
                 }
             };
-            manager.checkAndCreateRecipesIngredients(); finishPlanning(manager);
+            manager.checkAndCreateRecipes(); finishPlanning(manager);
             helper.assertTrue(manager.getMaidRecs().isEmpty() && source.getStackInSlot(0).getCount() == 3
                     && CookInventoryTransactions.count(manager.getInputInv(), stack -> stack.is(Items.CARROT)) == 2,
                     "partial extraction must keep actual buffered material and expose no unfulfilled work");
-            manager.checkAndCreateRecipesIngredients(); finishPlanning(manager);
+            manager.checkAndCreateRecipes(); finishPlanning(manager);
             helper.assertTrue(manager.getMaidRecs().isEmpty() && source.getStackInSlot(0).getCount() == 1
                     && CookInventoryTransactions.count(manager.getInputInv(), stack -> stack.is(Items.CARROT)) == 4,
                     "replanning must count buffered input once and request only the remaining deficit");
-            manager.checkAndCreateRecipesIngredients(); finishPlanning(manager);
+            manager.checkAndCreateRecipes(); finishPlanning(manager);
             helper.assertTrue(manager.getMaidRecs().size() == 1 && manager.peekMaidRec().amount() == 5
                     && source.getStackInSlot(0).isEmpty()
                     && CookInventoryTransactions.count(manager.getInputInv(), stack -> stack.is(Items.CARROT)) == 5,

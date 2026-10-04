@@ -166,13 +166,6 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
         createRecipesIngredients();
     }
 
-    /** Temporary Move entry point; work remains owned by the upstream manager's tick states. */
-    public boolean checkAndCreateRecipesIngredients() {
-        if (!checkAndInit()) return false;
-        checkAndCreateRecipes();
-        return true;
-    }
-
     protected List<MKRecipe<R>> getRecs() {
         List<MKRecipe<R>> recipes = new ArrayList<>(recsGenerate.getRecs());
         Collections.shuffle(recipes);

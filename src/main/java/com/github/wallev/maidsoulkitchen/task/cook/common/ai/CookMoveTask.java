@@ -60,7 +60,9 @@ public class CookMoveTask<B extends BlockEntity, R extends Recipe<? extends Reci
     }
 
     private boolean processRecipeManager() {
-        return this.maidRecipesManager.checkAndCreateRecipesIngredients();
+        if (!this.maidRecipesManager.checkAndInit()) return false;
+        this.maidRecipesManager.checkAndCreateRecipes();
+        return true;
     }
 
     @SuppressWarnings("unchecked")
