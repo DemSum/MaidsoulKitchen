@@ -47,6 +47,23 @@ public final class StockpotGameTests {
     private static final ResourceLocation RETURNED_CARRIER = id("test_stockpot_returned_carrier");
     private static ResourceLocation id(String name) { return ResourceLocation.fromNamespaceAndPath(MaidsoulKitchen.MOD_ID, name); }
 
+    /** Read native TLM messages after real KC work; no client renderer or shadow message list. */
+    public static void assertNoRecipeAmountBubbles(EntityMaid maid, GameTestHelper helper) {
+        try {
+            var field = com.github.tartaricacid.touhoulittlemaid.entity.chatbubble.implement.TextChatBubbleData.class.getDeclaredField("text");
+            field.setAccessible(true);
+            for (var bubble : maid.getChatBubbleManager().getChatBubbleDataCollection().chatBubbles().values()) {
+                if (!(bubble instanceof com.github.tartaricacid.touhoulittlemaid.entity.chatbubble.implement.TextChatBubbleData)) continue;
+                var text = (net.minecraft.network.chat.Component) field.get(bubble);
+                if (text.getContents() instanceof net.minecraft.network.chat.contents.TranslatableContents contents) {
+                    helper.assertTrue(!contents.getKey().equals("chat_bubble.maidsoulkitchen.cook.can_cook_these_food")
+                                    && !contents.getKey().startsWith("chat_bubble.maidsoulkitchen.cook.make_food."),
+                            "KC must commit native work without recipe overview or serving-count bubbles");
+                }
+            }
+        } catch (ReflectiveOperationException exception) { throw new IllegalStateException(exception); }
+    }
+
     @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID, batch = "cooking_architecture")
     public static void halfPotUsesOnlyMissingComponentsAndRevokesEditedConditions(GameTestHelper h) {
         var level = h.getLevel(); var recipes = level.getRecipeManager(); var original = List.copyOf(recipes.getRecipes());
@@ -95,6 +112,7 @@ public final class StockpotGameTests {
                     && nativeBe.getInputs().stream().anyMatch(stack -> ItemStack.isSameItemSameComponents(stack, missing))
                     && input.getStackInSlot(2).isEmpty() && CookInventoryTransactions.count(input, stack -> stack.is(Items.BOWL)) == 2,
                     "native cover must acknowledge the completed half pot once, preserve components, and keep carriers for actual serving");
+            assertNoRecipeAmountBubbles(maid, h);
         } finally { recipes.replaceRecipes(original); com.github.wallev.maidsoulkitchen.task.cook.common.task.CookTaskManager.recipesReloaded(); maids.forEach(EntityMaid::discard); }
         h.succeed();
     }

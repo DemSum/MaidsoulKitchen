@@ -17,6 +17,7 @@ import net.minecraft.world.item.ItemStack;
 @com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskClassAnalyzer(com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskInfo.KC_STEAMER)
 public final class TaskKcSteamer extends ICookTask<SteamerBlockEntity, SteamerRecipe> {
     public TaskKcSteamer() { SteamerAdapter.verifyApi(); }
+    @Override public boolean showRecipeAmountBubbles() { return false; }
     @Override protected CookBeBase<SteamerBlockEntity> createCookBe(EntityMaid maid) { return new SteamerBe(maid); }
     @Override protected AbstractCookRule<SteamerBlockEntity, SteamerRecipe> createCookRule() { return SteamerCookRule.INSTANCE; }
     @Override protected RecSerializerManager<SteamerRecipe> createRecSerializerManager() { return SteamerRecSerializerManager.INSTANCE; }

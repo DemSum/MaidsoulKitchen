@@ -20,6 +20,7 @@ import net.minecraft.world.item.crafting.Recipe;
 @com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskClassAnalyzer(com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskInfo.KC_STOCKPOT)
 public final class TaskKcStockpot extends ICookTask<StockpotBlockEntity, Recipe<StockpotInput>> {
     public TaskKcStockpot() { StockpotAdapter.verifyApi(); }
+    @Override public boolean showRecipeAmountBubbles() { return false; }
     @Override protected CookBeBase<StockpotBlockEntity> createCookBe(EntityMaid maid) { return new StockpotBe(maid); }
     @Override protected AbstractCookRule<StockpotBlockEntity, Recipe<StockpotInput>> createCookRule() { return StockpotCookRule.INSTANCE; }
     @Override protected RecSerializerManager<Recipe<StockpotInput>> createRecSerializerManager() { return StockpotRecSerializerManager.INSTANCE; }

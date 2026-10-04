@@ -330,7 +330,7 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
         // The upstream single-work announcement omitted it; report the accepted batch consistently.
         ItemStack announced = recipe.result();
         announced.setCount(announced.getCount() * recipe.amount());
-        BubbleUtil.makeFood(maid, announced);
+        if (task.showRecipeAmountBubbles()) BubbleUtil.makeFood(maid, announced);
         return true;
     }
 
@@ -346,6 +346,7 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
             return;
         }
         missingPlanningRequirement = ItemStack.EMPTY;
+        if (!task.showRecipeAmountBubbles()) return;
         List<ItemStack> results = maidRecs.stream().flatMap(recipe -> recipe.results().stream().map(result ->
                 result.copyWithCount(result.getCount() * recipe.amount()))).toList();
         availableFoodsBubbleId = BubbleUtil.availableFoods(maid, results, availableFoodsBubbleId);

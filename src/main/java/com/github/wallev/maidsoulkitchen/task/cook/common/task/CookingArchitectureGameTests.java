@@ -211,6 +211,7 @@ public final class CookingArchitectureGameTests {
                 helper.assertTrue(cm.getMaidRecs().isEmpty() && input.getStackInSlot(0).isEmpty()
                         && nativeBe.getItems().stream().filter(stack -> ItemStack.isSameItemSameComponents(stack, material)).count() == 2,
                         "two physical single-slot inputs must preserve components and commit exactly twice at layer " + layers);
+                com.github.wallev.maidsoulkitchen.task.cook.kaleidoscopecookery.StockpotGameTests.assertNoRecipeAmountBubbles(maid, helper);
                 for (int tick = 0; tick < 80; tick++) {
                     ((net.minecraft.world.level.storage.ServerLevelData) level.getLevelData()).setGameTime(time + tick);
                     for (int y = 1; y <= layers; y++) ((com.github.ysbbbbbb.kaleidoscopecookery.blockentity.kitchen.SteamerBlockEntity)

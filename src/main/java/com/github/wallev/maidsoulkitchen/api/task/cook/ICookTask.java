@@ -66,6 +66,10 @@ public abstract class ICookTask<B extends BlockEntity, R extends Recipe<? extend
     protected abstract CookBeBase<B> createCookBe(EntityMaid maid);
     public final RecSerializerManager<R> getRecSerializerManager() { return recSerializerManager; }
     public RecipeType<R> getRecipeType() { return recSerializerManager.getRecipeType(); }
+    /** Source: upstream BubbleUtil recipe overview/commit presentation. Explicit local acceptance
+     * policy temporarily excludes the new KC devices from quantity bubbles. A constant device
+     * capability changes presentation only; it cannot change planning, transactions or the queue. */
+    public boolean showRecipeAmountBubbles() { return true; }
     /** Source getRecipes delegates to the RSM catalog. Holder is the 1.21 identity boundary;
      * GUI and server filter validation read this same catalog without building work. */
     public List<RecipeHolder<R>> getRecipeHolders(Level level) {
