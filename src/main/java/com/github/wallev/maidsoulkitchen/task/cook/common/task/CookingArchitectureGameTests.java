@@ -36,6 +36,56 @@ public final class CookingArchitectureGameTests {
     private static ResourceLocation id(String name) { return ResourceLocation.fromNamespaceAndPath(MaidsoulKitchen.MOD_ID, name); }
 
     @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID, batch = "cooking_architecture")
+    public static void nativeFurnaceFamiliesShareOneQueue(GameTestHelper helper) {
+        var recipes = helper.getLevel().getRecipeManager();
+        var original = List.copyOf(recipes.getRecipes());
+        var maid = helper.spawnWithNoFreeWill(InitEntities.MAID.get(), new net.minecraft.core.BlockPos(1, 1, 1)); maid.setNoAi(true);
+        try {
+            var task = new com.github.wallev.maidsoulkitchen.task.cook.minecraft.furnace.TaskFurnace(); maid.setTask(task);
+            maid.restrictTo(helper.absolutePos(new net.minecraft.core.BlockPos(3, 1, 2)), 5);
+            List<RecipeHolder<?>> fixtures = List.of(
+                    new RecipeHolder<>(id("furnace_smelting"), new SmeltingRecipe("", CookingBookCategory.MISC, Ingredient.of(Items.IRON_ORE), new ItemStack(Items.IRON_INGOT), 0, 20)),
+                    new RecipeHolder<>(id("furnace_smoking"), new SmokingRecipe("", CookingBookCategory.MISC, Ingredient.of(Items.CARROT), new ItemStack(Items.BAKED_POTATO), 0, 20)),
+                    new RecipeHolder<>(id("furnace_blasting"), new BlastingRecipe("", CookingBookCategory.MISC, Ingredient.of(Items.GOLD_ORE), new ItemStack(Items.GOLD_INGOT), 0, 20)));
+            reloadRecipes(helper, fixtures);
+            KitchenData.get(maid).setCookData(task.getUid(), new CookData("whitelist", fixtures.stream().map(holder -> holder.id().toString()).toList(), List.of()));
+            var input = maid.getAvailableInv(true);
+            for (int slot = 0; slot < input.getSlots(); slot++) input.setStackInSlot(slot, ItemStack.EMPTY);
+            input.setStackInSlot(0, new ItemStack(Items.IRON_ORE)); input.setStackInSlot(1, new ItemStack(Items.CARROT));
+            input.setStackInSlot(2, new ItemStack(Items.GOLD_ORE)); input.setStackInSlot(3, new ItemStack(Items.COAL));
+            var blocks = List.of(net.minecraft.world.level.block.Blocks.FURNACE, net.minecraft.world.level.block.Blocks.SMOKER, net.minecraft.world.level.block.Blocks.BLAST_FURNACE);
+            var devices = new java.util.ArrayList<net.minecraft.world.level.block.entity.AbstractFurnaceBlockEntity>();
+            for (int i = 0; i < blocks.size(); i++) {
+                var pos = new net.minecraft.core.BlockPos(2 + i, 1, 2); helper.setBlock(pos, blocks.get(i));
+                var be = (net.minecraft.world.level.block.entity.AbstractFurnaceBlockEntity) helper.getBlockEntity(pos);
+                be.setItem(1, new ItemStack(Items.COAL)); devices.add(be);
+            }
+            var cm = task.getRecipesManager(maid); cm.checkAndCreateRecipesIngredients(); finishPlanning(cm);
+            helper.assertTrue(cm.getMaidRecs().size() == 3, "all present furnace families must share the manager's one queue");
+            var cookBe = new com.github.wallev.maidsoulkitchen.task.cook.minecraft.furnace.FurnaceCookBe(maid);
+            var rule = com.github.wallev.maidsoulkitchen.task.cook.common.rule.cook.FuelCookRule.getInstance();
+            for (int i = 0; i < devices.size(); i++) {
+                cookBe.setBe(devices.get(i));
+                var selected = cm.peekMaidRec(cookBe);
+                helper.assertTrue(selected != null && selected.recipeType()
+                        == ((com.github.wallev.maidsoulkitchen.task.cook.common.cbaccessor.IAbstractFurnaceAccessor) devices.get(i)).tlmk$getRecipeType(),
+                        "device-condition selection must preserve each real furnace's recipe type");
+                rule.cookMake(cookBe, cm);
+                helper.assertTrue(cookBe.recMatch() && cm.getMaidRecs().size() == 2 - i,
+                        "native acceptance must remove exactly its selected work identity, without a stale index queue");
+            }
+            var smoker = devices.get(1); cookBe.setBe(smoker); smoker.setItem(1, ItemStack.EMPTY);
+            rule.cookMake(cookBe, cm);
+            helper.assertTrue(smoker.getItem(1).is(Items.COAL) && input.getStackInSlot(3).isEmpty(),
+                    "native fuel refill must transfer actual material through the manager");
+            smoker.setItem(1, new ItemStack(Items.BUCKET)); rule.cookMake(cookBe, cm);
+            helper.assertTrue(smoker.getItem(1).isEmpty() && CookInventoryTransactions.count(input, stack -> stack.is(Items.BUCKET)) == 1,
+                    "a returned fuel container must be reclaimed while valid ingredients remain");
+        } finally { reloadRecipes(helper, original); maid.discard(); }
+        helper.succeed();
+    }
+
+    @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID, batch = "cooking_architecture")
     public static void commonMoveMakeOwnsTargetsAndLocks(GameTestHelper helper) {
         for (int x = 0; x < 7; x++) for (int z = 0; z < 7; z++)
             helper.setBlock(x, 0, z, net.minecraft.world.level.block.Blocks.STONE);
@@ -103,7 +153,9 @@ public final class CookingArchitectureGameTests {
         var maid = helper.spawnWithNoFreeWill(InitEntities.MAID.get(), new net.minecraft.core.BlockPos(1, 1, 1));
         maid.setNoAi(true);
         try {
-            var task = new com.github.wallev.maidsoulkitchen.task.cook.minecraft.TaskFurnace(); maid.setTask(task);
+            var task = new com.github.wallev.maidsoulkitchen.task.cook.minecraft.furnace.TaskFurnace(); maid.setTask(task);
+            maid.restrictTo(helper.absolutePos(new net.minecraft.core.BlockPos(1, 1, 1)), 4);
+            helper.setBlock(new net.minecraft.core.BlockPos(2, 1, 2), net.minecraft.world.level.block.Blocks.SMOKER);
             var holder = new RecipeHolder<>(id("device_partial_fixture"), new SmokingRecipe("", CookingBookCategory.MISC,
                     Ingredient.of(Items.CARROT), new ItemStack(Items.BAKED_POTATO), 0, 20));
             reloadRecipes(helper, List.of(holder));
@@ -225,7 +277,9 @@ public final class CookingArchitectureGameTests {
         var maid = helper.spawnWithNoFreeWill(InitEntities.MAID.get(), new net.minecraft.core.BlockPos(1, 1, 1));
         maid.setNoAi(true);
         try {
-            var task = new com.github.wallev.maidsoulkitchen.task.cook.minecraft.TaskFurnace(); maid.setTask(task);
+            var task = new com.github.wallev.maidsoulkitchen.task.cook.minecraft.furnace.TaskFurnace(); maid.setTask(task);
+            maid.restrictTo(helper.absolutePos(new net.minecraft.core.BlockPos(1, 1, 1)), 4);
+            helper.setBlock(new net.minecraft.core.BlockPos(2, 1, 2), net.minecraft.world.level.block.Blocks.SMOKER);
             ItemStack named = new ItemStack(Items.WATER_BUCKET);
             named.set(DataComponents.CUSTOM_NAME, Component.literal("managed material"));
             var holder = new RecipeHolder<>(id("managed_fixture"), new SmokingRecipe("", CookingBookCategory.MISC,
@@ -284,7 +338,9 @@ public final class CookingArchitectureGameTests {
         var maid = helper.spawnWithNoFreeWill(InitEntities.MAID.get(), new net.minecraft.core.BlockPos(1, 1, 1));
         maid.setNoAi(true);
         try {
-            var task = new com.github.wallev.maidsoulkitchen.task.cook.minecraft.TaskFurnace(); maid.setTask(task);
+            var task = new com.github.wallev.maidsoulkitchen.task.cook.minecraft.furnace.TaskFurnace(); maid.setTask(task);
+            maid.restrictTo(helper.absolutePos(new net.minecraft.core.BlockPos(1, 1, 1)), 4);
+            helper.setBlock(new net.minecraft.core.BlockPos(2, 1, 2), net.minecraft.world.level.block.Blocks.SMOKER);
             var holder = new RecipeHolder<>(id("partial_fixture"), new SmokingRecipe("", CookingBookCategory.MISC,
                     Ingredient.of(Items.CARROT), new ItemStack(Items.BAKED_POTATO), 0, 20));
             reloadRecipes(helper, List.of(holder));

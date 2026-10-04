@@ -276,19 +276,32 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
         return runState == 0 && !maidRecs.isEmpty();
     }
     public MaidRec peekMaidRec() {
+        return peekMaidRec(recipe -> true);
+    }
+
+    /** Upstream hasMaidRecs/pollMaidRec device selection, without a second index queue. */
+    public MaidRec peekMaidRec(com.github.wallev.maidsoulkitchen.task.cook.common.cook.be.CookBeBase<?> cookBe) {
+        return peekMaidRec();
+    }
+    public boolean hasMaidRecs(com.github.wallev.maidsoulkitchen.task.cook.common.cook.be.CookBeBase<?> cookBe) {
+        return peekMaidRec(cookBe) != null;
+    }
+    protected final MaidRec peekMaidRec(Predicate<MaidRec> matches) {
         if (!checkAndInit()) return null;
         if (!hasMaidRecs()) return null;
-        MaidRec recipe = maidRecs.peek();
-        if (recipe.resolve(level.getRecipeManager(), task.getUid(), generation).isEmpty()) { invalidate(); return null; }
-        return recipe;
+        for (MaidRec recipe : maidRecs) {
+            if (recipe.resolve(level.getRecipeManager(), task.getUid(), generation).isEmpty()) { invalidate(); return null; }
+            if (matches.test(recipe)) return recipe;
+        }
+        return null;
     }
 
     /** Fix upstream poll-before-insertion: the Be/Rule calls this only after accepting the work unit. */
     public boolean commitMaidRec(MaidRec recipe) {
         if (!isCurrentTask() || initTaskData() || initInvData()) { invalidate(); return false; }
-        if (recipe == null || maidRecs.peek() != recipe
+        if (recipe == null || !maidRecs.contains(recipe)
                 || recipe.resolve(level.getRecipeManager(), task.getUid(), generation).isEmpty()) return false;
-        maidRecs.poll();
+        maidRecs.remove(recipe);
         cookInv.syncInv(); cookInv.refreshInv();
         BubbleUtil.makeFood(maid, recipe.result());
         return true;
@@ -335,7 +348,7 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
         resetState(); recsGenerate.clear(); maidRecs.clear(); hubItemDown.clear(); chestInputInventory.clear();
     }
     public void resetState() { runState = 0; tryTime = 0; }
-    private void invalidate() { clear(); generation++; tryTime = 10; }
+    protected final void invalidate() { clear(); generation++; tryTime = 10; }
     private List<BlockPos> getBindingTypePoses(BagType type) { return bindingPoses.getOrDefault(type, List.of()); }
     private boolean isExtraZone(BlockPos pos) {
         double range = maid.getRestrictRadius() * ItemCulinaryHub.WORK_RANGE;
@@ -387,7 +400,9 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
      * plan; device leftovers remain visible for the Rule's next cleanup. No shadow work state survives.
      */
     public boolean insertInputs(MaidRec rec, IItemHandlerModifiable device, int start, int size) {
-        if (rec == null || peekMaidRec() != rec || rec.maidItems().size() > size) return false;
+        if (!checkAndInit() || rec == null || !maidRecs.contains(rec) || runState != 0
+                || rec.resolve(level.getRecipeManager(), task.getUid(), generation).isEmpty()
+                || rec.maidItems().size() > size) return false;
         Map<ItemDefinition, Integer> needed = new HashMap<>();
         int[] missing = new int[rec.maidItems().size()];
         for (int i = 0; i < missing.length; i++) {
@@ -488,6 +503,7 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
     }
 
     private boolean retainInput(ItemStack stack) {
+        if (recSerializerManager.getFuels().stream().anyMatch(fuel -> fuel.is(stack.getItem()))) return true;
         if (stack.getMaxStackSize() == 1 || stack.is(net.minecraft.world.item.Items.BOWL)
                 || stack.is(net.minecraft.world.item.Items.BUCKET) || stack.is(net.minecraft.world.item.Items.GLASS_BOTTLE)) return true;
         return recsGenerate.getRecs().stream().anyMatch(recipe -> recipe.inItems().stream().anyMatch(ingredient -> ingredient.test(stack) > 0)

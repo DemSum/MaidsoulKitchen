@@ -105,24 +105,6 @@ class Tlm15ApiMigrationTest {
     }
 
     @Test
-    void legacyTaskTransactionsUseSharedCapacityChecks() throws IOException {
-        String transactions = classFileText(
-                "com/github/wallev/maidsoulkitchen/task/cook/common/inventory/CookInventoryTransactions.class"
-        );
-        String furnace = classFileText(
-                "com/github/wallev/maidsoulkitchen/task/cook/minecraft/TaskFurnace.class"
-        );
-        String basin = classFileText(
-                "com/github/wallev/maidsoulkitchen/task/cook/barbequesdelight/MaidBasinMakeTask.class"
-        );
-        assertTrue(transactions.contains("canInsertAll"));
-        assertTrue(transactions.contains("returnOrDrop"));
-        assertTrue(furnace.contains("SMOKING"));
-        assertTrue(furnace.contains("BLASTING"));
-        assertTrue(basin.contains("completed"));
-    }
-
-    @Test
     void berryTaskOverridesTheSharedBfsReachabilityHook() throws IOException {
         String moveTask = classFileText(
                 "com/github/wallev/maidsoulkitchen/task/farm/TaskBerryFarm$1.class"

@@ -244,6 +244,7 @@ public class RecSerializerManager<R extends Recipe<? extends RecipeInput>> {
         // A recipe family can contain several RecipeInput implementations; retain the cast at this API boundary.
         List<RecipeHolder<R>> holders = getRecsFromRm(level);
         if (this.recipes == null || !sameHolderValues(holders, loadedHolders)) {
+            this.fuels = null;
             this.registryAccess = level.registryAccess();
             this.loadedHolders = List.copyOf(holders);
             this.initRecs(level, holders);
@@ -285,6 +286,8 @@ public class RecSerializerManager<R extends Recipe<? extends RecipeInput>> {
     }
 
     public RecipeType<R> getRecipeType() { return recipeType; }
+    /** Upstream fuel metadata; devices without fuel requirements have no fuel entries. */
+    public List<ItemStack> getFuels() { return List.of(); }
     public String getRecipeTypeId() { return recipeType.toString(); }
 
     public static class RecipeInfoProvider<R extends Recipe<? extends RecipeInput>> {

@@ -51,6 +51,9 @@ public abstract class ICookTask<B extends BlockEntity, R extends Recipe<? extend
     protected MaidCookManager<R> createRecipesManager(EntityMaid maid, CookBeBase<B> cookBe) {
         return new MaidCookManager<>(recSerializerManager, maid, this);
     }
+    @Override public final MaidCookManager<R> getRecipesManager(EntityMaid maid) {
+        return createRecipesManager(maid, createCookBe(maid));
+    }
     @Override public final boolean shouldMoveTo(ServerLevel level, EntityMaid maid, B be, MaidCookManager<R> cm) {
         CookBeBase<B> cookBe = createCookBe(maid); cookBe.setBe(be);
         return cookRule.canMoveTo(cookBe, cm);
