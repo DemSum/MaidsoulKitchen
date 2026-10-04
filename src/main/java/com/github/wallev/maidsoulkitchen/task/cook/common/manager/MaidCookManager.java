@@ -482,6 +482,28 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
         return true;
     }
 
+    /** Source: upstream CookBeBase.useItem and beta tea-kettle replenishment. Uses the existing
+     * 1.21 FakePlayer interaction boundary; only the inventory ownership is moved here. Extract
+     * first so refused Handlers cannot duplicate native effects. Return the actual post-use hand
+     * (including containers or partial failure), not a speculative refund of the original input.
+     * A consuming interaction is not itself recipe acceptance; the device verifies its native state. */
+    public boolean useItem(GatherResult source, BlockPos pos) {
+        if (source.isFail() || !level.isLoaded(pos)) return false;
+        var fakePlayer = ((com.github.wallev.maidsoulkitchen.entity.passive.IAddonMaid) maid).tlmk$getFakePlayer();
+        if (fakePlayer == null || fakePlayer.get() == null) return false;
+        ItemStack preview = source.getItemHandler().extractItem(source.getSlot(), 1, true);
+        ItemStack extracted = source.getItemHandler().extractItem(source.getSlot(), 1, false);
+        if (extracted.isEmpty()) return false;
+        if (!ItemStack.isSameItemSameComponents(preview, extracted)) {
+            CookInventoryTransactions.returnOrDrop(getInputInv(), source.backItemStack(extracted), maid);
+            syncInv(); invalidate(); return false;
+        }
+        var outcome = com.github.wallev.maidsoulkitchen.entity.passive.IAddonMaid.tryInteractUseOnBlockWithItem(maid, pos, extracted);
+        CookInventoryTransactions.returnOrDrop(getInputInv(), source.backItemStack(outcome.remainder()), maid);
+        syncInv();
+        return outcome.result().consumesAction();
+    }
+
     /** Source: upstream TickCookRule.swapItem/swapTool/backpackTool, and local cutting equipTool.
      * Live-stack copyAndClear could alias Handler contents or duplicate the previous hand item.
      * Extract first, transfer the old hand with real receipts, then lend exactly one physical tool.

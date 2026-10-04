@@ -68,7 +68,9 @@ public interface IAddonMaid {
             return new ItemUseOutcome(result, fakePlayer.getMainHandItem().copy());
         } catch (RuntimeException exception) {
             LOGGER.warn("Fake player item interaction failed at {}", blockPos, exception);
-            return new ItemUseOutcome(InteractionResult.FAIL, itemStack.copy());
+            // Native use may have consumed the input before throwing. Recover the actual hand,
+            // never refund the pre-use copy as well as its native effect/container.
+            return new ItemUseOutcome(InteractionResult.FAIL, fakePlayer.getMainHandItem().copy());
         } finally {
             fakePlayer.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
         }

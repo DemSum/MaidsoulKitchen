@@ -36,6 +36,44 @@ public final class CookingArchitectureGameTests {
     private static ResourceLocation id(String name) { return ResourceLocation.fromNamespaceAndPath(MaidsoulKitchen.MOD_ID, name); }
 
     @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID, batch = "cooking_architecture")
+    public static void nativeKettleReplenishesThroughOwnedTransactions(GameTestHelper helper) {
+        var maid = helper.spawnWithNoFreeWill(InitEntities.MAID.get(), new net.minecraft.core.BlockPos(1, 1, 1)); maid.setNoAi(true);
+        try {
+            var task = new com.github.wallev.maidsoulkitchen.task.cook.youkaishomecoming.kettle.TaskYhcKettle(); maid.setTask(task);
+            var description = task.getRecSerializerManager().getRecipes(helper.getLevel()).stream().filter(recipe -> !recipe.inItems().isEmpty()
+                    && recipe.inItems().size() <= 4 && recipe.inItems().stream().allMatch(ingredient -> ingredient.ingredient.getItems().length > 0)).findFirst().orElseThrow();
+            KitchenData.get(maid).setCookData(task.getUid(), new CookData("whitelist", List.of(description.idStr()), List.of()));
+            var input = maid.getAvailableInv(true);
+            for (int slot = 0; slot < input.getSlots(); slot++) input.setStackInSlot(slot, ItemStack.EMPTY);
+            for (int slot = 0; slot < description.inItems().size(); slot++) input.setStackInSlot(slot, description.inItems().get(slot).ingredient.getItems()[0].copyWithCount(1));
+            helper.setBlock(new net.minecraft.core.BlockPos(2, 0, 2), net.minecraft.world.level.block.Blocks.CAMPFIRE);
+            helper.setBlock(new net.minecraft.core.BlockPos(2, 1, 2), dev.xkmc.youkaishomecoming.init.registrate.YHBlocks.KETTLE.get());
+            var kettle = (dev.xkmc.youkaishomecoming.content.pot.kettle.KettleBlockEntity) helper.getBlockEntity(new net.minecraft.core.BlockPos(2, 1, 2));
+            var be = new com.github.wallev.maidsoulkitchen.task.cook.youkaishomecoming.kettle.KettleBe(maid); be.setBe(kettle);
+            var cm = task.getRecipesManager(maid); cm.checkAndCreateRecipesIngredients(); finishPlanning(cm);
+            var rule = com.github.wallev.maidsoulkitchen.task.cook.common.rule.cook.WaterFdPotCookRule.getInstance();
+            helper.assertTrue(!rule.canMoveTo(be, cm), "dry kettle without a native water source cannot claim a cooking job");
+            var refused = new ItemStackHandler(1) {
+                @Override public ItemStack extractItem(int slot, int amount, boolean simulate) { return simulate ? super.extractItem(slot, amount, true) : ItemStack.EMPTY; }
+            }; refused.setStackInSlot(0, new ItemStack(Items.WATER_BUCKET));
+            helper.assertTrue(!cm.useItem(new com.github.wallev.maidsoulkitchen.task.cook.common.manager.GatherResult(refused, 0), kettle.getBlockPos())
+                    && kettle.getWater() == 0 && refused.getStackInSlot(0).is(Items.WATER_BUCKET),
+                    "refused real extraction must not create native kettle water");
+            input.setStackInSlot(5, new ItemStack(Items.WATER_BUCKET)); cm.checkAndCreateRecipesIngredients(); finishPlanning(cm);
+            helper.assertTrue(rule.canMoveTo(be, cm), "a native water source must make the planned kettle work eligible"); rule.cookMake(be, cm);
+            helper.assertTrue(be.recMatch() && be.hasFluid() && cm.getMaidRecs().isEmpty()
+                    && CookInventoryTransactions.count(input, stack -> stack.is(Items.WATER_BUCKET)) == 0
+                    && CookInventoryTransactions.count(input, stack -> stack.is(Items.BUCKET)) == 1,
+                    "native kettle refill must consume exactly one physical water source and return its actual bucket once");
+            kettle.setWater(dev.xkmc.youkaishomecoming.content.pot.kettle.KettleBlockEntity.WATER_BOTTLE);
+            int before = CookInventoryTransactions.count(input, stack -> stack.is(Items.BUCKET));
+            helper.assertTrue(be.hasFluid() && !be.replenishFluid(cm) && CookInventoryTransactions.count(input, stack -> stack.is(Items.BUCKET)) == before,
+                    "the exact native bottle-water threshold is sufficient and must not refill again");
+        } finally { maid.discard(); }
+        helper.succeed();
+    }
+
+    @GameTest(template = "stockpot_empty", templateNamespace = MaidsoulKitchen.MOD_ID, batch = "cooking_architecture")
     public static void nativeDryingBoundsReservationsAndStartsTimers(GameTestHelper helper) {
         var level = helper.getLevel(); var original = List.copyOf(level.getRecipeManager().getRecipes()); var day = level.getDayTime();
         var maid = helper.spawnWithNoFreeWill(InitEntities.MAID.get(), new net.minecraft.core.BlockPos(1, 1, 1)); maid.setNoAi(true);

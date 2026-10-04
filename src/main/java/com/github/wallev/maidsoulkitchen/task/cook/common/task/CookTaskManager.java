@@ -20,7 +20,7 @@ import com.github.wallev.maidsoulkitchen.task.cook.kaleidoscopecookery.TaskKcSto
 import com.github.wallev.maidsoulkitchen.task.cook.youkaishomecoming.dryingrack.TaskYhcDryingRack;
 import com.github.wallev.maidsoulkitchen.task.cook.youkaishomecoming.TaskYhcFermentationTank;
 import com.github.wallev.maidsoulkitchen.task.cook.youkaishomecoming.moka.TaskYhcMoka;
-import com.github.wallev.maidsoulkitchen.task.cook.youkaishomecoming.TaskYhcTeaKettle;
+import com.github.wallev.maidsoulkitchen.task.cook.youkaishomecoming.kettle.TaskYhcKettle;
 /**
  * Source: 58ec08ec task/cook/common/task/CookTaskManager.java (MIT).
  * Keeps UID lookup and ordered task index. Current NeoForge canLoad/signature gates replace upstream Mods;
@@ -63,7 +63,7 @@ public final class CookTaskManager {
             add(tasks, new TaskYhcMoka());
         }
         if (TaskInfo.YHC_TEA_KETTLE.canLoad()) {
-            add(tasks, new TaskYhcTeaKettle());
+            add(tasks, new TaskYhcKettle());
         }
         if (TaskInfo.YHC_DRYING_RACK.canLoad()) {
             add(tasks, new TaskYhcDryingRack());
