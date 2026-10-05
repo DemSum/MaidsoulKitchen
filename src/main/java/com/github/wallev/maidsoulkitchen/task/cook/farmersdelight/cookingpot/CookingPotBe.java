@@ -31,5 +31,17 @@ public class CookingPotBe extends CookBeBase<CookingPotBlockEntity> {
         return accessor.tlmk$getMatchingRecipe(new RecipeWrapper(be.getInventory())).isPresent();
     }
     @Override public boolean cookStateMatch() { return be.isHeated(); }
+    /** Source: upstream FdPotCookRule meal/container ordering. FD keeps cooked meals separately
+     * and transfers them to OUTPUT_SLOT on its native tick. A correctly supplied meal waiting
+     * for that transfer is also busy; the generic input-only check cannot represent this API. */
+    @Override public boolean isAwaitingNativeCooking() {
+        if (hasResult()) return false;
+        if (hasMeal()) {
+            var needed = getNeedContainer();
+            var container = getNowContainer();
+            return needed.isEmpty() || !container.isEmpty() && container.is(needed.getItem());
+        }
+        return super.isAwaitingNativeCooking();
+    }
     @Override public void markChanged() { defaultChanged(); }
 }

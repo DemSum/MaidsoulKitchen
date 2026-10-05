@@ -34,6 +34,7 @@ public class TypeTaskButton extends NormalTooltipButton {
     protected void renderWidget(GuiGraphics pGuiGraphics, int pMouseX, int pMouseY, float pPartialTick) {
         Minecraft mc = Minecraft.getInstance();
         pGuiGraphics.blit(TEXTURE, this.getX(), this.getY(), 179, 2, this.width, this.height);
+        renderHoverHighlight(pGuiGraphics);
         pGuiGraphics.renderItem(icon, this.getX() + 2, this.getY() + 2);
         List<FormattedCharSequence> splitTexts = mc.font.split(this.getMessage(), 42);
         if (!splitTexts.isEmpty()) {

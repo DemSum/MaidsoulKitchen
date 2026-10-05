@@ -34,6 +34,7 @@ public class TypeButton extends NormalTooltipButton {
     @Override
     protected void renderWidget(GuiGraphics pGuiGraphics, int pMouseX, int pMouseY, float pPartialTick) {
         pGuiGraphics.blit(TEXTURE, getX(), getY(), 0, 232, 18, 18);
+        renderHoverHighlight(pGuiGraphics);
         if (isSelected) {
             pGuiGraphics.blit(TEXTURE, getX() + 1, getY() + 1, 16, 197, 16, 16);
         }else {

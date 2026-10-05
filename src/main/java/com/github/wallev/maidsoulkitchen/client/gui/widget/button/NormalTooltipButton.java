@@ -34,4 +34,10 @@ public class NormalTooltipButton extends Button implements ITooltipButton {
     public void setTooltips(List<Component> tooltips) {
         this.tooltips = tooltips;
     }
+
+    /** Custom upstream texture renderers bypass Button's native hover background. */
+    protected final void renderHoverHighlight(GuiGraphics graphics) {
+        if (active && isHoveredOrFocused())
+            graphics.fill(getX() + 1, getY() + 1, getX() + width - 1, getY() + height - 1, 0x30FFFFFF);
+    }
 }

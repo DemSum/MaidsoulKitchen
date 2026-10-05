@@ -200,14 +200,15 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
      * handlers. Idle brain ticks only inspect scheduling fields; no slots/recipes are polled.
      * Replaces the one-second full replan, retaining no second inventory or work queue. */
     public boolean refreshBoundIngredientsIfWaiting(long gameTime) {
-        if (retired || !maid.isAlive() || !hasBoundIngredients() || !hasEnabledRecipes()) return false;
+        if (!isCurrentTask() || !hasEnabledRecipes()) return false;
         if (runState > 0) return false;
         if (!maidRecs.isEmpty()) {
             boolean ready = wakeMoveAfterBoundRefresh;
             wakeMoveAfterBoundRefresh = false;
             return ready && isCurrentTask();
         }
-        if (boundIngredientRefreshDue(gameTime)) checkAndCreateRecipes();
+        if (hasBoundIngredients() ? boundIngredientRefreshDue(gameTime) : wakeMoveAfterBoundRefresh)
+            checkAndCreateRecipes();
         return false;
     }
 
@@ -236,6 +237,7 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
         if (!isCurrentTask()) return;
         requestPlanningRefresh();
         tryTime = 10;
+        wakeMoveAfterBoundRefresh = true;
         clearIngredientFailure();
     }
 
@@ -353,6 +355,8 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
         cookInv.refreshInv();
         for (BlockEntity be : validChests) makeChanged(be);
         if (hasBoundIngredients()) scheduleBoundIngredientFallback(level.getGameTime());
+        // A work event with no executable plan is consumed; it must not become idle polling.
+        if (maidRecs.isEmpty()) wakeMoveAfterBoundRefresh = false;
         resetState();
         makeResultsBubble();
         return true;
@@ -421,6 +425,13 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
                 || recipe.resolve(level.getRecipeManager(), task.getUid(), generation).isEmpty()) return false;
         maidRecs.remove(recipe);
         cookInv.syncInv(); cookInv.refreshInv();
+        // Source: upstream commit -> next Move lifecycle and the retained neo device rotation.
+        // Own transactions update the inventory baseline, so they cannot rely on an external
+        // chest/menu event to wake the next appliance. One accepted unit requests one wake;
+        // unchanged failed/idle checks never request planning or shorten the fallback.
+        requestPlanningRefresh();
+        tryTime = 10;
+        wakeMoveAfterBoundRefresh = true;
         // Source BubbleUtil's collection overview already multiplies output count by amount.
         // The upstream single-work announcement omitted it; report the accepted batch consistently.
         ItemStack announced = recipe.result();

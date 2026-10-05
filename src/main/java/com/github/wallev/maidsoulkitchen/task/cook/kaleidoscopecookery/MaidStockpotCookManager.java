@@ -55,6 +55,9 @@ public final class MaidStockpotCookManager extends MaidCookManager<Recipe<Stockp
             // Source: upstream device condition filtering. KC cannot accept a second batch
             // while cooking/finished; exclude those descriptors rather than call it a shortage.
             int status = device.getStatus();
+            // KC advances a fully supplied, covered pot to COOKING on its next native block
+            // tick. An accepted-work event may arrive earlier; do not plan its inputs again.
+            if (device.hasLid() && rsm.hasAllowedCompletion(StockpotAdapter.inspect(device, level).orElseThrow(), level, settings)) continue;
             if (status == com.github.ysbbbbbb.kaleidoscopecookery.api.blockentity.IStockpot.PUT_SOUP_BASE
                     || status == com.github.ysbbbbbb.kaleidoscopecookery.api.blockentity.IStockpot.PUT_INGREDIENT)
                 result.addAll(rsm.forDevice(device, level, settings, this::reportPlanningRequirement));

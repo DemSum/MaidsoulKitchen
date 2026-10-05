@@ -90,7 +90,7 @@ public abstract class RecipeFilterGui<M extends TaskConfigContainer> extends Mai
     @Override
     protected void renderAddition(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         renderSearchText(graphics, mouseX, mouseY, partialTick);
-        renderSearchButton(graphics);
+        renderSearchButton(graphics, mouseX, mouseY);
         drawModeSeparator(graphics);
         drawScrollBar(graphics);
     }
@@ -376,7 +376,7 @@ public abstract class RecipeFilterGui<M extends TaskConfigContainer> extends Mai
         }
     }
 
-    private void renderSearchButton(GuiGraphics graphics) {
+    private void renderSearchButton(GuiGraphics graphics, int mouseX, int mouseY) {
         if (searchBox == null) {
             return;
         }
@@ -387,6 +387,10 @@ public abstract class RecipeFilterGui<M extends TaskConfigContainer> extends Mai
         } else {
             graphics.blit(COOK_GUIDE_TEXTURE, x, y, 0, 232, 18, 18);
         }
+        if (mouseX >= x && mouseX < x + SEARCH_BUTTON_DISPLAY.width()
+                && mouseY >= y && mouseY < y + SEARCH_BUTTON_DISPLAY.height())
+            graphics.fill(x + 1, y + 1, x + SEARCH_BUTTON_DISPLAY.width() - 1,
+                    y + SEARCH_BUTTON_DISPLAY.height() - 1, 0x30FFFFFF);
         graphics.blit(COOK_GUIDE_TEXTURE, x + 1, y + 1, 0, 181, 16, 16);
     }
 

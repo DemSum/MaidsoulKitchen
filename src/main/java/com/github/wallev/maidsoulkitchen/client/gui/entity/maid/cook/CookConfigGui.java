@@ -125,7 +125,7 @@ public class CookConfigGui extends MaidTaskConfigGui<CookConfigContainer> {
     @Override
     protected void renderAddition(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
         this.renderSearchSearchText(graphics, mouseX, mouseY, partialTicks);
-        this.renderSearchBox(graphics);
+        this.renderSearchBox(graphics, mouseX, mouseY);
         this.drawSplitZoneCard(graphics);
         this.drawScrollInfoBar(graphics);
     }
@@ -453,7 +453,7 @@ public class CookConfigGui extends MaidTaskConfigGui<CookConfigContainer> {
         }
     }
 
-    private void renderSearchBox(GuiGraphics graphics) {
+    private void renderSearchBox(GuiGraphics graphics, int mouseX, int mouseY) {
         if (searchBox == null) return;
 
         int startX = width - leftPos - (-searchBoxDisplay.startX()) - searchBoxDisplay.width() - 1;
@@ -465,6 +465,10 @@ public class CookConfigGui extends MaidTaskConfigGui<CookConfigContainer> {
             graphics.blit(TEXTURE, startX, startY, 0, 232, 18, 18);
         }
 
+        if (mouseX >= startX && mouseX < startX + searchBoxDisplay.width()
+                && mouseY >= startY && mouseY < startY + searchBoxDisplay.height())
+            graphics.fill(startX + 1, startY + 1, startX + searchBoxDisplay.width() - 1,
+                    startY + searchBoxDisplay.height() - 1, 0x30FFFFFF);
         graphics.blit(TEXTURE, startX + 1, startY + 1, 0, 181, 16, 16);
     }
 

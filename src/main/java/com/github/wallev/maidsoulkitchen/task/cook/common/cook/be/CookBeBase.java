@@ -29,7 +29,11 @@ public abstract class CookBeBase<B extends BlockEntity> {
     }
     public boolean hasResult() { return !getResult().isEmpty(); }
     public boolean extractResult(MaidCookManager<?> cm) {
-        return cm.takeItem(getResultInv(), getResultSlot(), cm.getOutputInv(), stack -> true) > 0;
+        boolean taken = cm.takeItem(getResultInv(), getResultSlot(), cm.getOutputInv(), stack -> true) > 0;
+        // Source: upstream output -> planning lifecycle. Handler devices need the same accepted
+        // completion event as KC; own receipts have already refreshed the inventory baseline.
+        if (taken && !hasInputs() && !hasResult()) cm.cookingCycleCompleted();
+        return taken;
     }
     public boolean hasInputs() {
         for (int slot = getIngredientSlotStart(); slot < getIngredientSlotStart() + getIngredientSize(); slot++)
