@@ -29,7 +29,6 @@ public final class StockpotBe extends CookBeBase<StockpotBlockEntity> {
     @Override public ItemStack getResult() { return snapshot().result().copyWithCount(1); }
     @Override public boolean recMatch() { return StockpotRecSerializerManager.INSTANCE.hasAllowedCompletion(snapshot(), serverLevel, TaskKcStockpot.settings(maid)); }
     @Override public boolean cookStateMatch() { return snapshot().heated(); }
-    @Override public int getVerticalSearchRange() { return 7; }
     @Override public void markChanged() { defaultChanged(); }
     static boolean isBoundTo(MaidRec work, BlockEntity device) {
         var p = work.parameters();

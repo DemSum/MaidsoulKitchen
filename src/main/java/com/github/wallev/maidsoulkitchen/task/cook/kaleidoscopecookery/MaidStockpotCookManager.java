@@ -1,6 +1,7 @@
 package com.github.wallev.maidsoulkitchen.task.cook.kaleidoscopecookery;
 
 import com.github.tartaricacid.touhoulittlemaid.entity.passive.EntityMaid;
+import com.github.wallev.maidsoulkitchen.api.task.cook.ICookTask;
 import com.github.wallev.maidsoulkitchen.task.cook.common.cook.be.CookBeBase;
 import com.github.wallev.maidsoulkitchen.task.cook.common.manager.MaidCookManager;
 import com.github.wallev.maidsoulkitchen.task.cook.common.rule.rec.MaidRec;
@@ -58,7 +59,7 @@ public final class MaidStockpotCookManager extends MaidCookManager<Recipe<Stockp
         List<StockpotBlockEntity> conditions = new ArrayList<>();
         BlockPos center = maid.hasRestriction() ? maid.getRestrictCenter() : maid.blockPosition().below();
         int range = (int) maid.getRestrictRadius(); var pos = new BlockPos.MutableBlockPos();
-        for (int y = 0; y <= 7; y = y > 0 ? -y : 1 - y)
+        for (int y = 0; y <= ICookTask.VERTICAL_SEARCH_RANGE; y = y > 0 ? -y : 1 - y)
             for (int i = 0; i < range; ++i)
                 for (int x = 0; x <= i; x = x > 0 ? -x : 1 - x)
                     for (int z = x < i && x > -i ? i : 0; z <= i; z = z > 0 ? -z : 1 - z) {

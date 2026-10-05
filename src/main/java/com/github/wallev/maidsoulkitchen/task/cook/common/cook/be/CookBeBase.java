@@ -76,9 +76,10 @@ public abstract class CookBeBase<B extends BlockEntity> {
     }
     public BlockPos getPos() { return be.getBlockPos(); }
     /** Source: c9273ce5 side search, extended by the verified KC steamer stack search.
-     * Device geometry belongs to Be; the common Move still performs exactly one TLM BFS. */
+     * Single-block devices, including KC stockpots and future KC woks/teapots, use these
+     * defaults; only multi-layer steamers extend the heights. Common Move performs one TLM BFS. */
     public int[] getInteractionHeightOffsets() { return new int[]{0, 1}; }
-    public int getVerticalSearchRange() { return 2; }
+    public int getVerticalSearchRange() { return ICookTask.VERTICAL_SEARCH_RANGE; }
     /** Existing floor recovery anchor; stacked devices override it with their actual heat base. */
     public BlockPos getWorkAreaFloorAnchor(BlockPos walkPos) { return walkPos; }
     public void clear() { be = null; }
