@@ -67,6 +67,12 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
     private ItemStack loanedTool = ItemStack.EMPTY;
     // A TLM brain context that was retired cannot resume when the same device UID is selected again.
     private boolean retired;
+    private static final int BOUND_INGREDIENT_FALLBACK_MIN_TICKS = 1200;
+    private static final int BOUND_INGREDIENT_EVENT_COOLDOWN_TICKS = 100;
+    private long nextBoundIngredientCheck;
+    private long nextBoundIngredientEvent;
+    private boolean boundIngredientRefreshRequested;
+    private boolean wakeMoveAfterBoundRefresh;
 
     public MaidCookManager(RecSerializerManager<R> recSerializerManager, EntityMaid maid, ICookTask<?, R> task) {
         this.recSerializerManager = recSerializerManager;
@@ -156,7 +162,10 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
         List<ItemStack> previous = cookInv.getLastInvStack().stream().map(ItemStack::copy).toList();
         cookInv.refreshInv();
         inventoryChanged |= !sameInventory(previous, cookInv.getLastInvStack());
-        if (settingsChanged || storageChanged || inventoryChanged) invalidate();
+        if (settingsChanged || storageChanged || inventoryChanged) {
+            invalidate();
+            requestPlanningRefresh();
+        }
         if (hasCulinaryHub) hubFeedback.clear(maid);
         else hubFeedback.show(maid, "chat_bubble.maidsoulkitchen.cook.no_hub");
         return true;
@@ -170,8 +179,82 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
 
     public void checkAndCreateRecipes() {
         if (!checkAndInit() || runState > 0 || !maidRecs.isEmpty()) return;
-        if (isLastCookInv() && tryTime++ < 10) return;
+        // Source: upstream unchanged-backpack retry gate. A bound chest can change without
+        // changing that backpack. Replace its counter with event/low-frequency scheduling,
+        // including calls from ordinary Move, so it cannot bypass the same idle deadline.
+        if (hasBoundIngredients()) {
+            long now = level.getGameTime();
+            if (!boundIngredientRefreshDue(now)) return;
+            if (boundIngredientRefreshRequested && now < nextBoundIngredientCheck)
+                nextBoundIngredientEvent = now + BOUND_INGREDIENT_EVENT_COOLDOWN_TICKS;
+            boundIngredientRefreshRequested = false;
+            wakeMoveAfterBoundRefresh = true;
+            scheduleBoundIngredientFallback(now);
+        } else if (isLastCookInv() && tryTime++ < 10) return;
         createRecipesIngredients();
+    }
+
+    /** Source: 58ec08ec checkAndCreateRecipes -> chest scan -> GenerateRecsTask.
+     * IItemHandler has no universal external-change notification. Close events request the
+     * same upstream pipeline, with a 60-120 second staggered fallback for automation/custom
+     * handlers. Idle brain ticks only inspect scheduling fields; no slots/recipes are polled.
+     * Replaces the one-second full replan, retaining no second inventory or work queue. */
+    public boolean refreshBoundIngredientsIfWaiting(long gameTime) {
+        if (retired || !maid.isAlive() || !hasBoundIngredients() || !hasEnabledRecipes()) return false;
+        if (runState > 0) return false;
+        if (!maidRecs.isEmpty()) {
+            boolean ready = wakeMoveAfterBoundRefresh;
+            wakeMoveAfterBoundRefresh = false;
+            return ready && isCurrentTask();
+        }
+        if (boundIngredientRefreshDue(gameTime)) checkAndCreateRecipes();
+        return false;
+    }
+
+    private boolean hasBoundIngredients() {
+        return hasCulinaryHub && !getBindingTypePoses(BagType.INGREDIENT).isEmpty();
+    }
+
+    private boolean boundIngredientRefreshDue(long gameTime) {
+        return gameTime >= nextBoundIngredientCheck
+                || (boundIngredientRefreshRequested && gameTime >= nextBoundIngredientEvent);
+    }
+
+    /** Source: upstream initTaskData/initInvData invalidation. Actual input/settings/catalog
+     * changes must remain eligible immediately, including KC's native Flex catalog toggle.
+     * Only repeated menu-close hints are throttled; a failed peek cannot request this wake. */
+    protected final void requestPlanningRefresh() {
+        boundIngredientRefreshRequested = true;
+        nextBoundIngredientEvent = 0;
+    }
+
+    private void scheduleBoundIngredientFallback(long gameTime) {
+        // Stable per-maid jitter spreads simultaneous idle planners without a global scheduler.
+        nextBoundIngredientCheck = gameTime + BOUND_INGREDIENT_FALLBACK_MIN_TICKS
+                + Math.floorMod(maid.getUUID().hashCode(), BOUND_INGREDIENT_FALLBACK_MIN_TICKS + 1);
+    }
+
+    /** Source: upstream bindingPoses/collectChest, adapted at NeoForge's menu-close boundary.
+     * Only loaded, in-range ingredient bindings belonging to this active manager can wake it.
+     * Vanilla Container/large-chest identity and mod SlotItemHandler identity require separate
+     * API checks; unidentifiable wrappers use the low-frequency fallback. One flag coalesces
+     * events, never invalidating executable work or retaining another material snapshot. */
+    public void boundIngredientContainerClosed(Set<net.minecraft.world.Container> containers,
+                                               Set<IItemHandler> handlers) {
+        if (!isCurrentTask() || !hasBoundIngredients()) return;
+        for (BlockPos pos : getBindingTypePoses(BagType.INGREDIENT)) {
+            if (isExtraZone(pos) || !level.isLoaded(pos)) continue;
+            BlockEntity be = level.getBlockEntity(pos);
+            if (be == null) continue;
+            boolean matches = be instanceof net.minecraft.world.Container container
+                    && (containers.contains(container) || containers.stream().anyMatch(opened ->
+                    opened instanceof net.minecraft.world.CompoundContainer compound && compound.contains(container)));
+            if (!matches && !handlers.isEmpty()) matches = handlers.contains(ItemCulinaryHub.getBeInv(level, be));
+            if (matches) {
+                boundIngredientRefreshRequested = true;
+                return;
+            }
+        }
     }
 
     protected List<MKRecipe<R>> getRecs() {
@@ -258,6 +341,7 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
         cookInv.syncInv();
         cookInv.refreshInv();
         for (BlockEntity be : validChests) makeChanged(be);
+        if (hasBoundIngredients()) scheduleBoundIngredientFallback(level.getGameTime());
         resetState();
         makeResultsBubble();
         return true;
@@ -364,9 +448,11 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
      * Return the actual loan before discarding plans; no old manager may retain executable work. */
     public void retire() {
         retired = true;
+        boundIngredientRefreshRequested = false;
+        wakeMoveAfterBoundRefresh = false;
         hubFeedback.clear(maid);
         workFeedback.clear(maid);
-        if (cookInv != null) { cookInv.refreshInv(); backpackTool(); }
+        if (cookInv != null) backpackTool();
         else invalidate();
         com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookTargetMemory.clear(maid);
     }
@@ -768,8 +854,13 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
         return true;
     }
 
-    /** Return the actual (possibly damaged) loan once; task stop/reload replans remaining resources. */
+    /** Source upstream backpackTool, with the existing 1.21 hub/bauble identity boundary.
+     * A GUI transfer can empty the captured hub stack before stop/brain refresh: resolve current
+     * storage before touching that old view, or refresh creates a null output Handler and returning
+     * a loan writes into detached storage. Replaces that confirmed unsafe beta/port stop behavior. */
     public void backpackTool() {
+        initInvData();
+        cookInv.refreshInv();
         if (!loanedTool.isEmpty() && maid.getMainHandItem() == loanedTool) {
             var actual = maid.getMainHandItem().copy();
             maid.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, ItemStack.EMPTY);

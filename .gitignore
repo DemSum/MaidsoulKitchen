@@ -26,3 +26,7 @@ forge*changelog.txt
 /log/
 /run-data/
 /runs/
+
+# Native GameTests live only in ../MSK_LOCAL_GAMETESTS_1.21.1.
+**/*GameTest*.java
+**/stockpot_empty.nbt

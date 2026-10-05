@@ -30,7 +30,8 @@ public final class MaidStockpotCookManager extends MaidCookManager<Recipe<Stockp
         if (!super.checkAndInit()) return false;
         boolean current = TaskKcStockpot.settings(maid).allowFlexRecipes();
         if (allowFlex != current) {
-            allowFlex = current; invalidate(); recsGenerate.setRecs(getValidRecipesFor(rsm.getRecipes(level)));
+            allowFlex = current; invalidate(); requestPlanningRefresh();
+            recsGenerate.setRecs(getValidRecipesFor(rsm.getRecipes(level)));
         }
         return true;
     }

@@ -13,7 +13,6 @@ import com.github.wallev.maidsoulkitchen.network.NetworkHandler;
 import com.github.wallev.maidsoulkitchen.network.message.ActionCookDataRecC2SPackage;
 import com.github.wallev.maidsoulkitchen.network.message.SetCookDataC2SPackage;
 import com.github.wallev.maidsoulkitchen.client.gui.widget.button.*;
-import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -210,11 +209,13 @@ public class CookConfigGui extends MaidTaskConfigGui<CookConfigContainer> {
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        boolean hasKeyCode = InputConstants.getKey(keyCode, scanCode).getNumericKeyValue().isPresent();
-        String preText = this.searchBox.getValue();
-        if (hasKeyCode) {
-            return true;
+        // Source: 58ec08ec CookConfigGuiV1.keyPressed. Its numeric-key early return
+        // consumes every GLFW keysym, including Backspace/Escape. Preserve the original
+        // EditBox routing and let the native screen handle keys it does not consume.
+        if (searchBox == null || !searchBox.isFocused() || !searchBox.isVisible()) {
+            return super.keyPressed(keyCode, scanCode, modifiers);
         }
+        String preText = this.searchBox.getValue();
         if (this.searchBox.keyPressed(keyCode, scanCode, modifiers)) {
             if (!Objects.equals(preText, this.searchBox.getValue())) {
                 this.solIndex = 0;
@@ -222,16 +223,21 @@ public class CookConfigGui extends MaidTaskConfigGui<CookConfigContainer> {
             }
             return true;
         } else {
-            return this.searchBox.isFocused() && this.searchBox.isVisible() && keyCode != 256 || super.keyPressed(keyCode, scanCode, modifiers);
+            return super.keyPressed(keyCode, scanCode, modifiers);
         }
     }
 
     @Override
     protected void insertText(String text, boolean overwrite) {
+        String before = this.searchBox.getValue();
         if (overwrite) {
             this.searchBox.setValue(text);
         } else {
             this.searchBox.insertText(text);
+        }
+        if (!Objects.equals(before, this.searchBox.getValue())) {
+            this.solIndex = 0;
+            this.init();
         }
     }
 

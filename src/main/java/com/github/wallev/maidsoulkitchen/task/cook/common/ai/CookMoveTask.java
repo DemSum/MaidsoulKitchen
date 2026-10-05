@@ -52,6 +52,17 @@ public class CookMoveTask<B extends BlockEntity, R extends Recipe<? extends Reci
     }
 
     @Override
+    protected boolean checkExtraStartConditions(ServerLevel level, EntityMaid maid) {
+        // Source: existing TLM check-rate boundary. Bound-input notifications reuse the sole
+        // manager pipeline on events/low-frequency fallback independently of BFS cooldown;
+        // idle ticks only check deadlines, and wake search once work becomes ready.
+        if (maid == maidRecipesManager.getMaid()
+                && maidRecipesManager.refreshBoundIngredientsIfWaiting(level.getGameTime()))
+            setNextCheckTickCount(0);
+        return super.checkExtraStartConditions(level, maid);
+    }
+
+    @Override
     protected void start(ServerLevel worldIn, EntityMaid maid, long pGameTime) {
         if (maid != this.maidRecipesManager.getMaid()) {
             return;

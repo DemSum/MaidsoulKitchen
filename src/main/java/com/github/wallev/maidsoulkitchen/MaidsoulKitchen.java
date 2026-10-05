@@ -22,6 +22,7 @@ public final class MaidsoulKitchen implements IModInfo {
         initRegister(modEventBus, modContainer);
         initConfigureRegister(modEventBus, modContainer);
         NeoForge.EVENT_BUS.register(CookWorkLockEvents.class);
+        NeoForge.EVENT_BUS.register(com.github.wallev.maidsoulkitchen.event.CookingIngredientEvents.class);
     }
 
     private static void initRegister(IEventBus modEventBus, ModContainer modContainer) {
