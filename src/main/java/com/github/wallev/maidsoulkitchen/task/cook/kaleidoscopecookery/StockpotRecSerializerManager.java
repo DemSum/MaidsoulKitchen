@@ -216,6 +216,14 @@ public final class StockpotRecSerializerManager extends RecSerializerManager<Rec
                     ? available.stream().filter(stack -> StockpotAdapter.soupBaseFor(stack)
                         .filter(spec.soup()::equals).isPresent()).map(stack -> stack.copyWithCount(1)).toList()
                     : List.of(ItemStack.EMPTY);
+            // Source: 58ec08ec planning feedback, adapted to KC's native soup-base API.
+            // KC resets a served pot to PUT_SOUP_BASE. An empty bucket is not a new base;
+            // record the native resource instead of silently skipping every alternative.
+            if (bases.isEmpty()) {
+                var soupBase = com.github.ysbbbbbb.kaleidoscopecookery.crafting.soupbase.SoupBaseManager.getAllSoupBases().get(spec.soup());
+                if (soupBase != null) missingRequirement.accept(soupBase.getDisplayStack());
+                continue;
+            }
             Budget budget = new Budget(); // shared across alternatives, not restarted for every mask
             boolean[] materialComplete = {false};
             for (ItemStack base : bases) {
