@@ -228,6 +228,17 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
         nextBoundIngredientEvent = 0;
     }
 
+    /** Source: 58ec08ec Rule output -> checkAndCreateRecipes lifecycle, adapted for native KC.
+     * An accepted final serving changes device eligibility without changing the input snapshot.
+     * That confirmed completion must wake the sole planner once, rather than wait for a chest
+     * close or the idle fallback. Retains any queued work; never scans here or adds a second queue. */
+    public final void cookingCycleCompleted() {
+        if (!isCurrentTask()) return;
+        requestPlanningRefresh();
+        tryTime = 10;
+        clearIngredientFailure();
+    }
+
     private void scheduleBoundIngredientFallback(long gameTime) {
         // Stable per-maid jitter spreads simultaneous idle planners without a global scheduler.
         nextBoundIngredientCheck = gameTime + BOUND_INGREDIENT_FALLBACK_MIN_TICKS
@@ -424,12 +435,12 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
 
     public void makeResultsBubble() {
         if (maidRecs.isEmpty()) {
-            if (!missingPlanningRequirement.isEmpty()) { reportMissingRequirement(missingPlanningRequirement); return; }
-            if (workFeedbackReported) return;
-            if (!recsGenerate.getRecs().isEmpty()) noIngredientBubbleId = BubbleUtil.noIngredient(maid, noIngredientBubbleId);
+            // Source: upstream planning feedback. An empty queue also means every native device
+            // is busy, so Move must confirm an idle device before reporting a material failure.
             return;
         }
         missingPlanningRequirement = ItemStack.EMPTY;
+        clearIngredientFailure();
         if (!task.showRecipeAmountBubbles()) return;
         List<ItemStack> results = maidRecs.stream().flatMap(recipe -> recipe.results().stream().map(result ->
                 result.copyWithCount(result.getCount() * recipe.amount()))).toList();
@@ -515,8 +526,16 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
      * or any accepted queue. This replaces beta missing-requirement feedback without its Plan. */
     public void reportPlanningRequirement(ItemStack required) { missingPlanningRequirement = required.copyWithCount(1); }
     public void reportPlanningFailure() {
-        if (runState == 0 && maidRecs.isEmpty() && !missingPlanningRequirement.isEmpty())
-            reportMissingRequirement(missingPlanningRequirement);
+        if (runState != 0 || !maidRecs.isEmpty()) return;
+        if (!missingPlanningRequirement.isEmpty()) reportMissingRequirement(missingPlanningRequirement);
+        else if (!recsGenerate.getCurrentRecs().isEmpty() && !workFeedbackReported)
+            noIngredientBubbleId = BubbleUtil.noIngredient(maid, noIngredientBubbleId);
+    }
+    /** Presentation-only cleanup after confirmed native waiting or accepted work. The upstream
+     * bubble ID remains the only handle; this cannot invalidate plans or alter retry deadlines. */
+    public final void clearIngredientFailure() {
+        if (maid.getChatBubbleManager().getChatBubble(noIngredientBubbleId) != null)
+            maid.getChatBubbleManager().removeChatBubble(noIngredientBubbleId);
     }
     public void reportWorkFeedback(String key) {
         workFeedbackReported = true;

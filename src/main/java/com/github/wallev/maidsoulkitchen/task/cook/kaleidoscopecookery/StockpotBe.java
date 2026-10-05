@@ -29,6 +29,10 @@ public final class StockpotBe extends CookBeBase<StockpotBlockEntity> {
     @Override public ItemStack getResult() { return snapshot().result().copyWithCount(1); }
     @Override public boolean recMatch() { return StockpotRecSerializerManager.INSTANCE.hasAllowedCompletion(snapshot(), serverLevel, TaskKcStockpot.settings(maid)); }
     @Override public boolean cookStateMatch() { return snapshot().heated(); }
+    @Override public boolean isAwaitingNativeCooking() {
+        var state = snapshot();
+        return state.status() == IStockpot.COOKING && state.covered() && state.heated();
+    }
     @Override public void markChanged() { defaultChanged(); }
     static boolean isBoundTo(MaidRec work, BlockEntity device) {
         var p = work.parameters();
@@ -101,6 +105,7 @@ public final class StockpotBe extends CookBeBase<StockpotBlockEntity> {
             if (snapshot().portions() != before - 1) break;
             changed = true; cm.itemOutput2Chest();
         }
+        if (changed && snapshot().status() == IStockpot.PUT_SOUP_BASE) cm.cookingCycleCompleted();
         return changed;
     }
     public boolean canTakeInputs(MaidCookManager<?> cm) {

@@ -63,6 +63,12 @@ public abstract class CookBeBase<B extends BlockEntity> {
     public ItemStack getNowContainer() { return getInv().getStackInSlot(getContainerSlot()).copy(); }
     public abstract boolean recMatch();
     public abstract boolean cookStateMatch();
+    /** Source: 58ec08ec NormalCookRule's valid input/state checks. A native device with accepted
+     * inputs and no output is waiting, not proof of path/material failure. KC overrides only its
+     * version-specific native status; no cached progress, work state or beta execution is added. */
+    public boolean isAwaitingNativeCooking() {
+        return hasInputs() && recMatch() && !hasResult() && cookStateMatch();
+    }
     public boolean canTakeResult() { return true; }
     public void awardExp() { ICookTask.awardExperience(be, maid); }
     public abstract void markChanged();

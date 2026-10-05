@@ -27,13 +27,20 @@ public final class SteamerBe extends CookBeBase<SteamerBlockEntity> {
     @Override public boolean cookStateMatch() {
         var state = snapshot(); return state.accessible() && state.covered() && state.hasHeatSource() && state.hasEmptySlot();
     }
+    @Override public boolean isAwaitingNativeCooking() {
+        var state = snapshot();
+        return state.accessible() && state.covered() && state.hasHeatSource()
+                && state.items().stream().anyMatch(stack -> !stack.isEmpty()) && !state.allFoodReady();
+    }
     @Override public boolean insertInputs(MaidRec work, MaidCookManager<?> cm) {
         if (!cookStateMatch()) return false;
         return cm.insertInputs(work, stack -> SteamerAdapter.placeFood(be, serverLevel, maid, stack, work.recipeId()::equals));
     }
     @Override public boolean extractResult(MaidCookManager<?> cm) {
         var state = snapshot();
-        return state.canTakeFood() && cm.takeNativeOutput(state.items(), () -> ((ISteamer) be).takeFood(serverLevel, maid));
+        boolean taken = state.canTakeFood() && cm.takeNativeOutput(state.items(), () -> ((ISteamer) be).takeFood(serverLevel, maid));
+        if (taken && !hasInputs()) cm.cookingCycleCompleted();
+        return taken;
     }
     @Override public int[] getInteractionHeightOffsets() { return SteamerAdapter.interactionHeightOffsets(); }
     @Override public int getVerticalSearchRange() { return SteamerBlockEntity.MAX_LIT_LEVEL; }

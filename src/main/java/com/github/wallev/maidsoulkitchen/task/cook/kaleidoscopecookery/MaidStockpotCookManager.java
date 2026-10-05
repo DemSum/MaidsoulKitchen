@@ -51,7 +51,14 @@ public final class MaidStockpotCookManager extends MaidCookManager<Recipe<Stockp
     @Override protected List<MKRecipe<Recipe<StockpotInput>>> getRecs() {
         List<MKRecipe<Recipe<StockpotInput>>> result = new ArrayList<>();
         var settings = TaskKcStockpot.settings(maid);
-        for (var device : collectValidConditions()) result.addAll(rsm.forDevice(device, level, settings, this::reportPlanningRequirement));
+        for (var device : collectValidConditions()) {
+            // Source: upstream device condition filtering. KC cannot accept a second batch
+            // while cooking/finished; exclude those descriptors rather than call it a shortage.
+            int status = device.getStatus();
+            if (status == com.github.ysbbbbbb.kaleidoscopecookery.api.blockentity.IStockpot.PUT_SOUP_BASE
+                    || status == com.github.ysbbbbbb.kaleidoscopecookery.api.blockentity.IStockpot.PUT_INGREDIENT)
+                result.addAll(rsm.forDevice(device, level, settings, this::reportPlanningRequirement));
+        }
         return result;
     }
     /** Direct upstream collectConditions coordinate traversal. Common Move alone checks reachability. */
