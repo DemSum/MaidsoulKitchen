@@ -27,21 +27,12 @@ public record SyncKitchenDataC2SMessage(int maidId, ResourceLocation cookName, b
                     || (!(maid.getTask() instanceof TaskCook)
                     && !(maid.getTask() instanceof com.github.wallev.maidsoulkitchen.api.task.cook.ICookTask<?, ?>))
                     || !(player.containerMenu instanceof com.github.tartaricacid.touhoulittlemaid.inventory.container.task.TaskConfigContainer menu)
-                    || menu.getMaid() != maid || !menu.stillValid(player)) return;
+                    || menu.getMaid() != maid || !menu.stillValid(player) || !maid.getTask().isEnable(maid)) return;
             // Source CookConfigGuiV1.selectTask: browsing devices changes only the view.
             // Never apply a possibly stale client UID (including idle) when opening that view.
             if (message.recipeSettings && (!(maid.getTask() instanceof TaskCook)
                     || !KitchenData.get(maid).getCookName().equals(message.cookName))
-                    && !TaskCook.select(maid, message.cookName)) {
-                // A favour change between rendering and receipt must explain the rejection.
-                com.github.wallev.maidsoulkitchen.task.cook.common.task.CookTaskManager.findTask(message.cookName)
-                        .filter(task -> !task.hasEnoughFavor(maid)).ifPresent(task -> sender.displayClientMessage(
-                                task.getName().copy().append(": ").append(net.minecraft.network.chat.Component.translatable(
-                                        "task." + task.getUid().getNamespace() + "." + task.getUid().getPath()
-                                                + ".enable_condition.has_enough_favor"))
-                                        .withStyle(net.minecraft.ChatFormatting.RED), true));
-                return;
-            }
+                    && !TaskCook.select(maid, message.cookName)) return;
             var selected = TaskCook.resolve(maid);
             var provider = message.recipeSettings && selected.isPresent() ? selected.get().getTaskConfigGuiProvider(maid)
                     : new net.minecraft.world.SimpleMenuProvider((id, inventory, menuPlayer) ->

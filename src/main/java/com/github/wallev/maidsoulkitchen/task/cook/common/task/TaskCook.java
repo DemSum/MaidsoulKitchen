@@ -22,6 +22,14 @@ public final class TaskCook implements ICookTargetTask, IDataTask<KitchenData> {
     @Override public ItemStack getIcon() { return com.github.wallev.maidsoulkitchen.init.MkItems.CULINARY_HUB.get().getDefaultInstance(); }
     @Override public com.github.tartaricacid.touhoulittlemaid.api.entity.data.TaskDataKey<KitchenData> getCookDataKey() { return DataRegister.KITCHEN; }
     @Override public KitchenData getDefaultData() { return new KitchenData(); }
+    /** Source: 58ec08ec ICookTask.isEnable/getEnableConditionDesc/hasEnoughFavor (MIT).
+     * The single visible cooking entry owns the favour gate so TLM 1.5.3's native picker
+     * and MaidTaskPackage apply the same lock to every device, including KC and legacy aliases. */
+    @Override public boolean isEnable(EntityMaid maid) { return hasEnoughFavor(maid); }
+    @Override public List<Pair<String, java.util.function.Predicate<EntityMaid>>> getEnableConditionDesc(EntityMaid maid) {
+        return List.of(Pair.of("has_enough_favor", this::hasEnoughFavor));
+    }
+    private boolean hasEnoughFavor(EntityMaid maid) { return maid.getFavorabilityManager().getLevel() >= 1; }
     /** Source: 58ec08ec getTask dispatch and c9273ce5 appliance metadata. TLM 1.5.3 asks
      * the visible task for these values, so forward to the selected device without another state. */
     @Override public net.minecraft.sounds.SoundEvent getAmbientSound(EntityMaid maid) {
@@ -60,14 +68,14 @@ public final class TaskCook implements ICookTargetTask, IDataTask<KitchenData> {
         if (!(maid.level() instanceof net.minecraft.server.level.ServerLevel level)) return false;
         IMaidTask current = maid.getTask();
         if (!(current instanceof TaskCook) && !(current instanceof ICookTask<?, ?>)) return false;
+        var unified = current instanceof TaskCook cook ? cook
+                : TaskManager.findTask(com.github.wallev.maidsoulkitchen.task.TaskInfo.COOK.uid)
+                .filter(TaskCook.class::isInstance).map(TaskCook.class::cast).orElse(null);
+        if (unified == null || !unified.isEnable(maid)) return false;
         var task = CookTaskManager.findTask(uid);
         if (!uid.equals(KitchenData.IDLE) && (task.isEmpty() || !task.get().isEnable(maid))) return false;
         // TLM 1.5.3 keeps hidden legacy UIDs loadable. An explicit device choice migrates
         // that entry into upstream TaskCook, retaining its existing canonical/legacy filters.
-        var unified = current instanceof TaskCook cook ? cook
-                : TaskManager.findTask(com.github.wallev.maidsoulkitchen.task.TaskInfo.COOK.uid)
-                .filter(TaskCook.class::isInstance).map(TaskCook.class::cast).orElse(null);
-        if (unified == null) return false;
         if (current instanceof ICookTask<?, ?> legacy) KitchenData.get(maid, legacy);
         var owner = (com.github.wallev.maidsoulkitchen.entity.passive.IAddonMaid) maid;
         if (owner.tlmk$getCookManager() != null) owner.tlmk$getCookManager().retire();

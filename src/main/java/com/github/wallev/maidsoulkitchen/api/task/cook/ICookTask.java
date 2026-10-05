@@ -22,7 +22,6 @@ import com.github.wallev.maidsoulkitchen.entity.data.inner.task.CookData;
 import com.github.wallev.maidsoulkitchen.inventory.container.maid.CookConfigContainer;
 import com.github.wallev.maidsoulkitchen.inventory.tooltip.AmountTooltip;
 import com.github.wallev.maidsoulkitchen.task.cook.common.cbaccessor.IRecipeExperinceAward;
-import com.google.common.collect.Lists;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.NonNullList;
 import net.minecraft.core.RegistryAccess;
@@ -42,14 +41,14 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
 import java.util.Optional;
-import java.util.function.Predicate;
 
 
 /**
  * Source: 58ec08ec api/task/cook/ICookTask.java (MIT). Retains per-maid Be/Rule/manager creation
  * and common Collect/Generate/Move/Make/Pathing dispatch. Direct TLM BehaviorControl replaces V shims;
  * the duplicate upstream Collect registration and empty builder/ride hooks are omitted.
- * Sound, favour and menu methods retain the upstream contract with current NeoForge events.
+ * Sound and menu methods retain the upstream contract with current NeoForge events.
+ * The upstream favour gate now belongs to the sole visible TaskCook entry; legacy aliases delegate.
  * Replaces the beta v1/v2 execution APIs; all devices now dispatch only Be/Rule and common goals.
  */
 public abstract class ICookTask<B extends BlockEntity, R extends Recipe<? extends RecipeInput>>
@@ -121,17 +120,6 @@ public abstract class ICookTask<B extends BlockEntity, R extends Recipe<? extend
     }
 
     @Override
-    public List<Pair<String, Predicate<EntityMaid>>> getEnableConditionDesc(EntityMaid maid) {
-        MaidMkTaskEnableEvent maidMkTaskEnableEvent = new MaidMkTaskEnableEvent(maid, this);
-        NeoForge.EVENT_BUS.post(maidMkTaskEnableEvent);
-        if (!maidMkTaskEnableEvent.isEnable()) {
-            return maidMkTaskEnableEvent.getEnableConditionDesc();
-        }
-
-        return Lists.newArrayList(Pair.of("has_enough_favor", this::hasEnoughFavor));
-    }
-
-    @Override
     public boolean isEnable(EntityMaid maid) {
         MaidMkTaskEnableEvent maidMkTaskEnableEvent = new MaidMkTaskEnableEvent(maid, this);
         NeoForge.EVENT_BUS.post(maidMkTaskEnableEvent);
@@ -139,7 +127,10 @@ public abstract class ICookTask<B extends BlockEntity, R extends Recipe<? extend
             return false;
         }
 
-        return hasEnoughFavor(maid);
+        // Hidden legacy UIDs remain loadable, but cannot bypass the visible entry's native lock.
+        return com.github.tartaricacid.touhoulittlemaid.entity.task.TaskManager
+                .findTask(com.github.wallev.maidsoulkitchen.task.TaskInfo.COOK.uid)
+                .map(task -> task.isEnable(maid)).orElse(false);
     }
 
     @Override
@@ -163,9 +154,6 @@ public abstract class ICookTask<B extends BlockEntity, R extends Recipe<? extend
         };
     }
 
-    public boolean hasEnoughFavor(EntityMaid maid) {
-        return maid.getFavorabilityManager().getLevel() >= 1;
-    }
 
 
 
