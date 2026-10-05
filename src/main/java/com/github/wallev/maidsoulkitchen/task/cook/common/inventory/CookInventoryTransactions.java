@@ -58,12 +58,13 @@ public final class CookInventoryTransactions {
     }
 
     public static int count(IItemHandler inventory, Predicate<ItemStack> matches) {
-        int count = 0;
+        long count = 0;
         for (int slot = 0; slot < inventory.getSlots(); slot++) {
             ItemStack stack = inventory.getStackInSlot(slot);
             if (!stack.isEmpty() && matches.test(stack)) count += stack.getCount();
         }
-        return count;
+        // Keep the bounded transaction API without overflowing on creative/infinity handlers.
+        return (int) Math.min(Integer.MAX_VALUE, count);
     }
 
     /** Input chests may receive leftovers only when they already store this kind of item. */

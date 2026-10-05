@@ -14,6 +14,7 @@ import java.util.List;
 /** Cooking feedback restored from the 1.20.1 implementation. */
 public final class BubbleUtil {
     private static final int MAX_OVERVIEW_ENTRIES = 8;
+    private static final int MAX_DISPLAY_AMOUNT = 999;
     private static final String COLLECT_INGREDIENTS = "chat_bubble.maidsoulkitchen.cook.collect_ingredients";
     private static final String NO_INGREDIENT = "chat_bubble.maidsoulkitchen.cook.no_ingredient_cook";
 
@@ -89,7 +90,7 @@ public final class BubbleUtil {
                 foods.append(VComponent.translatable("chat_bubble.maidsoulkitchen.cook.food_separator"));
             }
             ItemStack result = combined.get(index);
-            foods.append(VComponent.literal(result.getHoverName().getString() + " " + result.getCount()))
+            foods.append(VComponent.literal(result.getHoverName().getString() + " " + displayAmount(result.getCount())))
                     .append(VComponent.translatable("chat_bubble.maidsoulkitchen.cook.food_amount"));
         }
         if (combined.size() > shown) {
@@ -114,12 +115,22 @@ public final class BubbleUtil {
                     .findFirst()
                     .orElse(null);
             if (existing == null) {
-                combined.add(planned.copy());
+                combined.add(countedResult(planned, 1));
             } else {
-                existing.grow(planned.getCount());
+                existing.setCount((int) Math.min(MAX_DISPLAY_AMOUNT + 1L, (long) existing.getCount() + planned.getCount()));
             }
         }
         return combined;
+    }
+
+    /** Source: 58ec08ec result-count multiplication in makeResultsBubble. Presentation copies
+     * saturate at 1000 (meaning >999) before integer conversion; physical work is never capped here. */
+    public static ItemStack countedResult(ItemStack result, int amount) {
+        return result.copyWithCount((int) Math.min(MAX_DISPLAY_AMOUNT + 1L, (long) result.getCount() * amount));
+    }
+
+    public static String displayAmount(long count) {
+        return count > MAX_DISPLAY_AMOUNT ? "999+" : Long.toString(count);
     }
 
     public static void makeFood(EntityMaid maid, ItemStack food) {
@@ -131,7 +142,7 @@ public final class BubbleUtil {
                 ? VComponent.translatable("chat_bubble.maidsoulkitchen.cook.master").getString()
                 : owner.getDisplayName().getString();
         String foodName = food.getHoverName().getString();
-        int count = food.getCount();
+        Object count = food.getCount() > MAX_DISPLAY_AMOUNT ? "999+" : food.getCount();
         MutableComponent text = switch (maid.getRandom().nextInt(5)) {
             case 0 -> VComponent.translatable(
                     "chat_bubble.maidsoulkitchen.cook.make_food.0", ownerName, count, foodName);

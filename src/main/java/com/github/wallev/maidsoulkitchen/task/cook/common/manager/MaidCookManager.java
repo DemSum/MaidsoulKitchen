@@ -73,6 +73,11 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
     private long nextBoundIngredientEvent;
     private boolean boundIngredientRefreshRequested;
     private boolean wakeMoveAfterBoundRefresh;
+    // Presentation intent only. Own accepted-work/completion events must not repeat the
+    // source recipe overview; external settings/inventory/container events may request it.
+    private boolean recipeOverviewRequested;
+    private boolean announceCurrentPlanning;
+    private boolean workActionActive;
 
     public MaidCookManager(RecSerializerManager<R> recSerializerManager, EntityMaid maid, ICookTask<?, R> task) {
         this.recSerializerManager = recSerializerManager;
@@ -164,7 +169,7 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
         inventoryChanged |= !sameInventory(previous, cookInv.getLastInvStack());
         if (settingsChanged || storageChanged || inventoryChanged) {
             invalidate();
-            requestPlanningRefresh();
+            requestPlanningRefresh(settingsChanged || storageChanged || !workActionActive);
         }
         if (hasCulinaryHub) hubFeedback.clear(maid);
         else hubFeedback.show(maid, "chat_bubble.maidsoulkitchen.cook.no_hub");
@@ -225,8 +230,24 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
      * changes must remain eligible immediately, including KC's native Flex catalog toggle.
      * Only repeated menu-close hints are throttled; a failed peek cannot request this wake. */
     protected final void requestPlanningRefresh() {
+        requestPlanningRefresh(true);
+    }
+
+    private void requestPlanningRefresh(boolean announce) {
         boundIngredientRefreshRequested = true;
         nextBoundIngredientEvent = 0;
+        recipeOverviewRequested |= announce;
+    }
+
+    /** Source: upstream CookMakeTask's Rule action -> sync lifecycle. A Rule may return
+     * containers and then peek the next recipe before that sync. On the server thread,
+     * inventory changes inside this action are own transactions, not external triggers;
+     * settings changes still announce. No inventory snapshots or work plans are added. */
+    public final void runWorkAction(Runnable action) {
+        boolean previous = workActionActive;
+        workActionActive = true;
+        try { action.run(); }
+        finally { workActionActive = previous; }
     }
 
     /** Source: 58ec08ec Rule output -> checkAndCreateRecipes lifecycle, adapted for native KC.
@@ -235,7 +256,7 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
      * close or the idle fallback. Retains any queued work; never scans here or adds a second queue. */
     public final void cookingCycleCompleted() {
         if (!isCurrentTask()) return;
-        requestPlanningRefresh();
+        requestPlanningRefresh(false);
         tryTime = 10;
         wakeMoveAfterBoundRefresh = true;
         clearIngredientFailure();
@@ -265,6 +286,7 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
             if (!matches && !handlers.isEmpty()) matches = handlers.contains(ItemCulinaryHub.getBeInv(level, be));
             if (matches) {
                 boundIngredientRefreshRequested = true;
+                recipeOverviewRequested = true;
                 return;
             }
         }
@@ -278,6 +300,8 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
 
     private void createRecipesIngredients() {
         clear();
+        announceCurrentPlanning = recipeOverviewRequested;
+        recipeOverviewRequested = false;
         itemUnIngre2Chest();
         cookInv.refreshInv();
         if (hasCulinaryHub) startCollectChestIngredient();
@@ -429,13 +453,12 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
         // Own transactions update the inventory baseline, so they cannot rely on an external
         // chest/menu event to wake the next appliance. One accepted unit requests one wake;
         // unchanged failed/idle checks never request planning or shorten the fallback.
-        requestPlanningRefresh();
+        requestPlanningRefresh(false);
         tryTime = 10;
         wakeMoveAfterBoundRefresh = true;
         // Source BubbleUtil's collection overview already multiplies output count by amount.
         // The upstream single-work announcement omitted it; report the accepted batch consistently.
-        ItemStack announced = recipe.result();
-        announced.setCount(announced.getCount() * recipe.amount());
+        ItemStack announced = BubbleUtil.countedResult(recipe.result(), recipe.amount());
         if (task.showRecipeAmountBubbles()) BubbleUtil.makeFood(maid, announced);
         return true;
     }
@@ -448,23 +471,27 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
         if (maidRecs.isEmpty()) {
             // Source: upstream planning feedback. An empty queue also means every native device
             // is busy, so Move must confirm an idle device before reporting a material failure.
+            announceCurrentPlanning = false;
             return;
         }
         missingPlanningRequirement = ItemStack.EMPTY;
         clearIngredientFailure();
-        if (!task.showRecipeAmountBubbles()) return;
+        boolean announce = announceCurrentPlanning;
+        announceCurrentPlanning = false;
+        if (!announce || !task.showRecipeAmountBubbles()) return;
         List<ItemStack> results = maidRecs.stream().flatMap(recipe -> recipe.results().stream().map(result ->
-                result.copyWithCount(result.getCount() * recipe.amount()))).toList();
+                BubbleUtil.countedResult(result, recipe.amount()))).toList();
         availableFoodsBubbleId = BubbleUtil.availableFoods(maid, results, availableFoodsBubbleId);
     }
 
     public void makeCollectIngredientsBubble() {
-        collectIngredientsBubbleId = BubbleUtil.collectIngredients(maid, collectIngredientsBubbleId);
+        if (announceCurrentPlanning) collectIngredientsBubbleId = BubbleUtil.collectIngredients(maid, collectIngredientsBubbleId);
     }
 
     public void clear() {
         resetState(); recsGenerate.clear(); maidRecs.clear(); hubItemDown.clear(); chestInputInventory.clear();
         missingPlanningRequirement = ItemStack.EMPTY;
+        announceCurrentPlanning = false;
     }
     /** Source TickCookRule stop cleanup, also applied when TLM replaces the brain task context.
      * Return the actual loan before discarding plans; no old manager may retain executable work. */
@@ -472,6 +499,7 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
         retired = true;
         boundIngredientRefreshRequested = false;
         wakeMoveAfterBoundRefresh = false;
+        recipeOverviewRequested = false;
         hubFeedback.clear(maid);
         workFeedback.clear(maid);
         if (cookInv != null) backpackTool();

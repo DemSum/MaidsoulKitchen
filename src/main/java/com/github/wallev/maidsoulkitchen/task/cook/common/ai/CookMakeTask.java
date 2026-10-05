@@ -41,14 +41,14 @@ public class CookMakeTask<B extends BlockEntity, R extends Recipe<? extends Reci
         return true;
     }
     @Override protected void start(ServerLevel level, EntityMaid maid, long time) {
-        try { rule.cookMake(cookBe, cm); sync(); }
+        try { cm.runWorkAction(() -> rule.cookMake(cookBe, cm)); sync(); }
         catch (RuntimeException | Error failure) { cleanup(maid); throw failure; }
     }
     @Override protected void tick(ServerLevel level, EntityMaid maid, long time) {
         if (cookBe.getBe() == null || maid.distanceToSqr(net.minecraft.world.phys.Vec3.atCenterOf(cookBe.getPos()))
                 > task.getCloseEnoughDist() * task.getCloseEnoughDist()) return;
         if (rule instanceof TickCookRule<B, R> tickRule) {
-            try { tickRule.tickCookMake(cookBe, cm); sync(); }
+            try { cm.runWorkAction(() -> tickRule.tickCookMake(cookBe, cm)); sync(); }
             catch (RuntimeException | Error failure) { cleanup(maid); throw failure; }
         }
     }
@@ -64,7 +64,7 @@ public class CookMakeTask<B extends BlockEntity, R extends Recipe<? extends Reci
     @Override protected void stop(ServerLevel level, EntityMaid maid, long time) { cleanup(maid); }
     private void cleanup(EntityMaid maid) {
         try {
-            if (rule instanceof TickCookRule<B, R> tickRule) tickRule.tickStop(cookBe, cm);
+            if (rule instanceof TickCookRule<B, R> tickRule) cm.runWorkAction(() -> tickRule.tickStop(cookBe, cm));
             sync();
         } finally { cookBe.clear(); CookTargetMemory.clear(maid); }
     }

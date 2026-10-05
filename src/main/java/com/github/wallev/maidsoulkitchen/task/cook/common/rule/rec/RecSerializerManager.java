@@ -208,6 +208,8 @@ public class RecSerializerManager<R extends Recipe<? extends RecipeInput>> {
     protected int getMaxAmount(Map<ItemDefinition, Long> available, boolean[] single, Map<ItemDefinition, ItemAmount> itemTimes, ResourceLocation taskId, long generation) {
         if (itemTimes.isEmpty()) return 0;
         int maxCount = 64;
+        // Source batching limits stay unchanged. Clamp long availability before casting:
+        // multiple infinity slots can exceed Integer.MAX_VALUE without being a shortage.
         for (ItemDefinition itemDefinition : itemTimes.keySet()) {
             // Reusable tools constrain presence, not the number of ingredient batches.
             if (itemTimes.get(itemDefinition).isTool()) continue;
@@ -215,12 +217,12 @@ public class RecSerializerManager<R extends Recipe<? extends RecipeInput>> {
                 // 最大份量为 64 份；
                 // getStack(item).getMaxStackSize()：该种物品的最大堆叠数量，比如 鸡蛋为16个，那么他的最大份量就只能是16份；
                 // available.get(item)：该种物品在背包中的数量；
-                maxCount = Math.min(maxCount, (int) (available.get(itemDefinition) / itemTimes.get(itemDefinition).needCount()));
+                maxCount = (int) Math.min(maxCount, available.get(itemDefinition) / itemTimes.get(itemDefinition).needCount());
             } else {
                 // 最大份量为 64 份；
                 // getStack(item).getMaxStackSize()：该种物品的最大堆叠数量，比如 鸡蛋为16个，那么他的最大份量就只能是16份；
                 // available.get(item)：该种物品在背包中的数量；
-                maxCount = Math.min(Math.min(maxCount, itemDefinition.getMaxStackSize()), (int) (available.get(itemDefinition) / itemTimes.get(itemDefinition).needCount()));
+                maxCount = (int) Math.min(Math.min(maxCount, itemDefinition.getMaxStackSize()), available.get(itemDefinition) / itemTimes.get(itemDefinition).needCount());
             }
         }
         return maxCount;

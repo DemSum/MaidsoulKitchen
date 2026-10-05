@@ -89,15 +89,17 @@ public class ChestInventory {
     public Map<ItemDefinition, Long> getAvailable() {
         return itemDefinitions.entrySet().stream().collect(Collectors.toMap(
             Map.Entry::getKey,
-            entry -> (long) entry.getValue().getCount()
+            entry -> entry.getValue().getCount()
         ));
     }
 
     public static class ChestItemDef {
-        private int count;
+        // Source: upstream ChestItemDef count. Infinity slots expose Integer.MAX_VALUE;
+        // aggregate in the planner's existing long domain before any bounded batch conversion.
+        private long count;
         private final Map<IItemHandler, List<Integer>> valueMap = new HashMap<>();
 
-        public int getCount() {
+        public long getCount() {
             return count;
         }
 
