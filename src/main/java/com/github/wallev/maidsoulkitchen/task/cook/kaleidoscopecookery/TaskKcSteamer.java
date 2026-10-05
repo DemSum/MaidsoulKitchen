@@ -17,6 +17,14 @@ import net.minecraft.world.item.ItemStack;
 @com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskClassAnalyzer(com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskInfo.KC_STEAMER)
 public final class TaskKcSteamer extends ICookTask<SteamerBlockEntity, SteamerRecipe> {
     public TaskKcSteamer() { SteamerAdapter.verifyApi(); }
+    /** Source: c9273ce5 TaskKcSteamer metadata. KC had no upstream task or favour gate;
+     * restore its original contracts after replacing independent Move/Work with Be/Rule. */
+    @Override public net.minecraft.sounds.SoundEvent getAmbientSound(EntityMaid maid) { return null; }
+    @Override public boolean workPointTask(EntityMaid maid) { return true; }
+    @Override public boolean hasEnoughFavor(EntityMaid maid) { return true; }
+    @Override public java.util.List<com.mojang.datafixers.util.Pair<String, java.util.function.Predicate<EntityMaid>>> getEnableConditionDesc(EntityMaid maid) {
+        return java.util.List.of();
+    }
     @Override public boolean showRecipeAmountBubbles() { return false; }
     @Override protected CookBeBase<SteamerBlockEntity> createCookBe(EntityMaid maid) { return new SteamerBe(maid); }
     @Override protected AbstractCookRule<SteamerBlockEntity, SteamerRecipe> createCookRule() { return SteamerCookRule.INSTANCE; }

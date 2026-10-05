@@ -32,7 +32,16 @@ public record SyncKitchenDataC2SMessage(int maidId, ResourceLocation cookName, b
             // Never apply a possibly stale client UID (including idle) when opening that view.
             if (message.recipeSettings && (!(maid.getTask() instanceof TaskCook)
                     || !KitchenData.get(maid).getCookName().equals(message.cookName))
-                    && !TaskCook.select(maid, message.cookName)) return;
+                    && !TaskCook.select(maid, message.cookName)) {
+                // A favour change between rendering and receipt must explain the rejection.
+                com.github.wallev.maidsoulkitchen.task.cook.common.task.CookTaskManager.findTask(message.cookName)
+                        .filter(task -> !task.hasEnoughFavor(maid)).ifPresent(task -> sender.displayClientMessage(
+                                task.getName().copy().append(": ").append(net.minecraft.network.chat.Component.translatable(
+                                        "task." + task.getUid().getNamespace() + "." + task.getUid().getPath()
+                                                + ".enable_condition.has_enough_favor"))
+                                        .withStyle(net.minecraft.ChatFormatting.RED), true));
+                return;
+            }
             var selected = TaskCook.resolve(maid);
             var provider = message.recipeSettings && selected.isPresent() ? selected.get().getTaskConfigGuiProvider(maid)
                     : new net.minecraft.world.SimpleMenuProvider((id, inventory, menuPlayer) ->

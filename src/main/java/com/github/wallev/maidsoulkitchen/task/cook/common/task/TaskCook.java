@@ -22,7 +22,14 @@ public final class TaskCook implements ICookTargetTask, IDataTask<KitchenData> {
     @Override public ItemStack getIcon() { return com.github.wallev.maidsoulkitchen.init.MkItems.CULINARY_HUB.get().getDefaultInstance(); }
     @Override public com.github.tartaricacid.touhoulittlemaid.api.entity.data.TaskDataKey<KitchenData> getCookDataKey() { return DataRegister.KITCHEN; }
     @Override public KitchenData getDefaultData() { return new KitchenData(); }
-    @Override public net.minecraft.sounds.SoundEvent getAmbientSound(EntityMaid maid) { return null; }
+    /** Source: 58ec08ec getTask dispatch and c9273ce5 appliance metadata. TLM 1.5.3 asks
+     * the visible task for these values, so forward to the selected device without another state. */
+    @Override public net.minecraft.sounds.SoundEvent getAmbientSound(EntityMaid maid) {
+        return getTask(maid).map(task -> task.getAmbientSound(maid)).orElse(null);
+    }
+    @Override public boolean workPointTask(EntityMaid maid) {
+        return getTask(maid).map(task -> task.workPointTask(maid)).orElse(false);
+    }
     @Override public List<Pair<Integer, BehaviorControl<? super EntityMaid>>> createBrainTasks(EntityMaid maid) {
         return getOrIdleTask(maid).createBrainTasks(maid);
     }

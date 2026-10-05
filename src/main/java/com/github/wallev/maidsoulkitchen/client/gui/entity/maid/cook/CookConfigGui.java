@@ -263,7 +263,7 @@ public class CookConfigGui extends MaidTaskConfigGui<CookConfigContainer> {
                 ICookTask<?, ?> kitchenTaskV2 = cookTaskList.get(index++);
                 int x = startX + (70 + 6) * col;
                 int y = startY + (20 + 2) * row;
-                TypeTaskButton typeTaskButton = new TypeTaskButton(offsetX + x, y, 70, 20, kitchenTaskV2, b -> {
+                TypeTaskButton typeTaskButton = new TypeTaskButton(offsetX + x, y, 70, 20, kitchenTaskV2, maid, b -> {
                     NetworkHandler.sendToServer(new SyncKitchenDataC2SMessage(maid.getId(), kitchenTaskV2.getUid(), true));
                 });
                 this.addRenderableWidget(typeTaskButton);

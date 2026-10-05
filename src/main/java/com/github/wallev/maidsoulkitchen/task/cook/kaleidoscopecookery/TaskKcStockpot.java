@@ -20,6 +20,14 @@ import net.minecraft.world.item.crafting.Recipe;
 @com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskClassAnalyzer(com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskInfo.KC_STOCKPOT)
 public final class TaskKcStockpot extends ICookTask<StockpotBlockEntity, Recipe<StockpotInput>> {
     public TaskKcStockpot() { StockpotAdapter.verifyApi(); }
+    /** Source: preserved neo WIP TaskKcStockpot metadata, absent from 1.20.1.
+     * Keep silence, the TLM work-point flag and no favour gate in the unified device task. */
+    @Override public net.minecraft.sounds.SoundEvent getAmbientSound(EntityMaid maid) { return null; }
+    @Override public boolean workPointTask(EntityMaid maid) { return true; }
+    @Override public boolean hasEnoughFavor(EntityMaid maid) { return true; }
+    @Override public java.util.List<com.mojang.datafixers.util.Pair<String, java.util.function.Predicate<EntityMaid>>> getEnableConditionDesc(EntityMaid maid) {
+        return java.util.List.of();
+    }
     @Override public boolean showRecipeAmountBubbles() { return false; }
     @Override protected CookBeBase<StockpotBlockEntity> createCookBe(EntityMaid maid) { return new StockpotBe(maid); }
     @Override protected AbstractCookRule<StockpotBlockEntity, Recipe<StockpotInput>> createCookRule() { return StockpotCookRule.INSTANCE; }
