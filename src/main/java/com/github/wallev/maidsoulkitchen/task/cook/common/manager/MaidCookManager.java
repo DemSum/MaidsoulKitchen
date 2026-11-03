@@ -627,7 +627,7 @@ public class MaidCookManager<R extends Recipe<? extends RecipeInput>> {
      * the pending MaidRec remains in the manager until Be confirms complete native acceptance. */
     public boolean useNativeItem(GatherResult source, IItemHandler destination, MaidRec work,
                                  boolean placeInHand, java.util.function.Function<ItemStack, Boolean> nativeUse) {
-        if (work != null && peekMaidRec() != work) return false;
+        if (work != null && peekMaidRec(candidate -> candidate == work) != work) return false;
         ItemStack extracted = ItemStack.EMPTY;
         if (!source.isFail()) {
             ItemStack preview = source.getItemHandler().extractItem(source.getSlot(), 1, true);

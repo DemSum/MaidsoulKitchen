@@ -2,7 +2,6 @@ package com.github.wallev.maidsoulkitchen;
 
 import com.github.tartaricacid.touhoulittlemaid.init.registry.CompatRegistry;
 import com.github.wallev.maidsoulkitchen.compat.cloth.ClothCompat;
-import com.github.wallev.maidsoulkitchen.compat.cloth.MenuIntegration;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
@@ -26,7 +25,6 @@ public class MaidsoulKitchenClient {
     private void registerConfigMenu(ModContainer modContainer) {
         ModFileInfo clothConfigInfo = LoadingModList.get().getModFileById(CompatRegistry.CLOTH_CONFIG);
         if (clothConfigInfo != null) {
-            MenuIntegration.registerModsPage(modContainer);
             ClothCompat.init(modContainer);
         } else {
             modContainer.registerExtensionPoint(IConfigScreenFactory.class, ConfigurationScreen::new);

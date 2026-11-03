@@ -1,8 +1,9 @@
 package com.github.wallev.maidsoulkitchen.network.message;
 
 import com.github.wallev.maidsoulkitchen.entity.data.inner.task.FruitData;
-import com.github.tartaricacid.touhoulittlemaid.api.entity.data.TaskDataKey;
-import com.github.tartaricacid.touhoulittlemaid.entity.data.TaskDataRegister;
+import com.github.wallev.maidsoulkitchen.init.touhoulittlemaid.DataRegister;
+import com.github.wallev.maidsoulkitchen.task.farm.TaskFruitFarm;
+import com.github.wallev.maidsoulkitchen.task.farm.handler.fruit.FruitHandlerManager;
 import com.github.tartaricacid.touhoulittlemaid.entity.passive.EntityMaid;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
@@ -39,11 +40,17 @@ public record ActionFruitFarmRuleC2SPackage(int entityId, ResourceLocation dataK
             context.enqueueWork(() -> {
                 ServerPlayer sender = (ServerPlayer) context.player();
                 Entity entity = sender.level.getEntity(message.entityId);
-                if (entity instanceof EntityMaid maid && maid.isOwnedBy(sender)) {
-                    TaskDataKey<FruitData> value = TaskDataRegister.getValue(message.dataKey);
-                    FruitData fruitData = maid.getOrCreateData(value, new FruitData());
+                if (entity instanceof EntityMaid maid && maid.isOwnedBy(sender)
+                        && maid.getTask() instanceof TaskFruitFarm task
+                        && DataRegister.FRUIT_FARM.getKey().equals(message.dataKey)
+                        && sender.containerMenu instanceof com.github.wallev.maidsoulkitchen.inventory.container.maid.FruitFarmConfigContainer menu
+                        && menu.getMaid() == maid && menu.stillValid(sender)
+                        && java.util.Arrays.stream(FruitHandlerManager.values()).map(FruitHandlerManager::getFarmHandler)
+                        .anyMatch(handler -> handler.canLoad() && handler.getUid().toString().equals(message.rec))) {
+                    FruitData current = task.getTaskData(maid);
+                    FruitData fruitData = new FruitData(current.searchYOffset(), current.rules());
                     fruitData.addOrRemoveRule(message.rec);
-                    maid.setAndSyncData(value, fruitData);
+                    maid.setAndSyncData(DataRegister.FRUIT_FARM, fruitData);
                 }
             });
         }

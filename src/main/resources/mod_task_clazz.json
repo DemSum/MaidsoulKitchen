@@ -334,6 +334,21 @@
         "fields": []
       }
     },
+    "maidsoulkitchen:berry_l2_harvester": {
+      "bindMod": "L2_HARVESTER",
+      "clazzInfo": {
+        "classes": [
+          "dev.xkmc.l2harvester.api.HarvestableBlock",
+          "dev.xkmc.l2harvester.api.HarvestResult"
+        ],
+        "methods": [
+          "dev.xkmc.l2harvester.api.HarvestableBlock#getHarvestResult(Lnet/minecraft/world/level/Level;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/BlockPos;)Ldev/xkmc/l2harvester/api/HarvestResult;",
+          "dev.xkmc.l2harvester.api.HarvestResult#updateState(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;)V",
+          "dev.xkmc.l2harvester.api.HarvestResult#drops()Ljava/util/List;"
+        ],
+        "fields": []
+      }
+    },
     "maidsoulkitchen:berry_compat": {
       "bindMod": "MC",
       "clazzInfo": {
@@ -517,6 +532,8 @@
     }
   },
   "allClazzs": [
+    "dev.xkmc.l2harvester.api.HarvestableBlock",
+    "dev.xkmc.l2harvester.api.HarvestResult",
     "com.github.ysbbbbbb.kaleidoscopecookery.api.blockentity.ISteamer",
     "com.github.ysbbbbbb.kaleidoscopecookery.block.kitchen.SteamerBlock",
     "com.github.ysbbbbbb.kaleidoscopecookery.blockentity.kitchen.SteamerBlockEntity",

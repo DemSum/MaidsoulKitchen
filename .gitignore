@@ -30,3 +30,6 @@ forge*changelog.txt
 # Native GameTests live only in ../MSK_LOCAL_GAMETESTS_1.21.1.
 **/*GameTest*.java
 **/stockpot_empty.nbt
+
+# Local client evidence, isolated worlds and runtime artifacts.
+/test-results/

@@ -62,7 +62,10 @@ public class FruitFarmConfigGui extends MaidTaskConfigGui<FruitFarmConfigContain
                 .filter(ICompatFarmHandler::canLoad)
                 .toList();
         this.fruitFarm = (TaskFruitFarm) task;
-        this.farmTaskInfo = fruitFarm.getTaskData(maid);
+        if (farmTaskInfo == null || settingsChanged) {
+            FruitData current = fruitFarm.getTaskData(maid);
+            farmTaskInfo = new FruitData(current.searchYOffset(), current.rules());
+        }
     }
 
     @Override
@@ -84,18 +87,18 @@ public class FruitFarmConfigGui extends MaidTaskConfigGui<FruitFarmConfigContain
         int startX = visualZone.startX() + 6 + 26 + x;
         int startY = visualZone.startY() + 22 + 2;
         Button addButton = new TouhouImageButton(startX, startY, 17, 18, 80, 238, 0, TEXTURE, b -> {
-            if (this.farmTaskInfo.searchYOffset() >= 5) {
+            if (this.farmTaskInfo.searchYOffset() >= FruitData.MAX_SEARCH_Y_OFFSET) {
                 return;
             }
             this.farmTaskInfo.increaseYOffset();
-            NetworkHandler.sendToServer(new SetFruitFarmSearchYOffsetC2SPackage(maid.getId(), fruitFarm.getCookDataKey().getKey(), this.farmTaskInfo.searchYOffset()));
+            NetworkHandler.sendToServer(new SetFruitFarmSearchYOffsetC2SPackage(maid.getId(), fruitFarm.getCookDataKey().getKey(), 1));
         });
         Button downButton = new TouhouImageButton(startX + 17, startY, 17, 18, 80 + 17, 238, 0, TEXTURE, b -> {
-            if (this.farmTaskInfo.searchYOffset() <= -5) {
+            if (this.farmTaskInfo.searchYOffset() <= FruitData.MIN_SEARCH_Y_OFFSET) {
                 return;
             }
             this.farmTaskInfo.decreaseYOffset();
-            NetworkHandler.sendToServer(new SetFruitFarmSearchYOffsetC2SPackage(maid.getId(), fruitFarm.getCookDataKey().getKey(), this.farmTaskInfo.searchYOffset()));
+            NetworkHandler.sendToServer(new SetFruitFarmSearchYOffsetC2SPackage(maid.getId(), fruitFarm.getCookDataKey().getKey(), -1));
         });
         this.addRenderableWidget(addButton);
         this.addRenderableWidget(downButton);

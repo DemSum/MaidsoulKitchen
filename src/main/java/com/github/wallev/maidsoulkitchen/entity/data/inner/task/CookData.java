@@ -14,7 +14,9 @@ public class CookData implements ITaskData {
     public static final int MAX_FILTER_ENTRIES = CookDataRules.MAX_FILTER_ENTRIES;
     public static final Codec<List<String>> LIST_CODEC = Codec.STRING.listOf().xmap(Lists::newArrayList, Function.identity());
     public static final Codec<CookData> CODEC = RecordCodecBuilder.create(instance -> instance.group(
-            Codec.STRING.fieldOf("Mode").forGetter(CookData::mode),
+            Codec.STRING.validate(mode -> isValidMode(mode) ? com.mojang.serialization.DataResult.success(mode)
+                    : com.mojang.serialization.DataResult.error(() -> "Invalid cooking filter mode"))
+                    .fieldOf("Mode").forGetter(CookData::mode),
             LIST_CODEC.fieldOf("WhitelistRecs").forGetter(CookData::whitelistRecs),
             LIST_CODEC.fieldOf("BlacklistRecs").forGetter(CookData::blacklistRecs)
     ).apply(instance, CookData::new));
@@ -76,19 +78,19 @@ public class CookData implements ITaskData {
 
     public List<String> recs(String mode) {
         if (mode.equals(Mode.WHITELIST.name)) {
-            return this.whitelistRecs;
+            return whitelistRecs();
         } else if (mode.equals(Mode.BLACKLIST.name)) {
-            return this.blacklistRecs;
+            return blacklistRecs();
         }
         return Collections.emptyList();
     }
 
     public List<String> whitelistRecs() {
-        return whitelistRecs;
+        return Collections.unmodifiableList(whitelistRecs);
     }
 
     public List<String> blacklistRecs() {
-        return blacklistRecs;
+        return Collections.unmodifiableList(blacklistRecs);
     }
 
     public String mode() {
@@ -107,9 +109,9 @@ public class CookData implements ITaskData {
 
     public List<String> getRecs() {
         if (this.mode.equals(Mode.WHITELIST.name)) {
-            return this.whitelistRecs;
+            return whitelistRecs();
         } else if (this.mode.equals(Mode.BLACKLIST.name)) {
-            return this.blacklistRecs;
+            return blacklistRecs();
         } else {
             return Collections.emptyList();
         }

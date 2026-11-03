@@ -159,6 +159,14 @@ tasks.withType(Test).configureEach {
     useJUnitPlatform()
 }
 
+// Compile against the L2 API already bundled by the declared YHC dependency; never bundle a second copy.
+tasks.named('compileJava', JavaCompile) {
+    classpath += files(provider {
+        def yhc = configurations.compileClasspath.files.find { it.name.startsWith('youkaishomecoming-') }
+        yhc == null ? [] : zipTree(yhc).matching { include 'META-INF/jarjar/l2harvester-*.jar' }.files
+    })
+}
+
 
 
 

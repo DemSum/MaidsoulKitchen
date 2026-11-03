@@ -48,9 +48,8 @@ public record SetCookDataC2SPackage(int entityId, ResourceLocation dataKey, Stri
                         && cookTask != null
                         && CookData.isValidMode(message.mode)
                         && cookTask.getUid().equals(message.dataKey)) {
-                    CookData cookData = cookTask.getTaskData(maid);
-                    cookData.setMode(message.mode);
-                    com.github.wallev.maidsoulkitchen.entity.data.inner.task.KitchenData.sync(maid);
+                    com.github.wallev.maidsoulkitchen.entity.data.inner.task.KitchenData.edit(
+                            maid, cookTask.getUid(), data -> data.setMode(message.mode));
                 }
             });
         }

@@ -15,9 +15,34 @@ public abstract class MaidTaskConfigGui<T extends TaskConfigContainer> extends c
     protected final int titleStartY = 8;
     protected Zone visualZone = new Zone(leftPos + 81, topPos + 28, 176, 137);;
     protected int solIndex = 0;
+    private Object settingsSource;
+    protected boolean settingsChanged;
 
     public MaidTaskConfigGui(T screenContainer, Inventory inv, Component titleIn) {
         super(screenContainer, inv, titleIn);
+    }
+
+    private Object currentSettings() {
+        if (maid == null) return null;
+        if (task instanceof com.github.wallev.maidsoulkitchen.task.cook.common.task.TaskCook
+                || task instanceof com.github.wallev.maidsoulkitchen.api.task.cook.ICookTask<?, ?>)
+            return maid.getData(com.github.wallev.maidsoulkitchen.init.touhoulittlemaid.DataRegister.KITCHEN);
+        return task instanceof com.github.wallev.maidsoulkitchen.api.task.IDataTask<?> dataTask
+                ? maid.getData(dataTask.getCookDataKey()) : null;
+    }
+
+    @Override
+    protected void initAdditionData() {
+        super.initAdditionData();
+        Object current = currentSettings();
+        settingsChanged = current != settingsSource;
+        settingsSource = current;
+    }
+
+    @Override
+    protected void containerTick() {
+        super.containerTick();
+        if (currentSettings() != settingsSource) init();
     }
 
     protected void initAdditionWidgets() {

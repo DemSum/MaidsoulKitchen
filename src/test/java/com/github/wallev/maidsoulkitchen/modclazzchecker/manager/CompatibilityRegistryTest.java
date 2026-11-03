@@ -26,7 +26,7 @@ class CompatibilityRegistryTest {
                 .map(TaskInfo::getUidStr)
                 .collect(Collectors.toSet());
 
-        assertEquals(23, manifest.tasks().size());
+        assertEquals(24, manifest.tasks().size());
         assertEquals(expectedTasks, manifest.tasks().keySet());
         for (TaskInfo task : TaskInfo.VALUES) {
             if (task != TaskInfo.NONE) {
