@@ -78,9 +78,14 @@ public class CookConfigGui extends MaidTaskConfigGui<CookConfigContainer> {
 
     private void initCookData() {
         if (initCookData) { selectTask = menu.chooseDevices; initCookData = false; }
-        this.cookTask = TaskCook.resolve(maid).orElse(null);
-        if (cookTask == null) { selectTask = true; cookData = new CookData(); }
-        else this.cookData = cookTask.getTaskData(maid);
+        ICookTask<?, ?> currentTask = TaskCook.resolve(maid).orElse(null);
+        if (currentTask != cookTask) { solIndex = 0; selectTask = menu.chooseDevices; }
+        if (cookData == null || settingsChanged || currentTask != cookTask) {
+            CookData current = currentTask == null ? new CookData() : currentTask.getTaskData(maid);
+            cookData = new CookData(current.mode(), current.whitelistRecs(), current.blacklistRecs());
+        }
+        cookTask = currentTask;
+        if (cookTask == null) selectTask = true;
     }
 
     @SuppressWarnings("all")
@@ -88,7 +93,7 @@ public class CookConfigGui extends MaidTaskConfigGui<CookConfigContainer> {
         this.recipeList.clear();
         String taskSearch = searchBox == null ? "" : searchBox.getValue().toLowerCase(Locale.ROOT);
         cookTaskList = CookTaskManager.getTaskIndex().stream().filter(task -> task.getName().getString().toLowerCase(Locale.ROOT).contains(taskSearch)).toList();
-        if (cookTask == null) return;
+        if (cookTask == null) { solIndex = Math.min(solIndex, pageCount()); return; }
         List<? extends RecipeHolder<?>> recipes;
         Level level = maid.level;
         RegistryAccess registryAccess = level.registryAccess();
@@ -102,6 +107,7 @@ public class CookConfigGui extends MaidTaskConfigGui<CookConfigContainer> {
             recipes =  cookTask.getRecipeHolders(level); // all recipes
         }
         this.recipeList.addAll(recipes);
+        solIndex = Math.min(solIndex, pageCount());
     }
 
     @Override
@@ -166,18 +172,6 @@ public class CookConfigGui extends MaidTaskConfigGui<CookConfigContainer> {
         super.resize(minecraft, width, height);
         String value = this.searchBox.getValue();
         this.searchBox.setValue(value);
-    }
-
-    @Override
-    protected void containerTick() {
-        super.containerTick();
-        // TLM 1.5.3 sends KitchenData after opening the menu. Refresh the upstream device
-        // view when that canonical selection arrives, rather than retaining the idle header.
-        if (TaskCook.resolve(maid).orElse(null) != cookTask) {
-            initCookData = true;
-            solIndex = 0;
-            init();
-        }
     }
 
     @Override

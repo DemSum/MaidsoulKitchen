@@ -12,8 +12,6 @@ public class RegisterConfig {
     public static ModConfigSpec.BooleanValue SERENESEASONS_FARM_TASK_ENABLED;
     public static ModConfigSpec.BooleanValue ECLIPTICSEASONS_FARM_TASK_ENABLED;
 
-    public static ModConfigSpec.BooleanValue FEED_AND_DRINK_OWNER_TASK_ENABLED;
-
     public static ModConfigSpec.BooleanValue FURNACE_TASK_ENABLED;
 
     public static ModConfigSpec.BooleanValue FD_COOK_POT_TASK_ENABLED;
@@ -47,9 +45,6 @@ public class RegisterConfig {
         SERENESEASONS_FARM_TASK_ENABLED = builder.define("SereneSeasonsTaskEnabled", true);
         builder.comment("This can make the eclipticseasons farm task enabled or not.");
         ECLIPTICSEASONS_FARM_TASK_ENABLED = builder.define("EclipticSeasonsTaskEnabled", true);
-
-        builder.comment("This can make the feed and drink owner task enabled or not.");
-        FEED_AND_DRINK_OWNER_TASK_ENABLED = builder.define("FeedAndDrinkOwnerTaskEnabled", true);
 
         builder.comment("This can make the furnace task enabled or not.");
         FURNACE_TASK_ENABLED = builder.define("FurnaceTaskEnabled", true);

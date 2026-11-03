@@ -22,6 +22,7 @@ public final class TaskCook implements ICookTargetTask, IDataTask<KitchenData> {
     @Override public ItemStack getIcon() { return com.github.wallev.maidsoulkitchen.init.MkItems.CULINARY_HUB.get().getDefaultInstance(); }
     @Override public com.github.tartaricacid.touhoulittlemaid.api.entity.data.TaskDataKey<KitchenData> getCookDataKey() { return DataRegister.KITCHEN; }
     @Override public KitchenData getDefaultData() { return new KitchenData(); }
+    @Override public KitchenData getTaskData(EntityMaid maid) { return KitchenData.get(maid); }
     /** Source: 58ec08ec ICookTask.isEnable/getEnableConditionDesc/hasEnoughFavor (MIT).
      * The single visible cooking entry owns the favour gate so TLM 1.5.3's native picker
      * and MaidTaskPackage apply the same lock to every device, including KC and legacy aliases. */
@@ -44,7 +45,6 @@ public final class TaskCook implements ICookTargetTask, IDataTask<KitchenData> {
     public Optional<ICookTask<?, ?>> getTask(EntityMaid maid) { return CookTaskManager.findTask(getTaskData(maid).getCookName()); }
     public IMaidTask getOrIdleTask(EntityMaid maid) {
         return getTask(maid).map(task -> (IMaidTask) task).orElseGet(() -> {
-            getTaskData(maid).setCookName(KitchenData.IDLE);
             com.github.wallev.maidsoulkitchen.task.cook.common.ai.CookTargetMemory.clear(maid);
             return TaskManager.getIdleTask();
         });
@@ -74,13 +74,13 @@ public final class TaskCook implements ICookTargetTask, IDataTask<KitchenData> {
         if (unified == null || !unified.isEnable(maid)) return false;
         var task = CookTaskManager.findTask(uid);
         if (!uid.equals(KitchenData.IDLE) && (task.isEmpty() || !task.get().isEnable(maid))) return false;
-        // TLM 1.5.3 keeps hidden legacy UIDs loadable. An explicit device choice migrates
-        // that entry into upstream TaskCook, retaining its existing canonical/legacy filters.
-        if (current instanceof ICookTask<?, ?> legacy) KitchenData.get(maid, legacy);
         var owner = (com.github.wallev.maidsoulkitchen.entity.passive.IAddonMaid) maid;
         if (owner.tlmk$getCookManager() != null) owner.tlmk$getCookManager().retire();
         owner.tlmk$setCookManager(null);
-        KitchenData.get(maid).setCookName(uid); KitchenData.sync(maid);
+        KitchenData kitchen = KitchenData.get(maid);
+        kitchen.setCookName(uid);
+        if (!uid.equals(KitchenData.IDLE)) kitchen.setCookData(uid, kitchen.getCookData(uid));
+        KitchenData.sync(maid, kitchen);
         if (current == unified) maid.refreshBrain(level);
         else maid.setTask(unified);
         return true;

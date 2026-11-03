@@ -12,8 +12,10 @@ import com.github.wallev.maidsoulkitchen.modclazzchecker.manager.TaskClassAnalyz
 import dev.xkmc.youkaishomecoming.content.pot.ferment.FermentationRecipe;
 import dev.xkmc.youkaishomecoming.content.pot.ferment.FermentationTankBlockEntity;
 import dev.xkmc.youkaishomecoming.init.registrate.YHBlocks;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.Recipe;
 
 /** Source: 58ec08ec TaskYhcFermentationTank.java (MIT), direct Be/FluidRule2/RSM port. Deletes beta native execution; legacy settings migrate once. */
 @TaskClassAnalyzer(TaskInfo.YHC_FERMENTATION_TANK)
@@ -43,5 +45,11 @@ public class TaskYhcFermentationTank extends ICookTask<FermentationTankBlockEnti
     public ItemStack getIcon() {
         return YHBlocks.FERMENT.asStack();
     }
+
+    @Override
+    public ItemStack getResultItem(Recipe<?> recipe, RegistryAccess registryAccess) {
+        return FermentationRecSerializerManager.getDisplayResult(recipe, registryAccess);
+    }
+
     @Override public com.github.tartaricacid.touhoulittlemaid.api.entity.data.TaskDataKey<com.github.wallev.maidsoulkitchen.entity.data.inner.task.CookData> getCookDataKey() { return com.github.wallev.maidsoulkitchen.init.touhoulittlemaid.DataRegister.YHC_FERMENTATION_TANK; }
 }

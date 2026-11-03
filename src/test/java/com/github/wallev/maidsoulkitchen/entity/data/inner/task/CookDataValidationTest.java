@@ -12,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class CookDataValidationTest {
     @Test
     void normalizesUnknownModesAndDuplicateRecipeIds() {
-        assertEquals(CookDataRules.BLACKLIST, CookDataRules.normalizeMode("invalid"));
+        assertEquals(CookDataRules.WHITELIST, CookDataRules.normalizeMode("invalid"));
         assertEquals(List.of("a", "b"), CookDataRules.normalizeRecipes(List.of("a", "a", "b")));
         assertTrue(CookDataRules.isValidMode(CookDataRules.WHITELIST));
         assertFalse(CookDataRules.isValidMode("invalid"));

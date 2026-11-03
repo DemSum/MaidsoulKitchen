@@ -16,6 +16,7 @@ public class BerryData extends FarmData {
 
     public BerryData() {
         this(Lists.newArrayList(BerryHandlerManager.MINECRAFT.getFarmHandler().getUid().toString(),
+                BerryHandlerManager.L2_HARVESTER.getFarmHandler().getUid().toString(),
                 BerryHandlerManager.COMPAT.getFarmHandler().getUid().toString()));
     }
 

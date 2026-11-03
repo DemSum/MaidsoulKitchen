@@ -77,8 +77,6 @@
   "config.maidsoulkitchen.register.serene_seasons_farm_task.tooltip": "This can make the sereneseasons farm task enabled or not.",
   "config.maidsoulkitchen.register.eclipticseasons_farm": "Ecliptic Seasons Farm Task",
   "config.maidsoulkitchen.register.eclipticseasons_farm.tooltip": "This can make the ecliptic seasons farm task enabled or not.",
-  "config.maidsoulkitchen.register.feed_and_drink_task": "Feed And Drink Task",
-  "config.maidsoulkitchen.register.feed_and_drink_task.tooltip": "This can make the feed and drink task enabled or not.",
   "config.maidsoulkitchen.register.furnace_task": "Furnace Task",
   "config.maidsoulkitchen.register.furnace_task.tooltip": "This can make the furnace task enabled or not.",
   "config.maidsoulkitchen.register.fd_cook_pot": "FD Cook Pot Task",
@@ -226,6 +224,9 @@
   "config.maidsoulkitchen.task.experimental": "Experimental features",
   "config.maidsoulkitchen.task.experimental.tooltip": "Enables KC stockpot Flex collection recipes; disabled by default. Experimental feature: enable at your own risk. The server configuration controls multiplayer use.",
   "config.maidsoulkitchen.register.kc_stockpot": "Enable KC stockpot task",
+  "config.maidsoulkitchen.register.kc_steamer": "Enable Kaleidoscope Cookery steamer task",
+  "config.maidsoulkitchen.register.kc_steamer.tooltip": "Enable or disable the steamer maid task; takes effect after restart",
+  "chat_bubble.maidsoulkitchen.settings.old_work_stopped": "Old work settings cannot be continued. Switched to idle; please configure the task again.",
   "config.maidsoulkitchen.register.kc_stockpot.tooltip": "Register the Kaleidoscope Cookery stockpot maid task",
   "task.maidsoulkitchen.kaleidoscope_steamer.desc": "The maid loads ingredients into prepared steamers and collects finished food",
 
@@ -254,7 +255,9 @@
   "rule.berry.maidsoulkitchen.berry_vinery": "Vinery",
   "rule.berry.maidsoulkitchen.berry_vinery.desc": "The maid will take the initiative to collect the various grapes that are fragrant from the surrounding viney",
   "rule.berry.maidsoulkitchen.berry_compat": "Compat",
-  "rule.berry.maidsoulkitchen.berry_compat.desc": "The maid will try to gather various berries around here",
+  "rule.berry.maidsoulkitchen.berry_l2_harvester": "L2 Harvesting",
+  "rule.berry.maidsoulkitchen.berry_l2_harvester.desc": "Harvest crops supported by the L2 harvesting API",
+  "rule.berry.maidsoulkitchen.berry_compat.desc": "Harvest mature sweet berries and cave vines bearing glow berries",
   "rule.fruit.maidsoulkitchen.fruit_fruit_stack": "Fruit Stack",
   "rule.fruit.maidsoulkitchen.fruit_fruit_stack.desc": "The maid will take the initiative to pick a variety of fruits from the surrounding fruit stack",
   "rule.fruit.maidsoulkitchen.fruit_simple_farming": "简单农业",
@@ -262,7 +265,7 @@
   "rule.fruit.maidsoulkitchen.fruit_vinery": "Vinery",
   "rule.fruit.maidsoulkitchen.fruit_vinery.desc": "The maid will take the initiative to pick a variety of fruits from the surrounding vinery",
   "rule.fruit.maidsoulkitchen.fruit_compat": "Compat",
-  "rule.fruit.maidsoulkitchen.fruit_compat.desc": "The maid will try to pick various fruits around here",
+  "rule.fruit.maidsoulkitchen.fruit_compat.desc": "Harvest mature sweet berries and cave vines bearing glow berries",
 
 
   "gui.maidsoulkitchen.btn.task_setting": "Task Setting",

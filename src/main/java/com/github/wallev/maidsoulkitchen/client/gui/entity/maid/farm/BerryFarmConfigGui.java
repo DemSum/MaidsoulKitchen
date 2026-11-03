@@ -58,7 +58,8 @@ public class BerryFarmConfigGui extends MaidTaskConfigGui<BerryFarmConfigContain
                 .map(IFarmHandlerManager::getFarmHandler)
                 .filter(ICompatFarmHandler::canLoad)
                 .toList();
-        this.farmTaskInfo = ((TaskBerryFarm) task).getTaskData(maid);
+        if (farmTaskInfo == null || settingsChanged)
+            farmTaskInfo = new BerryData(((TaskBerryFarm) task).getTaskData(maid).rules());
     }
 
     @Override

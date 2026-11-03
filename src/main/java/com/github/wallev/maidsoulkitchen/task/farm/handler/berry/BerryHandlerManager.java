@@ -3,18 +3,21 @@ package com.github.wallev.maidsoulkitchen.task.farm.handler.berry;
 
 import com.github.wallev.maidsoulkitchen.task.farm.handler.IFarmHandlerManager;
 
+import java.util.function.Supplier;
+
 public enum BerryHandlerManager implements IFarmHandlerManager<BerryHandler> {
 
-    MINECRAFT(new VanillaBerryHandler()),
-    COMPAT(new CompatBerryHandler());
+    MINECRAFT(VanillaBerryHandler::new),
+    L2_HARVESTER(L2BerryHandler::new),
+    COMPAT(CompatBerryHandler::new);
 
-    private final BerryHandler berryHandler;
+    private final Supplier<BerryHandler> handlerFactory;
 
-    BerryHandlerManager(BerryHandler berryHandler) {
-        this.berryHandler = berryHandler;
+    BerryHandlerManager(Supplier<BerryHandler> handlerFactory) {
+        this.handlerFactory = handlerFactory;
     }
 
     public BerryHandler getFarmHandler() {
-        return berryHandler;
+        return handlerFactory.get();
     }
 }

@@ -2,8 +2,9 @@ package com.github.wallev.maidsoulkitchen.network.message;
 
 
 import com.github.wallev.maidsoulkitchen.entity.data.inner.task.BerryData;
-import com.github.tartaricacid.touhoulittlemaid.api.entity.data.TaskDataKey;
-import com.github.tartaricacid.touhoulittlemaid.entity.data.TaskDataRegister;
+import com.github.wallev.maidsoulkitchen.init.touhoulittlemaid.DataRegister;
+import com.github.wallev.maidsoulkitchen.task.farm.TaskBerryFarm;
+import com.github.wallev.maidsoulkitchen.task.farm.handler.berry.BerryHandlerManager;
 import com.github.tartaricacid.touhoulittlemaid.entity.passive.EntityMaid;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
@@ -41,11 +42,16 @@ public record ActionBerryFarmRuleC2SPackage(int entityId, ResourceLocation dataK
             context.enqueueWork(() -> {
                 ServerPlayer sender = (ServerPlayer) context.player();
                 Entity entity = sender.level.getEntity(message.entityId);
-                if (entity instanceof EntityMaid maid && maid.isOwnedBy(sender)) {
-                    TaskDataKey<BerryData> value = TaskDataRegister.getValue(message.dataKey);
-                    BerryData fruitData = maid.getOrCreateData(value, new BerryData());
-                    fruitData.addOrRemoveRule(message.rec);
-                    maid.setAndSyncData(value, fruitData);
+                if (entity instanceof EntityMaid maid && maid.isOwnedBy(sender)
+                        && maid.getTask() instanceof TaskBerryFarm
+                        && DataRegister.BERRY_FARM.getKey().equals(message.dataKey)
+                        && sender.containerMenu instanceof com.github.wallev.maidsoulkitchen.inventory.container.maid.BerryFarmConfigContainer menu
+                        && menu.getMaid() == maid && menu.stillValid(sender)
+                        && java.util.Arrays.stream(BerryHandlerManager.values()).map(BerryHandlerManager::getFarmHandler)
+                        .anyMatch(handler -> handler.canLoad() && handler.getUid().toString().equals(message.rec))) {
+                    BerryData berryData = new BerryData(((TaskBerryFarm) maid.getTask()).getTaskData(maid).rules());
+                    berryData.addOrRemoveRule(message.rec);
+                    maid.setAndSyncData(DataRegister.BERRY_FARM, berryData);
                 }
             });
         }

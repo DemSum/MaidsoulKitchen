@@ -19,7 +19,7 @@ public final class CookDataRules {
     }
 
     public static String normalizeMode(String mode) {
-        return isValidMode(mode) ? mode : BLACKLIST;
+        return isValidMode(mode) ? mode : WHITELIST;
     }
 
     public static List<String> normalizeRecipes(List<String> recipes) {

@@ -23,6 +23,26 @@ public abstract class EntityMaidMixin extends TamableAnimal implements CrossbowA
     @org.spongepowered.asm.mixin.Unique
     private com.github.wallev.maidsoulkitchen.task.cook.common.manager.MaidCookManager<?> tlmk$cookManager;
 
+    @org.spongepowered.asm.mixin.Unique
+    private boolean tlmk$oldWorkStopped;
+
+    @org.spongepowered.asm.mixin.injection.Inject(method = "readAdditionalSaveData", at = @org.spongepowered.asm.mixin.injection.At("HEAD"))
+    private void tlmk$readWorkSettings(net.minecraft.nbt.CompoundTag tag,
+                                      org.spongepowered.asm.mixin.injection.callback.CallbackInfo ci) {
+        tlmk$oldWorkStopped = com.github.wallev.maidsoulkitchen.entity.data.inner.task.KitchenData.prepareSavedData(tag);
+    }
+
+    @org.spongepowered.asm.mixin.injection.Inject(method = "readAdditionalSaveData", at = @org.spongepowered.asm.mixin.injection.At("TAIL"))
+    private void tlmk$reportStoppedWork(net.minecraft.nbt.CompoundTag tag,
+                                      org.spongepowered.asm.mixin.injection.callback.CallbackInfo ci) {
+        if (tlmk$oldWorkStopped && !level().isClientSide) {
+            ((EntityMaid) (Object) this).getChatBubbleManager().addChatBubble(
+                    com.github.tartaricacid.touhoulittlemaid.entity.chatbubble.implement.TextChatBubbleData.type2(
+                            net.minecraft.network.chat.Component.translatable("chat_bubble.maidsoulkitchen.settings.old_work_stopped")));
+            tlmk$oldWorkStopped = false;
+        }
+    }
+
     @Override public com.github.wallev.maidsoulkitchen.task.cook.common.manager.MaidCookManager<?> tlmk$getCookManager() { return tlmk$cookManager; }
     @Override public void tlmk$setCookManager(com.github.wallev.maidsoulkitchen.task.cook.common.manager.MaidCookManager<?> manager) { tlmk$cookManager = manager; }
     /** Source task/Rule stop boundary. TLM replaces its brain without exposing the outgoing

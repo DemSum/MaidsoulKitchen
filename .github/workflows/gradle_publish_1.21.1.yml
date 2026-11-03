@@ -7,16 +7,18 @@ on:
       - "1.21.1"
     paths:
       - 'src/main/**'
+      - 'CHANGELOG.md'
+      - '.github/workflows/gradle_publish_1.21.1.yml'
 
 jobs:
   build:
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-        with:
-          ref: "1.21.1"
 
       - name: Set up JDK 21
         uses: actions/setup-java@v2
@@ -43,14 +45,15 @@ jobs:
 
       - name: Create timestamp
         id: create_timestamp
-        run: echo "::set-output name=timestamp::$(date '+%Y%m%d%H%M%s')"
+        run: echo "timestamp=$(date -u '+%Y%m%d%H%M%S')" >> "$GITHUB_OUTPUT"
         shell: bash
 
       - name: Send file to Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: 1.21-snapshot-${{ steps.create_timestamp.outputs.timestamp }}
-          body: ${{ github.event.head_commit.message }}
+          target_commitish: ${{ github.sha }}
+          body_path: CHANGELOG.md
           draft: false
           prerelease: true
           files: |

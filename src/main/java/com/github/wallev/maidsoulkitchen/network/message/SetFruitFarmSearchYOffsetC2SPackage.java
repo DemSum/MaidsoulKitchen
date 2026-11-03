@@ -1,8 +1,8 @@
 package com.github.wallev.maidsoulkitchen.network.message;
 
 import com.github.wallev.maidsoulkitchen.entity.data.inner.task.FruitData;
-import com.github.tartaricacid.touhoulittlemaid.api.entity.data.TaskDataKey;
-import com.github.tartaricacid.touhoulittlemaid.entity.data.TaskDataRegister;
+import com.github.wallev.maidsoulkitchen.init.touhoulittlemaid.DataRegister;
+import com.github.wallev.maidsoulkitchen.task.farm.TaskFruitFarm;
 import com.github.tartaricacid.touhoulittlemaid.entity.passive.EntityMaid;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
@@ -16,7 +16,8 @@ import org.jetbrains.annotations.NotNull;
 
 import static com.github.tartaricacid.touhoulittlemaid.util.ResourceLocationUtil.getResourceLocation;
 
-public record SetFruitFarmSearchYOffsetC2SPackage(int entityId, ResourceLocation dataKey, int searchYOffset) implements CustomPacketPayload {
+/** Signed button step, applied to server data rather than a stale client offset. */
+public record SetFruitFarmSearchYOffsetC2SPackage(int entityId, ResourceLocation dataKey, int delta) implements CustomPacketPayload {
 
     public static final CustomPacketPayload.Type<SetFruitFarmSearchYOffsetC2SPackage> TYPE = new CustomPacketPayload.Type<>(getResourceLocation("set_fruit_farm_search_y_offset_c2s"));
     public static final StreamCodec<ByteBuf, SetFruitFarmSearchYOffsetC2SPackage> STREAM_CODEC = StreamCodec.composite(
@@ -25,7 +26,7 @@ public record SetFruitFarmSearchYOffsetC2SPackage(int entityId, ResourceLocation
             ResourceLocation.STREAM_CODEC,
             SetFruitFarmSearchYOffsetC2SPackage::dataKey,
             ByteBufCodecs.VAR_INT,
-            SetFruitFarmSearchYOffsetC2SPackage::searchYOffset,
+            SetFruitFarmSearchYOffsetC2SPackage::delta,
             SetFruitFarmSearchYOffsetC2SPackage::new
     );
 
@@ -39,11 +40,16 @@ public record SetFruitFarmSearchYOffsetC2SPackage(int entityId, ResourceLocation
             context.enqueueWork(() -> {
                 ServerPlayer sender = (ServerPlayer) context.player();
                 Entity entity = sender.level.getEntity(message.entityId);
-                if (entity instanceof EntityMaid maid && maid.isOwnedBy(sender)) {
-                    TaskDataKey<FruitData> value = TaskDataRegister.getValue(message.dataKey);
-                    FruitData fruitData = maid.getOrCreateData(value, new FruitData());
-                    fruitData.setSearchYOffset(message.searchYOffset);
-                    maid.setAndSyncData(value, fruitData);
+                if (entity instanceof EntityMaid maid && maid.isOwnedBy(sender)
+                        && maid.getTask() instanceof TaskFruitFarm task
+                        && DataRegister.FRUIT_FARM.getKey().equals(message.dataKey)
+                        && (message.delta == -1 || message.delta == 1)
+                        && sender.containerMenu instanceof com.github.wallev.maidsoulkitchen.inventory.container.maid.FruitFarmConfigContainer menu
+                        && menu.getMaid() == maid && menu.stillValid(sender)) {
+                    FruitData current = task.getTaskData(maid);
+                    FruitData fruitData = new FruitData(current.searchYOffset(), current.rules());
+                    fruitData.setSearchYOffset(current.searchYOffset() + message.delta);
+                    maid.setAndSyncData(DataRegister.FRUIT_FARM, fruitData);
                 }
             });
         }

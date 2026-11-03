@@ -27,6 +27,7 @@ import net.neoforged.neoforge.fluids.capability.IFluidHandlerItem;
 import net.neoforged.neoforge.fluids.capability.wrappers.FluidBucketWrapper;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.item.crafting.RecipeHolder;
+import net.minecraft.world.item.crafting.Recipe;
 
 import java.util.*;
 
@@ -185,6 +186,20 @@ public class FermentationRecSerializerManager extends FluidRecSerializerManager<
         this.recipes = mkRecipes;
     }
 
+    static ItemStack getDisplayResult(Recipe<?> recipe, RegistryAccess registryAccess) {
+        if (recipe instanceof SimpleFermentationRecipe fermentationRecipe) {
+            if (fermentationRecipe.outputFluid.getFluid() instanceof SakeFluid sakeFluid) {
+                return sakeFluid.type.asStack(1);
+            }
+            for (ItemStack result : fermentationRecipe.results) {
+                if (!result.isEmpty()) {
+                    return result.copy();
+                }
+            }
+        }
+        return recipe.getResultItem(registryAccess).copy();
+    }
+
     public static class FermentationRecipeMKRecipe extends FluidRecipeInfoProvider<FermentationRecipe<?>> {
 
         @Override
@@ -195,19 +210,7 @@ public class FermentationRecSerializerManager extends FluidRecSerializerManager<
 
         @Override
         public ItemStack getOutput(RecSerializerManager<FermentationRecipe<?>> rsm, FermentationRecipe<?> rec) {
-            SimpleFermentationRecipe sFermentationRecipe = (SimpleFermentationRecipe) rec;
-            FluidStack outputFluid = sFermentationRecipe.outputFluid;
-            Fluid fluid = outputFluid.getFluid();
-            if (fluid instanceof SakeFluid sakeFluid) {
-                return sakeFluid.type.asStack(1);
-            } else {
-                for (ItemStack result : sFermentationRecipe.results) {
-                    if (!result.isEmpty()) {
-                        return result;
-                    }
-                }
-                return rec.getResultItem(((FermentationRecSerializerManager) rsm).registryAccess);
-            }
+            return getDisplayResult(rec, ((FermentationRecSerializerManager) rsm).registryAccess);
         }
 
         @Override

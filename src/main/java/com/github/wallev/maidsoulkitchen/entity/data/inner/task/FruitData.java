@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.function.Function;
 
 public class FruitData extends FarmData{
+    public static final int MIN_SEARCH_Y_OFFSET = -5;
+    public static final int MAX_SEARCH_Y_OFFSET = 5;
     public static final Codec<List<String>> LIST_CODEC = Codec.STRING.listOf().xmap(Lists::newArrayList, Function.identity());
     public static final Codec<FruitData> CODEC = RecordCodecBuilder.create(instance -> instance.group(
             Codec.INT.fieldOf("SearchYOffset").forGetter(FruitData::searchYOffset),
@@ -22,7 +24,7 @@ public class FruitData extends FarmData{
 
     public FruitData(int searchYOffset, List<String> rules) {
         super(rules);
-        this.searchYOffset = searchYOffset;
+        setSearchYOffset(searchYOffset);
     }
 
     public int searchYOffset() {
@@ -30,7 +32,7 @@ public class FruitData extends FarmData{
     }
 
     public void setSearchYOffset(int searchYOffset) {
-        this.searchYOffset = searchYOffset;
+        this.searchYOffset = Math.max(MIN_SEARCH_Y_OFFSET, Math.min(MAX_SEARCH_Y_OFFSET, searchYOffset));
     }
 
     public void increaseYOffset() {

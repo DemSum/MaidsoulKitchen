@@ -40,6 +40,7 @@ public enum Mods {
 
 
     SF("simplefarming"),
+    L2_HARVESTER("l2harvester"),
     FS("fruitstack"),
 
     /*

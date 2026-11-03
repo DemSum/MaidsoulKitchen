@@ -3,6 +3,7 @@ package com.github.wallev.maidsoulkitchen.task.cook.kaleidoscopecookery;
 import com.github.tartaricacid.touhoulittlemaid.entity.passive.EntityMaid;
 import com.github.wallev.maidsoulkitchen.api.task.cook.ICookTask;
 import com.github.wallev.maidsoulkitchen.task.cook.common.cook.be.CookBeBase;
+import com.github.wallev.maidsoulkitchen.task.cook.common.inventory.CookInventoryTransactions;
 import com.github.wallev.maidsoulkitchen.task.cook.common.manager.MaidCookManager;
 import com.github.wallev.maidsoulkitchen.task.cook.common.rule.rec.MaidRec;
 import com.github.wallev.maidsoulkitchen.task.cook.common.rule.rec.mkrec.MKRecipe;
@@ -34,6 +35,16 @@ public final class MaidStockpotCookManager extends MaidCookManager<Recipe<Stockp
             allowFlex = current; invalidate(); requestPlanningRefresh();
             recsGenerate.setRecs(getValidRecipesFor(rsm.getRecipes(level)));
         }
+        // Stage the real held lid before planning; native actions must keep borrowing an isolated hand.
+        if (maidRecs.isEmpty() && StockpotAdapter.isLid(maid.getMainHandItem()) && getItem(StockpotAdapter::isLid).isFail()
+                && getRecs().stream().map(recipe -> ((StockpotRecSerializerManager.DeviceRecipe) recipe).device)
+                        .anyMatch(device -> !device.hasLid() && device.hasHeatSource(level))) {
+            var receipt = CookInventoryTransactions.transfer(maid.getHandsInvWrapper(), 0, getInputInv(), 1, StockpotAdapter::isLid);
+            CookInventoryTransactions.returnOrDrop(maid.getAvailableBackpackInv(), receipt.remainder(), maid);
+            if (receipt.inserted() > 0) {
+                syncInv(); requestPlanningRefresh();
+            }
+        }
         return true;
     }
     @Override protected List<MKRecipe<Recipe<StockpotInput>>> getValidRecipesFor(List<MKRecipe<Recipe<StockpotInput>>> recipes) {
@@ -57,7 +68,7 @@ public final class MaidStockpotCookManager extends MaidCookManager<Recipe<Stockp
             int status = device.getStatus();
             // KC advances a fully supplied, covered pot to COOKING on its next native block
             // tick. An accepted-work event may arrive earlier; do not plan its inputs again.
-            if (device.hasLid() && rsm.hasAllowedCompletion(StockpotAdapter.inspect(device, level).orElseThrow(), level, settings)) continue;
+            if (device.hasLid() && rsm.permitsCompleted(StockpotAdapter.inspect(device, level).orElseThrow(), level, settings)) continue;
             if (status == com.github.ysbbbbbb.kaleidoscopecookery.api.blockentity.IStockpot.PUT_SOUP_BASE
                     || status == com.github.ysbbbbbb.kaleidoscopecookery.api.blockentity.IStockpot.PUT_INGREDIENT)
                 result.addAll(rsm.forDevice(device, level, settings, this::reportPlanningRequirement));

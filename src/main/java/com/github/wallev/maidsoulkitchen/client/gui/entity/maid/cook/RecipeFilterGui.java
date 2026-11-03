@@ -71,9 +71,9 @@ public abstract class RecipeFilterGui<M extends TaskConfigContainer> extends Mai
                             .toLowerCase(Locale.ROOT).contains(search))
                     .toList();
         }
-        if (filterData == null) filterData = readFilter();
+        if (filterData == null || settingsChanged) filterData = readFilter();
         recipeButtons.clear();
-        page = 0;
+        page = Math.min(page, maxPage());
     }
 
     @Override
@@ -294,13 +294,22 @@ public abstract class RecipeFilterGui<M extends TaskConfigContainer> extends Mai
 
     private void toggleMode() {
         filterData = filterData.withMode(filterData.mode().next());
-        syncFilter();
+        com.github.wallev.maidsoulkitchen.network.NetworkHandler.sendToServer(
+                new com.github.wallev.maidsoulkitchen.network.message.SetCookDataC2SPackage(
+                        maid.getId(), getCookTaskUid(), filterData.mode().name().toLowerCase(Locale.ROOT)));
         rebuildRecipeButtons();
     }
 
     private void toggleRecipe(RecipeOption recipe) {
+        RecipeFilterData previous = filterData;
         filterData = recipe.toggle(filterData);
-        syncFilter();
+        for (ResourceLocation id : recipe.recipeIds()) {
+            if (previous.contains(id) != filterData.contains(id))
+                com.github.wallev.maidsoulkitchen.network.NetworkHandler.sendToServer(
+                        new com.github.wallev.maidsoulkitchen.network.message.ActionCookDataRecC2SPackage(
+                                maid.getId(), getCookTaskUid(), id.toString(),
+                                filterData.mode().name().toLowerCase(Locale.ROOT)));
+        }
         rebuildRecipeButtons();
     }
 
@@ -308,7 +317,6 @@ public abstract class RecipeFilterGui<M extends TaskConfigContainer> extends Mai
     /** KC menu identity, a display boundary only; work and filters remain in KitchenData. */
     protected abstract ResourceLocation getCookTaskUid();
     protected abstract RecipeFilterData readFilter();
-    protected abstract void syncFilter();
 
     private void changePage(int change) {
         int changed = Mth.clamp(page + change, 0, maxPage());

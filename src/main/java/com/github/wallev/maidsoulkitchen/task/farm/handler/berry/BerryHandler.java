@@ -11,24 +11,11 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
 
-import java.util.HashSet;
-import java.util.Set;
 import java.util.function.Predicate;
 
 public abstract class BerryHandler implements ICompatFarmHandler, IHandlerInfo {
-    private static final Set<BerryHandler> berryHandlers = new HashSet<>();
-
     // 下一级处理者
     private BerryHandler nextHandler;
-
-    // todo
-    protected BerryHandler() {
-        berryHandlers.add(this);
-    }
-
-    public static Set<BerryHandler> getBerryHandlers() {
-        return berryHandlers;
-    }
 
     @Override
     public void setNextHandler(ICompatFarmHandler nextHandler) {

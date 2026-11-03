@@ -64,6 +64,8 @@ public enum TaskInfo {
             () -> RegisterConfig.BERRY_FARM_TASK_ENABLED.get()),
     BERRY_COMPAT("berry_compat", Mods.MC,
             () -> RegisterConfig.BERRY_FARM_TASK_ENABLED.get()),
+    BERRY_L2_HARVESTER("berry_l2_harvester", Mods.L2_HARVESTER,
+            () -> RegisterConfig.BERRY_FARM_TASK_ENABLED.get()),
     FRUIT_COMPAT("fruit_compat", Mods.MC,
             () -> RegisterConfig.FRUIT_FARM_TASK_ENABLED.get());
 

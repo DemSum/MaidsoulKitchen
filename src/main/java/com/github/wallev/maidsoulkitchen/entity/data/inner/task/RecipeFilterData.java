@@ -60,7 +60,11 @@ public record RecipeFilterData(Mode mode, List<ResourceLocation> whitelist, List
         WHITELIST,
         BLACKLIST;
 
-        private static final Codec<Mode> CODEC = Codec.STRING.xmap(Mode::fromName, Mode::serializedName);
+        private static final Codec<Mode> CODEC = Codec.STRING.validate(name ->
+                "whitelist".equalsIgnoreCase(name) || "blacklist".equalsIgnoreCase(name)
+                        ? com.mojang.serialization.DataResult.success(name)
+                        : com.mojang.serialization.DataResult.error(() -> "Invalid cooking filter mode"))
+                .xmap(Mode::fromName, Mode::serializedName);
 
         public Mode next() {
             return this == WHITELIST ? BLACKLIST : WHITELIST;

@@ -7,15 +7,15 @@ public abstract class FarmData implements ITaskData{
     protected List<String> rules;
 
     public FarmData(List<String> rules) {
-        this.rules = rules;
+        this.rules = CookDataRules.normalizeRecipes(rules);
     }
 
     protected void setRules(List<String> rules) {
-        this.rules = rules;
+        this.rules = CookDataRules.normalizeRecipes(rules);
     }
 
     public List<String> rules() {
-        return rules;
+        return java.util.Collections.unmodifiableList(rules);
     }
 
     public void addRule(String rule) {

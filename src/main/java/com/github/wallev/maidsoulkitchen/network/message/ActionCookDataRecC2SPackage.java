@@ -50,9 +50,8 @@ public record ActionCookDataRecC2SPackage(int entityId, ResourceLocation dataKey
                         && cookTask != null
                         && cookTask.getUid().equals(message.dataKey)
                         && cookTask.getRecipeHolders(maid.level).stream().anyMatch(holder -> holder.id().equals(recipeId))) {
-                    CookData cookData = cookTask.getTaskData(maid);
-                    cookData.addOrRemoveRec(message.rec, message.mode);
-                    com.github.wallev.maidsoulkitchen.entity.data.inner.task.KitchenData.sync(maid);
+                    com.github.wallev.maidsoulkitchen.entity.data.inner.task.KitchenData.edit(
+                            maid, cookTask.getUid(), data -> data.addOrRemoveRec(message.rec, message.mode));
                 }
             });
         }
